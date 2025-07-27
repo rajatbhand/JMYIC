@@ -1,7 +1,8 @@
 // Entry point for Render deployment
 // This file starts the backend server
-const path = require('path');
-const backendServer = require('./backend/server.js');
+console.log('Starting Judge Me If You Can backend server...');
 
-// The backend server should start automatically when required
-console.log('Root server.js loaded - backend should be running'); 
+// Import and start the backend server
+require('./backend/server.js');
+
+console.log('Backend server should now be running'); 
