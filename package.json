@@ -2,13 +2,13 @@
   "name": "judge-me-if-you-can",
   "version": "1.0.0",
   "description": "Judge Me If You Can Game Show Management System",
-  "main": "backend/server.js",
+  "main": "server.js",
   "scripts": {
-    "start": "cd backend && npm start",
-    "dev": "cd backend && npm run dev",
+    "start": "node server.js",
+    "dev": "node server.js",
     "install-backend": "cd backend && npm install",
     "install-frontend": "cd frontend && npm install",
-    "build": "cd backend && npm install",
+    "build": "npm install",
     "postinstall": "cd backend && npm install"
   },
   "keywords": ["game-show", "socket.io", "react", "express"],
@@ -16,5 +16,10 @@
   "license": "MIT",
   "engines": {
     "node": ">=16.0.0"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.4",
+    "cors": "^2.8.5"
   }
 } 

@@ -2,6 +2,9 @@ services:
   - type: web
     name: jmyic-backend
     env: node
-    buildCommand: cd backend && npm install
-    startCommand: cd backend && npm start
-    plan: free 
+    buildCommand: npm install
+    startCommand: node server.js
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production 
