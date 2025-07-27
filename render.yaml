@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: jmyic-backend
+    env: node
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    plan: free 

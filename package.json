@@ -7,9 +7,14 @@
     "start": "cd backend && npm start",
     "dev": "cd backend && npm run dev",
     "install-backend": "cd backend && npm install",
-    "install-frontend": "cd frontend && npm install"
+    "install-frontend": "cd frontend && npm install",
+    "build": "cd backend && npm install",
+    "postinstall": "cd backend && npm install"
   },
   "keywords": ["game-show", "socket.io", "react", "express"],
   "author": "Rajat Bhand",
-  "license": "MIT"
+  "license": "MIT",
+  "engines": {
+    "node": ">=16.0.0"
+  }
 } 
