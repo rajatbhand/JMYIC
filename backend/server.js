@@ -9,7 +9,11 @@ app.use(cors({
   origin: [
     'http://localhost:3000',
     'https://frontend-jnga101ir-rajatbhands-projects.vercel.app',
-    'https://*.vercel.app'
+    'https://frontend-pied-six-96.vercel.app',
+    'https://*.vercel.app',
+    'https://*.onrender.com',
+    /^https:\/\/.*\.vercel\.app$/,
+    /^https:\/\/.*\.onrender\.com$/
   ],
   credentials: true
 }));
@@ -20,7 +24,11 @@ const io = new Server(server, {
     origin: [
       'http://localhost:3000',
       'https://frontend-jnga101ir-rajatbhands-projects.vercel.app',
-      'https://*.vercel.app'
+      'https://frontend-pied-six-96.vercel.app',
+      'https://*.vercel.app',
+      'https://*.onrender.com',
+      /^https:\/\/.*\.vercel\.app$/,
+      /^https:\/\/.*\.onrender\.com$/
     ],
     methods: ['GET', 'POST'],
     credentials: true
