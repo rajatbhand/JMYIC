@@ -23,23 +23,7 @@ function App() {
     };
   }, []);
 
-  // Timer logic synced with backend (unchanged)
-  useEffect(() => {
-    if (!gameState || !gameState.firstImpressions) return;
-    if (gameState.firstImpressions.timerRunning) {
-      timerRef.current = setInterval(() => {
-        if (gameState.firstImpressions.timer > 0) {
-          socket.emit('set_first_impressions_timer', gameState.firstImpressions.timer - 1);
-        } else {
-          socket.emit('set_first_impressions_timer_running', false);
-        }
-      }, 1000);
-    } else if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
-    return () => clearInterval(timerRef.current);
-    // eslint-disable-next-line
-  }, [gameState && gameState.firstImpressions && gameState.firstImpressions.timerRunning, gameState && gameState.firstImpressions && gameState.firstImpressions.timer]);
+
 
   // Handlers for Main Game
   const handlePanelGuess = (guess) => setPanelGuess(guess);
@@ -62,26 +46,7 @@ function App() {
     }
   };
   const handleLockInput = (e) => setLockInput(e.target.value);
-  const handleAdvanceToMainGame = () => {
-    socket.emit('advance_round', { round: 'main_game' });
-  };
 
-  // Handlers for First Impressions
-  const handleAdvanceStage = (nextStage) => {
-    socket.emit('set_first_impressions_stage', nextStage);
-  };
-  const handleStartTimer = () => {
-    socket.emit('set_first_impressions_timer_running', true);
-  };
-  const handlePauseTimer = () => {
-    socket.emit('set_first_impressions_timer_running', false);
-  };
-  const handleResetTimer = () => {
-    socket.emit('set_first_impressions_timer', 150);
-    socket.emit('set_first_impressions_timer_running', false);
-  };
-
-  const formatTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
 
   // Main Game UI
   const renderMainGame = () => {
@@ -253,25 +218,6 @@ function App() {
       {gameState ? (
         <div>
           <h2>Current Round: {gameState.round}</h2>
-          {gameState.round === 'first_impressions' && gameState.firstImpressions && (
-            <div style={{ marginTop: 24 }}>
-              <h3>Round 1: First Impressions</h3>
-              <div style={{ marginBottom: 16 }}>
-                <button disabled={gameState.firstImpressions.stage !== 'panel_intro'} onClick={() => handleAdvanceStage('guest_arrives')}>Panel Introduction</button>{' '}
-                <button disabled={gameState.firstImpressions.stage !== 'guest_arrives'} onClick={() => handleAdvanceStage('timer')}>Guest Arrives</button>{' '}
-                <button disabled={gameState.firstImpressions.stage !== 'timer'} onClick={handleStartTimer}>Start 2.5-Minute Timer</button>
-              </div>
-              {gameState.firstImpressions.stage === 'timer' && (
-                <div style={{ marginBottom: 16 }}>
-                  <div style={{ fontSize: 32, fontWeight: 'bold' }}>{formatTime(gameState.firstImpressions.timer)}</div>
-                  <button onClick={handlePauseTimer} disabled={!gameState.firstImpressions.timerRunning}>Pause</button>{' '}
-                  <button onClick={handleStartTimer} disabled={gameState.firstImpressions.timerRunning || gameState.firstImpressions.timer === 0}>Resume</button>{' '}
-                  <button onClick={handleResetTimer}>Reset</button>
-                </div>
-              )}
-              <button style={{ marginTop: 16 }} onClick={handleAdvanceToMainGame}>Advance to Main Game</button>
-            </div>
-          )}
           {gameState.round === 'main_game' && renderMainGame()}
         </div>
       ) : (

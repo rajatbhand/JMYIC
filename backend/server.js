@@ -37,7 +37,7 @@ const io = new Server(server, {
 
 // Placeholder for game state
 let gameState = {
-  round: 'first_impressions', // 'main_game', 'final_gamble'
+  round: 'main_game', // 'main_game', 'final_gamble'
   questionIndex: 0,
   lock: {
     placed: false,
@@ -56,11 +56,6 @@ let gameState = {
   },
   panelGuesses: [],
   guestAnswers: [],
-  firstImpressions: {
-    stage: 'panel_intro', // 'panel_intro', 'guest_arrives', 'timer'
-    timer: 150,
-    timerRunning: false
-  },
   questions: [
     { text: 'What is the guest\'s favorite color?', options: ['Red', 'Blue', 'Green', 'Yellow'], guestAnswer: 'Blue' },
     { text: 'Which city would the guest most like to visit?', options: ['Paris', 'Tokyo', 'New York', 'Sydney'], guestAnswer: 'Tokyo' },
@@ -107,11 +102,6 @@ io.on('connection', (socket) => {
         answer: '',
         attempts: [],
         result: null
-      };
-      gameState.firstImpressions = {
-        stage: 'panel_intro',
-        timer: 150,
-        timerRunning: false
       };
     }
     broadcastState();
@@ -295,36 +285,13 @@ io.on('connection', (socket) => {
     broadcastState();
   });
 
-  socket.on('set_first_impressions_stage', (stage) => {
-    if (!['panel_intro', 'guest_arrives', 'timer'].includes(stage)) {
-      socket.emit('error', { message: 'Invalid first impressions stage.' });
-      return;
-    }
-    gameState.firstImpressions.stage = stage;
-    broadcastState();
-  });
-  socket.on('set_first_impressions_timer', (timer) => {
-    if (typeof timer !== 'number' || timer < 0 || timer > 150) {
-      socket.emit('error', { message: 'Invalid timer value.' });
-      return;
-    }
-    gameState.firstImpressions.timer = timer;
-    broadcastState();
-  });
-  socket.on('set_first_impressions_timer_running', (running) => {
-    if (typeof running !== 'boolean') {
-      socket.emit('error', { message: 'Invalid timer running value.' });
-      return;
-    }
-    gameState.firstImpressions.timerRunning = running;
-    broadcastState();
-  });
+
 
   socket.on('reset_game', () => {
     console.log('Game reset to initial state.');
     // Reset the game to initial state
     gameState = {
-      round: 'first_impressions',
+      round: 'main_game',
       questionIndex: 0,
       lock: { placed: false, question: null, shifted: false },
       correctCount: 0,
@@ -339,11 +306,6 @@ io.on('connection', (socket) => {
       },
       panelGuesses: [],
       guestAnswers: [],
-      firstImpressions: {
-        stage: 'panel_intro',
-        timer: 150,
-        timerRunning: false
-      },
       questions: [
         { text: 'What is the guest\'s favorite color?', options: ['Red', 'Blue', 'Green', 'Yellow'], guestAnswer: 'Blue' },
         { text: 'Which city would the guest most like to visit?', options: ['Paris', 'Tokyo', 'New York', 'Sydney'], guestAnswer: 'Tokyo' },

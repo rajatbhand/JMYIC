@@ -9222,3 +9222,15 @@ Let me know if the sync starts working or if you need help with the manual conte
 
 ---
 
+_**User**_
+
+I dont want the first 3 steps which is panel intro, guest intro and the 2.5 mins timer, we can directly go to the main game 
+
+---
+
+_**Assistant**_
+
+
+
+---
+

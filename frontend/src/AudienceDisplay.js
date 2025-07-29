@@ -13,7 +13,7 @@ function AudienceDisplay() {
     };
   }, []);
 
-  const formatTime = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`;
+
 
   const renderMainGame = () => {
     const qIdx = gameState.questionIndex || 0;
@@ -128,18 +128,7 @@ function AudienceDisplay() {
       <h1 style={{ fontSize: 48, color: '#6c2eb7', marginBottom: 32 }}>Judge Me If You Can</h1>
       {gameState ? (
         <div>
-          {gameState.round === 'first_impressions' && gameState.firstImpressions ? (
-            <div>
-              {gameState.firstImpressions.stage === 'panel_intro' && <h2 style={{ fontSize: 40 }}>Meet the Panel!</h2>}
-              {gameState.firstImpressions.stage === 'guest_arrives' && <h2 style={{ fontSize: 40 }}>Welcome, Mystery Guest!</h2>}
-              {gameState.firstImpressions.stage === 'timer' && (
-                <div>
-                  <h2 style={{ fontSize: 40 }}>2.5-Minute Q&amp;A</h2>
-                  <div style={{ fontSize: 80, fontWeight: 'bold', color: '#6c2eb7' }}>{formatTime(gameState.firstImpressions.timer)}</div>
-                </div>
-              )}
-            </div>
-          ) : gameState.round === 'main_game' ? (
+          {gameState.round === 'main_game' ? (
             renderMainGame()
           ) : (
             <h2 style={{ fontSize: 32 }}>Waiting for game to start...</h2>
