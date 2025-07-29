@@ -70,10 +70,30 @@ function AudienceDisplay() {
     setSoundEnabled(newState);
   };
 
+  // Helper function to get current question based on sequence (same logic as backend)
+  const getCurrentQuestion = () => {
+    const qIdx = gameState.questionIndex || 0;
+    
+    if (!gameState.currentQuestionSequence || gameState.currentQuestionSequence.length === 0) {
+      // Use default questions
+      return gameState.questions[qIdx] || null;
+    } else {
+      // Use custom sequence
+      const sequenceItem = gameState.currentQuestionSequence[qIdx];
+      if (!sequenceItem) return null;
+      
+      if (sequenceItem.type === 'custom') {
+        return gameState.customQuestions[sequenceItem.index] || null;
+      } else if (sequenceItem.type === 'default') {
+        return gameState.questions[sequenceItem.index] || null;
+      }
+    }
+    return null;
+  };
+
   const renderMainGame = () => {
     const qIdx = gameState.questionIndex || 0;
-    const questions = gameState.questions || [];
-    const question = questions[qIdx] || { text: 'No question', options: [] };
+    const currentQuestion = getCurrentQuestion() || { text: 'No question', options: [] };
     const lock = gameState.lock || {};
     const prize = gameState.prize || 0;
     const panelGuesses = gameState.panelGuesses || [];
@@ -246,7 +266,7 @@ function AudienceDisplay() {
             color: '#ffffff',
             textShadow: '2px 2px 4px rgba(0,0,0,0.5)'
           }}>
-            {question.text}
+            {currentQuestion.text}
           </div>
         </div>
 
@@ -258,7 +278,7 @@ function AudienceDisplay() {
           maxWidth: '900px',
           margin: '30px auto'
         }}>
-          {question.options.map((opt, i) => {
+          {currentQuestion.options.map((opt, i) => {
             const letter = String.fromCharCode(65 + i); // A, B, C, D
             const isPanelGuess = lastPanelGuess === opt;
             const isGuestAnswer = lastGuestAnswer === opt;

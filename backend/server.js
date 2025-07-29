@@ -57,6 +57,7 @@ let gameState = {
   panelGuesses: [],
   guestAnswers: [],
   guestAnswerRevealed: [],
+  // Default questions (can be replaced by custom questions)
   questions: [
     { text: 'What is the guest\'s favorite color?', options: ['Red', 'Blue', 'Green', 'Yellow'], guestAnswer: 'Blue' },
     { text: 'Which city would the guest most like to visit?', options: ['Paris', 'Tokyo', 'New York', 'Sydney'], guestAnswer: 'Tokyo' },
@@ -68,8 +69,31 @@ let gameState = {
     { text: 'Which superpower would the guest choose?', options: ['Invisibility', 'Flying', 'Time Travel', 'Super Strength'], guestAnswer: 'Flying' },
     { text: 'What is the guest\'s favorite season?', options: ['Spring', 'Summer', 'Autumn', 'Winter'], guestAnswer: 'Autumn' },
     { text: 'Which hobby does the guest enjoy most?', options: ['Reading', 'Sports', 'Gaming', 'Cooking'], guestAnswer: 'Reading' }
-  ]
+  ],
+  // Custom question bank (up to 25 questions)
+  customQuestions: [],
+  // Current question sequence (can be custom or default)
+  currentQuestionSequence: []
 };
+
+// Helper function to get current question based on sequence
+function getCurrentQuestion() {
+  if (gameState.currentQuestionSequence.length === 0) {
+    // Use default questions
+    return gameState.questions[gameState.questionIndex] || null;
+  } else {
+    // Use custom sequence
+    const sequenceItem = gameState.currentQuestionSequence[gameState.questionIndex];
+    if (!sequenceItem) return null;
+    
+    if (sequenceItem.type === 'custom') {
+      return gameState.customQuestions[sequenceItem.index] || null;
+    } else if (sequenceItem.type === 'default') {
+      return gameState.questions[sequenceItem.index] || null;
+    }
+  }
+  return null;
+}
 
 // Broadcast game state to all clients
 function broadcastState() {
@@ -165,10 +189,9 @@ io.on('connection', (socket) => {
     
     console.log('check_panel_guess: Starting check...');
     console.log('check_panel_guess: Current question index:', gameState.questionIndex);
-    console.log('check_panel_guess: Questions array:', gameState.questions);
     
-    // Use the prefilled guest answer from the current question
-    const currentQuestion = gameState.questions[gameState.questionIndex];
+    // Use the helper function to get current question (supports custom sequence)
+    const currentQuestion = getCurrentQuestion();
     console.log('check_panel_guess: Current question:', currentQuestion);
     
     const guestAnswer = currentQuestion ? currentQuestion.guestAnswer : null;
@@ -339,7 +362,97 @@ io.on('connection', (socket) => {
     broadcastState();
   });
 
+  // Question Management System
+  socket.on('add_custom_question', (questionData) => {
+    if (!questionData || typeof questionData.text !== 'string' || !Array.isArray(questionData.options) || typeof questionData.guestAnswer !== 'string') {
+      socket.emit('error', { message: 'Invalid question data. Must include text, options array, and guestAnswer.' });
+      console.error('add_custom_question: Invalid data', questionData);
+      return;
+    }
+    
+    if (gameState.customQuestions.length >= 25) {
+      socket.emit('error', { message: 'Maximum 25 custom questions allowed.' });
+      console.error('add_custom_question: Too many questions');
+      return;
+    }
+    
+    // Validate that guestAnswer is one of the options
+    if (!questionData.options.includes(questionData.guestAnswer)) {
+      socket.emit('error', { message: 'Guest answer must be one of the provided options.' });
+      console.error('add_custom_question: Invalid guest answer');
+      return;
+    }
+    
+    const newQuestion = {
+      text: questionData.text,
+      options: questionData.options,
+      guestAnswer: questionData.guestAnswer
+    };
+    
+    gameState.customQuestions.push(newQuestion);
+    console.log(`Custom question added: ${questionData.text}`);
+    broadcastState();
+  });
 
+  socket.on('remove_custom_question', (questionIndex) => {
+    if (typeof questionIndex !== 'number' || questionIndex < 0 || questionIndex >= gameState.customQuestions.length) {
+      socket.emit('error', { message: 'Invalid question index.' });
+      console.error('remove_custom_question: Invalid index', questionIndex);
+      return;
+    }
+    
+    const removedQuestion = gameState.customQuestions.splice(questionIndex, 1)[0];
+    console.log(`Custom question removed: ${removedQuestion.text}`);
+    broadcastState();
+  });
+
+  socket.on('set_question_sequence', (sequenceData) => {
+    if (!sequenceData || !Array.isArray(sequenceData.questionIndices)) {
+      socket.emit('error', { message: 'Invalid sequence data. Must include questionIndices array.' });
+      console.error('set_question_sequence: Invalid data', sequenceData);
+      return;
+    }
+    
+    // Validate indices
+    const maxCustomIndex = gameState.customQuestions.length - 1;
+    const maxDefaultIndex = gameState.questions.length - 1;
+    
+    for (let i = 0; i < sequenceData.questionIndices.length; i++) {
+      const item = sequenceData.questionIndices[i];
+      if (!item || typeof item.type !== 'string' || typeof item.index !== 'number') {
+        socket.emit('error', { message: `Invalid question item at index ${i}. Must include type and index.` });
+        return;
+      }
+      
+      if (item.type === 'custom' && (item.index < 0 || item.index > maxCustomIndex)) {
+        socket.emit('error', { message: `Invalid custom question index: ${item.index}` });
+        return;
+      }
+      
+      if (item.type === 'default' && (item.index < 0 || item.index > maxDefaultIndex)) {
+        socket.emit('error', { message: `Invalid default question index: ${item.index}` });
+        return;
+      }
+    }
+    
+    gameState.currentQuestionSequence = sequenceData.questionIndices;
+    console.log('Question sequence updated:', sequenceData.questionIndices);
+    broadcastState();
+  });
+
+  socket.on('use_default_questions', () => {
+    gameState.currentQuestionSequence = [];
+    console.log('Switched to default questions');
+    broadcastState();
+  });
+
+  socket.on('get_available_questions', () => {
+    socket.emit('available_questions', {
+      default: gameState.questions,
+      custom: gameState.customQuestions,
+      currentSequence: gameState.currentQuestionSequence
+    });
+  });
 
   socket.on('reset_game', () => {
     console.log('Game reset to initial state.');
@@ -372,7 +485,9 @@ io.on('connection', (socket) => {
         { text: 'Which superpower would the guest choose?', options: ['Invisibility', 'Flying', 'Time Travel', 'Super Strength'], guestAnswer: 'Flying' },
         { text: 'What is the guest\'s favorite season?', options: ['Spring', 'Summer', 'Autumn', 'Winter'], guestAnswer: 'Autumn' },
         { text: 'Which hobby does the guest enjoy most?', options: ['Reading', 'Sports', 'Gaming', 'Cooking'], guestAnswer: 'Reading' }
-      ]
+      ],
+      customQuestions: [],
+      currentQuestionSequence: []
     };
     broadcastState();
   });

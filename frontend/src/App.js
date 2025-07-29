@@ -83,6 +83,224 @@ function App() {
     setSoundEnabled(newState);
   };
 
+  // Question Management State
+  const [showQuestionManager, setShowQuestionManager] = useState(false);
+  const [newQuestion, setNewQuestion] = useState({
+    text: '',
+    options: ['', '', '', ''],
+    guestAnswer: ''
+  });
+  const [availableQuestions, setAvailableQuestions] = useState({
+    default: [],
+    custom: [],
+    currentSequence: []
+  });
+
+  // Question Management Handlers
+  const handleAddCustomQuestion = () => {
+    if (newQuestion.text && newQuestion.options.every(opt => opt.trim()) && newQuestion.guestAnswer) {
+      socket.emit('add_custom_question', newQuestion);
+      setNewQuestion({ text: '', options: ['', '', '', ''], guestAnswer: '' });
+    }
+  };
+
+  const handleRemoveCustomQuestion = (index) => {
+    socket.emit('remove_custom_question', index);
+  };
+
+  const handleGetAvailableQuestions = () => {
+    socket.emit('get_available_questions');
+  };
+
+  const handleUseDefaultQuestions = () => {
+    socket.emit('use_default_questions');
+  };
+
+  const handleSetQuestionSequence = (sequence) => {
+    socket.emit('set_question_sequence', { questionIndices: sequence });
+  };
+
+  const handleBuildSequence = () => {
+    // Create a simple sequence builder
+    const sequence = [];
+    
+    // Add some default questions first
+    for (let i = 0; i < Math.min(5, availableQuestions.default.length); i++) {
+      sequence.push({ type: 'default', index: i });
+    }
+    
+    // Add some custom questions if available
+    for (let i = 0; i < Math.min(5, availableQuestions.custom.length); i++) {
+      sequence.push({ type: 'custom', index: i });
+    }
+    
+    handleSetQuestionSequence(sequence);
+  };
+
+  // Listen for available questions response
+  useEffect(() => {
+    socket.on('available_questions', (data) => {
+      setAvailableQuestions(data);
+    });
+    return () => {
+      socket.off('available_questions');
+    };
+  }, []);
+
+  // Question Manager UI
+  const renderQuestionManager = () => {
+    return (
+      <div style={{ marginBottom: 32, padding: 20, backgroundColor: '#f5f5f5', borderRadius: 8 }}>
+        <h3>Question Management</h3>
+        
+        {/* Add New Question */}
+        <div style={{ marginBottom: 20 }}>
+          <h4>Add Custom Question</h4>
+          <div style={{ marginBottom: 10 }}>
+            <input
+              type="text"
+              placeholder="Question text"
+              value={newQuestion.text}
+              onChange={(e) => setNewQuestion({...newQuestion, text: e.target.value})}
+              style={{ width: '100%', padding: 8, marginBottom: 8 }}
+            />
+          </div>
+          <div style={{ marginBottom: 10 }}>
+            {newQuestion.options.map((option, index) => (
+              <input
+                key={index}
+                type="text"
+                placeholder={`Option ${index + 1}`}
+                value={option}
+                onChange={(e) => {
+                  const newOptions = [...newQuestion.options];
+                  newOptions[index] = e.target.value;
+                  setNewQuestion({...newQuestion, options: newOptions});
+                }}
+                style={{ width: '100%', padding: 8, marginBottom: 4 }}
+              />
+            ))}
+          </div>
+          <div style={{ marginBottom: 10 }}>
+            <input
+              type="text"
+              placeholder="Guest's answer (must be one of the options)"
+              value={newQuestion.guestAnswer}
+              onChange={(e) => setNewQuestion({...newQuestion, guestAnswer: e.target.value})}
+              style={{ width: '100%', padding: 8 }}
+            />
+          </div>
+          <button 
+            onClick={handleAddCustomQuestion}
+            style={{ 
+              padding: '8px 16px', 
+              backgroundColor: '#4CAF50', 
+              color: 'white', 
+              border: 'none', 
+              borderRadius: 4,
+              cursor: 'pointer'
+            }}
+          >
+            Add Question
+          </button>
+        </div>
+
+        {/* View Available Questions */}
+        <div style={{ marginBottom: 20 }}>
+          <h4>Available Questions</h4>
+          <button 
+            onClick={handleGetAvailableQuestions}
+            style={{ 
+              padding: '8px 16px', 
+              backgroundColor: '#2196F3', 
+              color: 'white', 
+              border: 'none', 
+              borderRadius: 4,
+              cursor: 'pointer',
+              marginRight: 10
+            }}
+          >
+            Refresh Questions
+          </button>
+          <button 
+            onClick={handleUseDefaultQuestions}
+            style={{ 
+              padding: '8px 16px', 
+              backgroundColor: '#FF9800', 
+              color: 'white', 
+              border: 'none', 
+              borderRadius: 4,
+              cursor: 'pointer',
+              marginRight: 10
+            }}
+          >
+            Use Default Questions
+          </button>
+          <button 
+            onClick={handleBuildSequence}
+            style={{ 
+              padding: '8px 16px', 
+              backgroundColor: '#9C27B0', 
+              color: 'white', 
+              border: 'none', 
+              borderRadius: 4,
+              cursor: 'pointer'
+            }}
+          >
+            Build Mixed Sequence
+          </button>
+        </div>
+
+        {/* Custom Questions List */}
+        {availableQuestions.custom.length > 0 && (
+          <div style={{ marginBottom: 20 }}>
+            <h4>Custom Questions ({availableQuestions.custom.length}/25)</h4>
+            {availableQuestions.custom.map((question, index) => (
+              <div key={index} style={{ 
+                padding: 10, 
+                marginBottom: 8, 
+                backgroundColor: 'white', 
+                borderRadius: 4,
+                border: '1px solid #ddd'
+              }}>
+                <div><strong>{question.text}</strong></div>
+                <div>Options: {question.options.join(', ')}</div>
+                <div>Guest Answer: {question.guestAnswer}</div>
+                <button 
+                  onClick={() => handleRemoveCustomQuestion(index)}
+                  style={{ 
+                    padding: '4px 8px', 
+                    backgroundColor: '#f44336', 
+                    color: 'white', 
+                    border: 'none', 
+                    borderRadius: 4,
+                    cursor: 'pointer',
+                    fontSize: 12
+                  }}
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Current Sequence */}
+        {availableQuestions.currentSequence.length > 0 && (
+          <div style={{ marginBottom: 20 }}>
+            <h4>Current Question Sequence</h4>
+            <div style={{ fontSize: 12, color: '#666' }}>
+              {availableQuestions.currentSequence.map((item, index) => (
+                <span key={index} style={{ marginRight: 8 }}>
+                  {item.type === 'custom' ? 'C' : 'D'}{item.index + 1}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   // Main Game UI
   const renderMainGame = () => {
@@ -300,7 +518,7 @@ function App() {
       
       {error && <div style={{ color: 'red' }}>Error: {error}</div>}
       
-      {/* Restart Game Button - always visible */}
+      {/* Control Buttons */}
       <div style={{ marginBottom: 24 }}>
         <button 
           onClick={() => socket.emit('reset_game')}
@@ -317,6 +535,22 @@ function App() {
           }}
         >
           🔄 Restart Game (New Guest)
+        </button>
+        <button 
+          onClick={() => setShowQuestionManager(!showQuestionManager)}
+          style={{ 
+            padding: '12px 24px', 
+            fontSize: 16, 
+            backgroundColor: '#607D8B', 
+            color: 'white', 
+            border: 'none', 
+            borderRadius: 4,
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            marginRight: '10px'
+          }}
+        >
+          📝 {showQuestionManager ? 'Hide' : 'Show'} Question Manager
         </button>
         <button 
           onClick={handleTestBackend}
@@ -337,6 +571,7 @@ function App() {
       {gameState ? (
         <div>
           <h2>Current Round: {gameState.round}</h2>
+          {showQuestionManager && renderQuestionManager()}
           {gameState.round === 'main_game' && renderMainGame()}
         </div>
       ) : (
