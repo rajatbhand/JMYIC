@@ -79,6 +79,17 @@ io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
   // Send current state on connect
   socket.emit('game_state', gameState);
+  
+  // Add connection event logging
+  socket.on('disconnect', () => {
+    console.log('Client disconnected:', socket.id);
+  });
+  
+  // Test event to verify backend is working
+  socket.on('test_event', () => {
+    console.log('test_event: Received from client:', socket.id);
+    socket.emit('test_response', { message: 'Backend is working!' });
+  });
 
   // Listen for operator actions (to be expanded)
   socket.on('advance_round', (data) => {
@@ -142,6 +153,42 @@ io.on('connection', (socket) => {
     broadcastState();
   });
 
+  socket.on('check_panel_guess', () => {
+    console.log('check_panel_guess: Event received from client:', socket.id);
+    
+    if (gameState.round !== 'main_game') {
+      socket.emit('error', { message: 'Cannot check panel guess outside main game.' });
+      console.error('check_panel_guess: Not in main_game round');
+      return;
+    }
+    
+    console.log('check_panel_guess: Starting check...');
+    console.log('check_panel_guess: Current question index:', gameState.questionIndex);
+    console.log('check_panel_guess: Questions array:', gameState.questions);
+    
+    // Use the prefilled guest answer from the current question
+    const currentQuestion = gameState.questions[gameState.questionIndex];
+    console.log('check_panel_guess: Current question:', currentQuestion);
+    
+    const guestAnswer = currentQuestion ? currentQuestion.guestAnswer : null;
+    console.log('check_panel_guess: Guest answer:', guestAnswer);
+    
+    if (!guestAnswer) {
+      socket.emit('error', { message: 'No guest answer available to check against.' });
+      console.error('check_panel_guess: No guest answer available');
+      return;
+    }
+    
+    if (!gameState.guestAnswers) gameState.guestAnswers = [];
+    gameState.guestAnswers[gameState.questionIndex] = guestAnswer;
+    
+    console.log('check_panel_guess: Guest answer loaded successfully');
+    console.log('check_panel_guess: Updated guestAnswers array:', gameState.guestAnswers);
+    console.log('check_panel_guess: Broadcasting state update...');
+    broadcastState();
+    console.log('check_panel_guess: State broadcast complete');
+  });
+
   socket.on('reveal_guest_answer', (answer) => {
     if (gameState.round !== 'main_game') {
       socket.emit('error', { message: 'Cannot reveal answer outside main game.' });
@@ -149,15 +196,9 @@ io.on('connection', (socket) => {
       return;
     }
     
-    // Use the prefilled guest answer from the current question
-    const currentQuestion = gameState.questions[gameState.questionIndex];
-    const guestAnswer = currentQuestion ? currentQuestion.guestAnswer : answer;
-    
-    if (!gameState.guestAnswers) gameState.guestAnswers = [];
-    gameState.guestAnswers[gameState.questionIndex] = guestAnswer;
-    
     // Check if panel's guess matches guest's answer
-    if (gameState.panelGuesses && gameState.panelGuesses[gameState.questionIndex] === guestAnswer) {
+    if (gameState.panelGuesses && gameState.guestAnswers && 
+        gameState.panelGuesses[gameState.questionIndex] === gameState.guestAnswers[gameState.questionIndex]) {
       gameState.correctCount += 1;
       gameState.prize = Math.min(10000 * gameState.correctCount, 100000);
       console.log('Panel guessed correctly!');

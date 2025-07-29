@@ -10,16 +10,22 @@ function App() {
 
   useEffect(() => {
     socket.on('game_state', (state) => {
+      console.log('Received game state update:', state);
       setGameState(state);
       setError(null);
       setPanelGuess('');
     });
     socket.on('error', (err) => {
+      console.error('Socket error:', err);
       setError(err.message || 'Unknown error');
+    });
+    socket.on('test_response', (data) => {
+      console.log('Backend test response:', data);
     });
     return () => {
       socket.off('game_state');
       socket.off('error');
+      socket.off('test_response');
     };
   }, []);
 
@@ -32,8 +38,24 @@ function App() {
       socket.emit('select_panel_guess', panelGuess);
     }
   };
+  const handleCheckPanelGuess = () => {
+    console.log('Checking panel guess...');
+    socket.emit('check_panel_guess');
+    
+    // Add a timeout to see if we get a response
+    setTimeout(() => {
+      console.log('Timeout: No response from check_panel_guess after 3 seconds');
+    }, 3000);
+  };
+  
   const handleRevealGuestAnswer = () => {
+    console.log('Revealing guest answer...');
     socket.emit('reveal_guest_answer');
+  };
+  
+  const handleTestBackend = () => {
+    console.log('Testing backend connection...');
+    socket.emit('test_event');
   };
   const handleAdvanceQuestion = () => {
     setPanelGuess('');
@@ -99,10 +121,50 @@ function App() {
           </div>
         )}
         
-        {/* Show Guest Answer Button */}
+        {/* Step 2: Check Panel Guess Button */}
         {lastPanelGuess && !lastGuestAnswer && (
           <div style={{ marginBottom: 16 }}>
-            <button onClick={handleRevealGuestAnswer}>Reveal Guest Answer</button>
+            <button 
+              onClick={handleCheckPanelGuess}
+              style={{ 
+                padding: '8px 16px', 
+                fontSize: 14, 
+                backgroundColor: '#FF9800', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: 4,
+                cursor: 'pointer',
+                marginRight: '10px'
+              }}
+            >
+              Step 2: Check Panel Guess
+            </button>
+            <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+              Debug: Panel guess submitted, waiting to check against guest answer
+            </div>
+          </div>
+        )}
+        
+        {/* Step 3: Reveal Guest Answer Button */}
+        {lastPanelGuess && lastGuestAnswer && (
+          <div style={{ marginBottom: 16 }}>
+            <button 
+              onClick={handleRevealGuestAnswer}
+              style={{ 
+                padding: '8px 16px', 
+                fontSize: 14, 
+                backgroundColor: '#2196F3', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: 4,
+                cursor: 'pointer'
+              }}
+            >
+              Step 3: Reveal Guest Answer
+            </button>
+            <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+              Debug: Guest answer loaded, ready to reveal to audience
+            </div>
           </div>
         )}
         
@@ -129,6 +191,15 @@ function App() {
         
         <div style={{ marginBottom: 16 }}>
           <strong>Correct Answers: {correctCount} / 2</strong> | <strong>Prize: ₹{prize.toLocaleString()}</strong>
+        </div>
+        
+        {/* Debug Info */}
+        <div style={{ marginBottom: 16, padding: 12, backgroundColor: '#f5f5f5', borderRadius: 4, fontSize: '12px' }}>
+          <strong>Debug Info:</strong><br/>
+          Panel Guess: {lastPanelGuess || 'None'}<br/>
+          Guest Answer: {lastGuestAnswer || 'None'}<br/>
+          Is Answered: {isAnswered ? 'Yes' : 'No'}<br/>
+          Question Index: {qIdx}
         </div>
         <div style={{ marginBottom: 16 }}>
           <strong>Lock Status:</strong>{' '}
@@ -208,10 +279,25 @@ function App() {
             border: 'none', 
             borderRadius: 4,
             cursor: 'pointer',
-            fontWeight: 'bold'
+            fontWeight: 'bold',
+            marginRight: '10px'
           }}
         >
           🔄 Restart Game (New Guest)
+        </button>
+        <button 
+          onClick={handleTestBackend}
+          style={{ 
+            padding: '8px 16px', 
+            fontSize: 14, 
+            backgroundColor: '#9C27B0', 
+            color: 'white', 
+            border: 'none', 
+            borderRadius: 4,
+            cursor: 'pointer'
+          }}
+        >
+          🧪 Test Backend
         </button>
       </div>
       
