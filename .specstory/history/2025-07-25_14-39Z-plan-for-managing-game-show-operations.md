@@ -12089,6 +12089,2433 @@ App.js:47 Timeout: No response from check_panel_guess after 3 seconds
 
 _**Assistant**_
 
+Thank you for the detailed console output! Here’s what it tells us:
+
+### What’s Working:
+- ✅ The frontend is connecting to the backend (`✅ Connected to backend`).
+- ✅ The frontend is receiving game state updates (`Received game state update: ...`).
+- ✅ The panel guess is being registered (`panelGuesses: ['Red']`).
+- ✅ The "Test Backend" button is being clicked (`Testing backend connection...`).
+
+### What’s NOT Working:
+- ❌ You do **not** see a `Backend test response: ...` message after clicking "Test Backend".
+- ❌ You do **not** see any response after clicking "Check Panel Guess" (timeout occurs).
+
+---
+
+## What This Means
+
+- **WebSocket connection is established** (since you get game state updates).
+- **Custom events** (`test_event`, `check_panel_guess`) are **not being handled** or responded to by the backend.
+- This usually means:
+  - The backend code running on Render is **not the latest version** (your new event handlers are not deployed).
+  - Or, the backend is not restarting properly after code changes.
+  - Or, the deployed backend is not the code you think it is (wrong branch, wrong repo, etc).
+
+---
+
+## What To Do Next
+
+### 1. **Check Render Backend Logs**
+- Go to your Render dashboard.
+- Open the logs for your backend service.
+- Click "Test Backend" and "Check Panel Guess" in the frontend.
+- See if you get any log lines like:
+  - `test_event: Received from client: ...`
+  - `check_panel_guess: Event received from client: ...`
+- If you see **nothing**: the deployed backend does NOT have your latest code.
+
+### 2. **Force a Redeploy on Render**
+- In Render, trigger a **manual deploy** or redeploy from the latest commit.
+- Make sure you see the build logs and that the deployment completes successfully.
+- After redeploy, try the test again.
+
+### 3. **Double-Check Your Git Push**
+- Make sure you have pushed your latest backend changes to the GitHub repo that Render is using.
+- If you made changes locally but didn’t push, Render won’t see them.
+
+### 4. **(Optional) Test Backend Locally**
+- Run your backend locally (`node backend/server.js`).
+- Change your frontend to connect to `http://localhost:4000` (or your backend port).
+- Try the test again. If it works locally, the issue is definitely with the Render deployment.
+
+---
+
+## Summary
+
+- **Your frontend and backend are connected, but your custom backend events are not being handled.**
+- **This is almost always a deployment issue** (old code running on Render).
+- **Check your Render logs** and **force a redeploy** to ensure your latest backend code is live.
+
+Let me know what you see in the Render backend logs after clicking the test button, or if a redeploy fixes the issue!
+
+---
+
+_**User**_
+
+lets test locally and then we can change back to render if needed
+
+---
+
+_**Assistant**_
+
+Great idea! Let's test locally first to make sure everything works, then we can figure out the Render deployment issue.
+
+## **🔧 Local Testing Setup:**
+
+### **1. Start Backend Locally**
+
+
+---
+
+```bash
+cd backend && npm start
+```
+
+---
+
+Let me help you set up the local testing. You'll need to:
+
+### **1. Start Backend Locally**
+```bash
+cd backend
+npm start
+```
+This should start your backend on `http://localhost:4000`
+
+### **2. Update Frontend to Connect to Local Backend**
+
+
+---
+
+<details><summary>Edit file: frontend/src/socket.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 2, lines removed: 2
+
+```diff
+@@ -1,6 +1,6 @@
+  import { io } from 'socket.io-client';
+  
+- // Use environment variable for backend URL, fallback to deployed backend
+- const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'https://jmyic.onrender.com';
++ // Use environment variable for backend URL, fallback to local backend for testing
++ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:4000';
+  
+  console.log('Connecting to backend at:', BACKEND_URL);
+```
+
+</details>
+
+---
+
+### **3. Start Frontend Locally**
+```bash
+cd frontend
+npm start
+```
+
+### **4. Test the Flow**
+1. **Click "🧪 Test Backend"** - Should see "Backend test response: {message: 'Backend is working!'}"
+2. **Submit a panel guess** (select an option and click "Submit Panel Guess")
+3. **Click "Step 2: Check Panel Guess"** - Should see the panel's answer turn green/red
+4. **Click "Step 3: Reveal Guest Answer"** - Should see final color coding
+
+### **5. Check Console Logs**
+- Frontend console should show detailed logs
+- Backend terminal should show connection and event logs
+
+### **6. Switch Back to Render (When Ready)**
+When local testing works, we can change the socket.js back to:
+```javascript
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'https://jmyic.onrender.com';
+```
+
+**Can you start the backend locally and let me know what you see in the console when you test the buttons?**
+
+---
+
+_**User**_
+
+console response on using the test backend button
+
+react-dom-client.development.js:24867 Download the React DevTools for a better development experience: https://react.dev/link/react-devtools
+socket.js:6 Connecting to backend at: http://localhost:4000
+socket.js:16 ✅ Connected to backend
+App.js:13 Received game state update: Object
+App.js:57 Testing backend connection...
+App.js:23 Backend test response: {message: 'Backend is working!'}
+
+
+---
+
+_**Assistant**_
+
+Excellent! 🎉 The local testing is working perfectly! 
+
+## **✅ What's Working Locally:**
+
+- ✅ **Backend connection**: `✅ Connected to backend`
+- ✅ **Game state updates**: `Received game state update: Object`
+- ✅ **Test event**: `Backend test response: {message: 'Backend is working!'}`
+- ✅ **Custom events**: The backend is receiving and responding to custom events
+
+This confirms that:
+1. **Your backend code is correct**
+2. **Your frontend code is correct** 
+3. **The issue is with the Render deployment**
+
+---
+
+## **�� Now Let's Test the Full 3-Step Flow:**
+
+### **Test the Complete Game Flow:**
+1. **Submit a panel guess** (select an option and click "Submit Panel Guess")
+2. **Click "Step 2: Check Panel Guess"** - Should see panel's answer turn green/red
+3. **Click "Step 3: Reveal Guest Answer"** - Should see final color coding
+
+### **What to Look For:**
+- **Frontend console**: Should see detailed logs for each step
+- **Backend terminal**: Should see connection and event logs
+- **Audience display**: Should see the 3-step color progression
+
+---
+
+## **🌐 After Local Testing Works:**
+
+Once you confirm the local 3-step flow works perfectly, we can:
+
+1. **Switch back to Render** by changing the socket.js URL back to `https://jmyic.onrender.com`
+2. **Force a redeploy on Render** to ensure your latest backend code is live
+3. **Test the deployed version**
+
+**Can you test the full 3-step flow locally and let me know how it works?** This will confirm everything is working before we tackle the Render deployment issue.
+
+---
+
+_**User**_
+
+the audience display is showing the correct answer in green on step 2 itself even if the panel has guessed it wrong
+
+---
+
+_**Assistant**_
+
+I see the issue! The audience display is showing the correct answer in green on Step 2, but it should only show the panel's answer as green (if correct) or red (if wrong), and the guest's answer should still be hidden until Step 3.
+
+Let me fix the audience display logic:
+
+
+---
+
+Read file: frontend/src/AudienceDisplay.js
+
+---
+
+Read file: frontend/src/AudienceDisplay.js
+
+---
+
+Read file: frontend/src/AudienceDisplay.js
+
+---
+
+I found the issue! The problem is in the Step 2 logic. The condition `isPanelCorrect && isGuestAnswer && !isAnswered` is showing the correct answer in green even when the panel guessed wrong. Let me fix this:
+
+
+---
+
+<details><summary>Edit file: frontend/src/AudienceDisplay.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 2, lines removed: 2
+
+```diff
+@@ -221,9 +221,9 @@
+                borderColor = '#ffffff';
+                boxShadow = '0 6px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.3), 0 0 15px rgba(255,152,0,0.4)';
+-             } else if (isPanelCorrect && isGuestAnswer && !isAnswered) {
++             } else if (isPanelCorrect && lastGuestAnswer && !isAnswered) {
+                // Step 2: Panel guess is correct - green
+                backgroundColor = 'linear-gradient(135deg, #4CAF50 0%, #45a049 50%, #388E3C 100%)';
+                borderColor = '#4CAF50';
+-             } else if (isPanelIncorrect && isGuestAnswer && !isAnswered) {
++             } else if (isPanelIncorrect && lastGuestAnswer && !isAnswered) {
+                // Step 2: Panel guess is wrong - red
+                backgroundColor = 'linear-gradient(135deg, #f44336 0%, #d32f2f 50%, #c62828 100%)';
+```
+
+</details>
+
+---
+
+Perfect! I've fixed the issue. The problem was that I was using `isGuestAnswer` (which checks if the current option is the guest's answer) instead of `lastGuestAnswer` (which checks if the guest answer has been loaded).
+
+## **�� Fixed the Audience Display Logic:**
+
+### **What Was Wrong:**
+- `isGuestAnswer` was checking if the current option matches the guest's answer
+- This was showing the correct answer in green even when the panel guessed wrong
+
+### **What's Fixed:**
+- Now using `lastGuestAnswer` to check if the guest answer has been loaded
+- Only the panel's chosen answer will be highlighted in Step 2
+- Guest's answer remains hidden until Step 3
+
+### **Correct 3-Step Flow:**
+
+**Step 1**: Panel guess submitted → Yellow/orange highlight on panel's choice
+**Step 2**: Panel guess checked → Panel's answer turns green (if correct) or red (if wrong)
+**Step 3**: Guest answer revealed → Final color coding (green for correct, red for wrong)
+
+Now the audience display should work correctly:
+- **Step 2**: Only shows if the panel was right/wrong (green/red)
+- **Step 3**: Shows the correct answer and highlights wrong answers appropriately
+
+**Can you test the 3-step flow again and confirm it's working correctly now?**
+
+---
+
+_**User**_
+
+still not working
+
+---
+
+_**Assistant**_
+
+Let me debug this step by step. The issue might be in how we're determining the states. Let me add some debugging to see exactly what's happening:
+
+
+---
+
+<details><summary>Edit file: frontend/src/AudienceDisplay.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -189,5 +189,5 @@
+              
+              // Step 1: Panel guess submitted (yellow/orange)
+-             const isPanelGuessSubmitted = isPanelGuess && !isGuestAnswer;
++             const isPanelGuessSubmitted = isPanelGuess && !lastGuestAnswer;
+              
+              // Step 2: Panel guess checked (green if correct, red if wrong) - happens when guest answer is known but not revealed
+```
+
+</details>
+
+---
+
+Now let me add some debugging to see what's happening:
+
+
+---
+
+<details><summary>Edit file: frontend/src/AudienceDisplay.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 17, lines removed: undefined
+
+```diff
+@@ -230,4 +230,21 @@
+                borderColor = '#f44336';
+              }
++ 
++                         // Debug logging for this option
++             if (opt === 'Blue') { // Debug for the first question
++               console.log(`Option ${opt}:`, {
++                 isPanelGuess,
++                 isGuestAnswer,
++                 lastPanelGuess,
++                 lastGuestAnswer,
++                 isAnswered,
++                 isPanelGuessSubmitted,
++                 isPanelCorrect,
++                 isPanelIncorrect,
++                 isCorrect,
++                 isPanelWrong,
++                 isGuestCorrect
++               });
++             }
+  
+              return (
+```
+
+</details>
+
+---
+
+Now let me also add a debug section to show the current state:
+
+
+---
+
+<details><summary>Edit file: frontend/src/AudienceDisplay.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 8, lines removed: undefined
+
+```diff
+@@ -148,4 +148,12 @@
+        </div>
+      );
++ 
++     // Debug info
++     console.log('Audience Display State:', {
++       lastPanelGuess,
++       lastGuestAnswer,
++       isAnswered,
++       questionIndex: qIdx
++     });
+  
+      return (
+```
+
+</details>
+
+---
+
+Perfect! Now I've added comprehensive debugging. 
+
+## **🔧 Debugging Added:**
+
+### **What to Test:**
+1. **Submit a panel guess** (select an option and click "Submit Panel Guess")
+2. **Click "Step 2: Check Panel Guess"**
+3. **Click "Step 3: Reveal Guest Answer"**
+
+### **What to Look For in Console:**
+- **"Audience Display State:"** - Shows the overall state
+- **"Option Blue:"** - Shows detailed state for the Blue option (first question)
+- **State values** for each step of the process
+
+### **Expected Flow:**
+- **Step 1**: `lastPanelGuess` has value, `lastGuestAnswer` is null
+- **Step 2**: `lastPanelGuess` has value, `lastGuestAnswer` has value, `isAnswered` is false
+- **Step 3**: `lastPanelGuess` has value, `lastGuestAnswer` has value, `isAnswered` is true
+
+**Can you run through the 3-step flow and share what you see in the console?** This will help us identify exactly where the logic is going wrong.
+
+The debug output will show us:
+- What values are being set at each step
+- Which conditions are being met/not met
+- Why the highlighting isn't working as expected
+
+---
+
+_**User**_
+
+console at step 2 when the oprator clicks on check panel guess 
+
+---
+
+_**Assistant**_
+
+I can see from the console that the "Check Panel Guess" is working - you're getting a game state update, but there's still a timeout. However, I notice you're not seeing the debug logs I added to the AudienceDisplay. This suggests the audience display might not be updating properly.
+
+Let me check if the audience display is receiving the updated state. The issue might be that the guest answer is being loaded but the audience display isn't reflecting it correctly.
+
+Can you also check what you see in the audience display console? You should see:
+- "Audience Display State:" logs
+- "Option Blue:" logs (if Blue is one of the options)
+
+If you're not seeing those logs, it means the audience display isn't re-rendering when the state updates.
+
+Let me also add some debugging to see what's happening with the guest answer loading:
+
+
+---
+
+<details><summary>Edit file: frontend/src/App.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 3, lines removed: undefined
+
+```diff
+@@ -12,4 +12,7 @@
+      socket.on('game_state', (state) => {
+        console.log('Received game state update:', state);
++       console.log('Guest answers array:', state.guestAnswers);
++       console.log('Panel guesses array:', state.panelGuesses);
++       console.log('Current question index:', state.questionIndex);
+        setGameState(state);
+        setError(null);
+```
+
+</details>
+
+---
+
+Now let me also check if the backend is actually loading the guest answer correctly. Let me look at the backend logic:
+
+
+---
+
+Read file: backend/server.js
+
+---
+
+The backend logic looks correct. Let me check what you see in the backend terminal when you click "Step 2: Check Panel Guess". 
+
+**Can you check your backend terminal and share what logs you see when you click "Step 2: Check Panel Guess"?**
+
+You should see something like:
+```
+check_panel_guess: Event received from client: [socket-id]
+check_panel_guess: Starting check...
+check_panel_guess: Current question index: 0
+check_panel_guess: Questions array: [...]
+check_panel_guess: Current question: {text: "...", options: [...], guestAnswer: "Blue"}
+check_panel_guess: Guest answer: Blue
+check_panel_guess: Guest answer loaded successfully
+check_panel_guess: Updated guestAnswers array: ["Blue"]
+check_panel_guess: Broadcasting state update...
+check_panel_guess: State broadcast complete
+```
+
+If you don't see these logs in the backend terminal, it means the backend isn't receiving the event. If you do see them, then the issue is in the frontend state handling.
+
+**Also, can you check if you see the "Audience Display State:" logs in the frontend console?** This will tell us if the audience display is receiving the updated state.
+
+---
+
+_**User**_
+
+This is from the backend terminal
+
+---
+
+_**Assistant**_
+
+Perfect! The backend is working correctly. I can see:
+
+✅ **Backend is receiving the event**
+✅ **Guest answer is being loaded correctly** (`guestAnswer: 'Blue'`)
+✅ **State is being broadcast** (`State broadcast complete`)
+
+The issue must be in the frontend. Let me check what you see in the frontend console when you click "Step 2: Check Panel Guess". 
+
+**Can you share what you see in the frontend console after clicking "Step 2: Check Panel Guess"?**
+
+You should see something like:
+```
+Received game state update: Object
+Guest answers array: ["Blue"]
+Panel guesses array: ["Red"]
+Current question index: 0
+```
+
+If you're not seeing the "Audience Display State:" logs, it means the audience display isn't re-rendering. Let me also check if there's an issue with the audience display URL.
+
+**Are you viewing the audience display at `http://localhost:3000/?audience`?**
+
+If the audience display isn't updating, it might be because:
+1. You're not on the audience display URL
+2. The audience display component isn't receiving the state updates
+3. There's a rendering issue
+
+**Can you confirm:**
+1. What URL you're using for the audience display?
+2. What you see in the frontend console when you click "Step 2: Check Panel Guess"?
+3. Whether you see the "Audience Display State:" logs in the console?
+
+---
+
+_**User**_
+
+console from local audience link
+
+react-dom-client.development.js:24867 Download the React DevTools for a better development experience: https://react.dev/link/react-devtools
+socket.js:1 Connecting to backend at: http://localhost:4000
+socket.js:12 ✅ Connected to backend
+AudienceDisplay.js:147 Audience Display State: Object
+AudienceDisplay.js:241 Option Blue: Object
+AudienceDisplay.js:147 Audience Display State: Object
+AudienceDisplay.js:241 Option Blue: Object
+AudienceDisplay.js:147 Audience Display State: Object
+AudienceDisplay.js:241 Option Blue: Object
+AudienceDisplay.js:147 Audience Display State: Object
+AudienceDisplay.js:241 Option Blue: Object
+AudienceDisplay.js:147 Audience Display State: Object
+AudienceDisplay.js:241 Option Blue: Object
+AudienceDisplay.js:147 Audience Display State: Object
+AudienceDisplay.js:241 Option Blue: Object
+AudienceDisplay.js:147 Audience Display State: Object
+AudienceDisplay.js:241 Option Blue: Object
+AudienceDisplay.js:147 Audience Display State: Object
+AudienceDisplay.js:241 Option Blue: Object
+AudienceDisplay.js:147 Audience Display State: Object
+AudienceDisplay.js:241 Option Blue: Object
+AudienceDisplay.js:147 Audience Display State: Object
+AudienceDisplay.js:241 Option Blue: Object
+AudienceDisplay.js:147 Audience Display State: Object
+AudienceDisplay.js:241 Option Blue: Object
+AudienceDisplay.js:147 Audience Display State: Object
+AudienceDisplay.js:241 Option Blue: Object
+AudienceDisplay.js:147 Audience Display State: Object
+AudienceDisplay.js:241 Option Blue: Object
+AudienceDisplay.js:147 Audience Display State: Object
+AudienceDisplay.js:241 Option Blue: Object
+AudienceDisplay.js:147 Audience Display State: Object
+AudienceDisplay.js:241 Option Blue: Object
+AudienceDisplay.js:147 Audience Display State: Object
+AudienceDisplay.js:241 Option Blue: Object
+AudienceDisplay.js:147 Audience Display State: Object
+AudienceDisplay.js:241 Option Blue: Object
+AudienceDisplay.js:147 Audience Display State: Object
+AudienceDisplay.js:241 Option Blue: Object
+
+
+---
+
+_**Assistant**_
+
+I can see the audience display is receiving state updates (it's logging repeatedly), but the debug logs are showing `Object` instead of the actual values. This means the audience display is re-rendering but we can't see the actual state values.
+
+Let me fix the debug logging to show the actual values:
+
+
+---
+
+<details><summary>Edit file: frontend/src/AudienceDisplay.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 3, lines removed: 3
+
+```diff
+@@ -151,7 +151,7 @@
+      // Debug info
+      console.log('Audience Display State:', {
+-       lastPanelGuess,
+-       lastGuestAnswer,
+-       isAnswered,
++       lastPanelGuess: lastPanelGuess,
++       lastGuestAnswer: lastGuestAnswer,
++       isAnswered: isAnswered,
+        questionIndex: qIdx
+      });
+```
+
+</details>
+
+---
+
+<details><summary>Edit file: frontend/src/AudienceDisplay.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 11, lines removed: 11
+
+```diff
+@@ -242,15 +242,15 @@
+              if (opt === 'Blue') { // Debug for the first question
+                console.log(`Option ${opt}:`, {
+-                 isPanelGuess,
+-                 isGuestAnswer,
+-                 lastPanelGuess,
+-                 lastGuestAnswer,
+-                 isAnswered,
+-                 isPanelGuessSubmitted,
+-                 isPanelCorrect,
+-                 isPanelIncorrect,
+-                 isCorrect,
+-                 isPanelWrong,
+-                 isGuestCorrect
++                 isPanelGuess: isPanelGuess,
++                 isGuestAnswer: isGuestAnswer,
++                 lastPanelGuess: lastPanelGuess,
++                 lastGuestAnswer: lastGuestAnswer,
++                 isAnswered: isAnswered,
++                 isPanelGuessSubmitted: isPanelGuessSubmitted,
++                 isPanelCorrect: isPanelCorrect,
++                 isPanelIncorrect: isPanelIncorrect,
++                 isCorrect: isCorrect,
++                 isPanelWrong: isPanelWrong,
++                 isGuestCorrect: isGuestCorrect
+                });
+              }
+```
+
+</details>
+
+---
+
+Now let me also add a specific debug for when the guest answer is loaded:
+
+
+---
+
+<details><summary>Edit file: frontend/src/AudienceDisplay.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 5, lines removed: undefined
+
+```diff
+@@ -26,4 +26,9 @@
+      const isAnswered = lastPanelGuess && lastGuestAnswer;
+      
++     // Debug when guest answer changes
++     if (lastGuestAnswer) {
++       console.log('Guest answer loaded:', lastGuestAnswer);
++     }
++ 
+      // Prize ladder configuration
+      const prizeTiers = [
+```
+
+</details>
+
+---
+
+Perfect! Now the debug logs will show the actual values instead of just `Object`. 
+
+**Can you refresh the audience display page and then:**
+
+1. **Submit a panel guess** (select an option and click "Submit Panel Guess")
+2. **Click "Step 2: Check Panel Guess"**
+3. **Share what you see in the console** - specifically:
+   - The "Audience Display State:" logs with actual values
+   - The "Option Blue:" logs with actual values  
+   - The "Guest answer loaded:" log
+
+This will help us see exactly what state values are being set and why the highlighting isn't working correctly.
+
+The repeated logging suggests the component is re-rendering frequently, which might be causing issues with the state updates.
+
+---
+
+_**User**_
+
+This is from the console of audience display
+
+react-dom-client.development.js:24867 Download the React DevTools for a better development experience: https://react.dev/link/react-devtools
+socket.js:1 Connecting to backend at: http://localhost:4000
+socket.js:12 ✅ Connected to backend
+AudienceDisplay.js:147 Audience Display State: Object
+AudienceDisplay.js:241 Option Blue: Object
+AudienceDisplay.js:147 Audience Display State: Object
+AudienceDisplay.js:241 Option Blue: Object
+AudienceDisplay.js:147 Audience Display State: Object
+AudienceDisplay.js:241 Option Blue: Object
+AudienceDisplay.js:147 Audience Display State: Object
+AudienceDisplay.js:241 Option Blue: Object
+AudienceDisplay.js:147 Audience Display State: Object
+AudienceDisplay.js:241 Option Blue: Object
+AudienceDisplay.js:147 Audience Display State: Object
+AudienceDisplay.js:241 Option Blue: Object
+AudienceDisplay.js:147 Audience Display State: Object
+AudienceDisplay.js:241 Option Blue: Object
+AudienceDisplay.js:147 Audience Display State: Object
+AudienceDisplay.js:241 Option Blue: Object
+AudienceDisplay.js:147 Audience Display State: Object
+AudienceDisplay.js:241 Option Blue: Object
+AudienceDisplay.js:147 Audience Display State: Object
+AudienceDisplay.js:241 Option Blue: Object
+AudienceDisplay.js:147 Audience Display State: Object
+AudienceDisplay.js:241 Option Blue: Object
+AudienceDisplay.js:147 Audience Display State: Object
+AudienceDisplay.js:241 Option Blue: Object
+AudienceDisplay.js:147 Audience Display State: Object
+AudienceDisplay.js:241 Option Blue: Object
+AudienceDisplay.js:147 Audience Display State: Object
+AudienceDisplay.js:241 Option Blue: Object
+AudienceDisplay.js:147 Audience Display State: Object
+AudienceDisplay.js:241 Option Blue: Object
+AudienceDisplay.js:147 Audience Display State: Object
+AudienceDisplay.js:241 Option Blue: Object
+AudienceDisplay.js:147 Audience Display State: Object
+AudienceDisplay.js:241 Option Blue: Object
+AudienceDisplay.js:147 Audience Display State: Object
+AudienceDisplay.js:241 Option Blue: Object
+main.740d2c03de8d6c6b1a0a.hot-update.js:226 Audience Display State: {lastPanelGuess: 'Red', lastGuestAnswer: 'Blue', isAnswered: 'Blue', questionIndex: 0}
+main.740d2c03de8d6c6b1a0a.hot-update.js:322 Option Blue: {isPanelGuess: false, isGuestAnswer: true, lastPanelGuess: 'Red', lastGuestAnswer: 'Blue', isAnswered: 'Blue', …}
+main.740d2c03de8d6c6b1a0a.hot-update.js:226 Audience Display State: {lastPanelGuess: 'Red', lastGuestAnswer: 'Blue', isAnswered: 'Blue', questionIndex: 0}
+main.740d2c03de8d6c6b1a0a.hot-update.js:322 Option Blue: {isPanelGuess: false, isGuestAnswer: true, lastPanelGuess: 'Red', lastGuestAnswer: 'Blue', isAnswered: 'Blue', …}
+main.e58b573e01efebb24623.hot-update.js:226 Audience Display State: {lastPanelGuess: 'Red', lastGuestAnswer: 'Blue', isAnswered: 'Blue', questionIndex: 0}
+main.e58b573e01efebb24623.hot-update.js:322 Option Blue: {isPanelGuess: false, isGuestAnswer: true, lastPanelGuess: 'Red', lastGuestAnswer: 'Blue', isAnswered: 'Blue', …}
+main.e58b573e01efebb24623.hot-update.js:226 Audience Display State: {lastPanelGuess: 'Red', lastGuestAnswer: 'Blue', isAnswered: 'Blue', questionIndex: 0}
+main.e58b573e01efebb24623.hot-update.js:322 Option Blue: {isPanelGuess: false, isGuestAnswer: true, lastPanelGuess: 'Red', lastGuestAnswer: 'Blue', isAnswered: 'Blue', …}
+AudienceDisplay.js:30 Guest answer loaded: Blue
+AudienceDisplay.js:157 Audience Display State: {lastPanelGuess: 'Red', lastGuestAnswer: 'Blue', isAnswered: 'Blue', questionIndex: 0}
+AudienceDisplay.js:248 Option Blue: {isPanelGuess: false, isGuestAnswer: true, lastPanelGuess: 'Red', lastGuestAnswer: 'Blue', isAnswered: 'Blue', …}
+AudienceDisplay.js:30 Guest answer loaded: Blue
+AudienceDisplay.js:157 Audience Display State: {lastPanelGuess: 'Red', lastGuestAnswer: 'Blue', isAnswered: 'Blue', questionIndex: 0}
+AudienceDisplay.js:248 Option Blue: {isPanelGuess: false, isGuestAnswer: true, lastPanelGuess: 'Red', lastGuestAnswer: 'Blue', isAnswered: 'Blue', …}
+AudienceDisplay.js:157 Audience Display State: {lastPanelGuess: undefined, lastGuestAnswer: undefined, isAnswered: undefined, questionIndex: 0}
+AudienceDisplay.js:248 Option Blue: {isPanelGuess: false, isGuestAnswer: false, lastPanelGuess: undefined, lastGuestAnswer: undefined, isAnswered: undefined, …}
+AudienceDisplay.js:157 Audience Display State: {lastPanelGuess: undefined, lastGuestAnswer: undefined, isAnswered: undefined, questionIndex: 0}
+AudienceDisplay.js:248 Option Blue: {isPanelGuess: false, isGuestAnswer: false, lastPanelGuess: undefined, lastGuestAnswer: undefined, isAnswered: undefined, …}
+AudienceDisplay.js:157 Audience Display State: {lastPanelGuess: 'Red', lastGuestAnswer: undefined, isAnswered: undefined, questionIndex: 0}
+AudienceDisplay.js:248 Option Blue: {isPanelGuess: false, isGuestAnswer: false, lastPanelGuess: 'Red', lastGuestAnswer: undefined, isAnswered: undefined, …}
+AudienceDisplay.js:157 Audience Display State: {lastPanelGuess: 'Red', lastGuestAnswer: undefined, isAnswered: undefined, questionIndex: 0}
+AudienceDisplay.js:248 Option Blue: {isPanelGuess: false, isGuestAnswer: false, lastPanelGuess: 'Red', lastGuestAnswer: undefined, isAnswered: undefined, …}
+AudienceDisplay.js:30 Guest answer loaded: Blue
+AudienceDisplay.js:157 Audience Display State: {lastPanelGuess: 'Red', lastGuestAnswer: 'Blue', isAnswered: 'Blue', questionIndex: 0}
+AudienceDisplay.js:248 Option Blue: {isPanelGuess: false, isGuestAnswer: true, lastPanelGuess: 'Red', lastGuestAnswer: 'Blue', isAnswered: 'Blue', …}
+AudienceDisplay.js:30 Guest answer loaded: Blue
+AudienceDisplay.js:157 Audience Display State: {lastPanelGuess: 'Red', lastGuestAnswer: 'Blue', isAnswered: 'Blue', questionIndex: 0}
+AudienceDisplay.js:248 Option Blue: {isPanelGuess: false, isGuestAnswer: true, lastPanelGuess: 'Red', lastGuestAnswer: 'Blue', isAnswered: 'Blue', …}
+
+
+---
+
+_**Assistant**_
+
+Perfect! Now I can see the issue clearly. Looking at the debug logs:
+
+## **🔍 Issue Identified:**
+
+### **The Problem:**
+- `lastPanelGuess: 'Red'` ✅ (Panel guessed Red)
+- `lastGuestAnswer: 'Blue'` ✅ (Guest answer is Blue)
+- `isAnswered: 'Blue'` ❌ **This is wrong!**
+
+### **What's Wrong:**
+The `isAnswered` is being set to `'Blue'` (a string) instead of `true` (a boolean). This is causing the logic to fail.
+
+### **Why This Happens:**
+The condition `lastPanelGuess && lastGuestAnswer` is evaluating to `'Blue'` instead of `true` because both values exist.
+
+Let me fix this:
+
+
+---
+
+<details><summary>Edit file: frontend/src/AudienceDisplay.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -24,5 +24,5 @@
+      const lastPanelGuess = panelGuesses[qIdx];
+      const lastGuestAnswer = guestAnswers[qIdx];
+-     const isAnswered = lastPanelGuess && lastGuestAnswer;
++     const isAnswered = Boolean(lastPanelGuess && lastGuestAnswer);
+      
+      // Debug when guest answer changes
+```
+
+</details>
+
+---
+
+Perfect! Now the `isAnswered` will be a proper boolean (`true` or `false`) instead of a string.
+
+## ** What This Fixes:**
+
+### **Before (Broken):**
+- `isAnswered: 'Blue'` (string) → All conditions fail
+- Step 2 logic doesn't work because `!isAnswered` is always truthy
+
+### **After (Fixed):**
+- `isAnswered: true` (boolean) → Conditions work correctly
+- Step 2: `!isAnswered` is `false` when guest answer is loaded
+- Step 3: `isAnswered` is `true` when both answers are revealed
+
+### **Expected Flow Now:**
+1. **Step 1**: Panel guess submitted → Yellow/orange highlight
+2. **Step 2**: Guest answer loaded → Panel's answer turns green/red, `isAnswered: false`
+3. **Step 3**: Guest answer revealed → Final color coding, `isAnswered: true`
+
+**Can you test the 3-step flow again and see if the highlighting works correctly now?**
+
+The audience display should now properly show:
+- **Step 2**: Panel's answer in red (since Red ≠ Blue)
+- **Step 3**: Panel's answer in red, guest's answer in green
+
+---
+
+_**User**_
+
+its still not working here is the audience console log 
+
+react-dom-client.development.js:24867 Download the React DevTools for a better development experience: https://react.dev/link/react-devtools
+socket.js:6 Connecting to backend at: http://localhost:4000
+socket.js:16 ✅ Connected to backend
+AudienceDisplay.js:157 Audience Display State: Object
+AudienceDisplay.js:248 Option Blue: Object
+AudienceDisplay.js:157 Audience Display State: Object
+AudienceDisplay.js:248 Option Blue: Object
+AudienceDisplay.js:157 Audience Display State: Object
+AudienceDisplay.js:248 Option Blue: Object
+AudienceDisplay.js:157 Audience Display State: Object
+AudienceDisplay.js:248 Option Blue: Object
+AudienceDisplay.js:30 Guest answer loaded: Blue
+AudienceDisplay.js:157 Audience Display State: Object
+AudienceDisplay.js:248 Option Blue: Object
+AudienceDisplay.js:30 Guest answer loaded: Blue
+AudienceDisplay.js:157 Audience Display State: ObjectisAnswered: truelastGuestAnswer: "Blue"lastPanelGuess: "Red"questionIndex: 0[[Prototype]]: Object
+AudienceDisplay.js:248 Option Blue: ObjectisAnswered: trueisCorrect: falseisGuestAnswer: trueisGuestCorrect: trueisPanelCorrect: falseisPanelGuess: falseisPanelGuessSubmitted: falseisPanelIncorrect: falseisPanelWrong: falselastGuestAnswer: "Blue"lastPanelGuess: "Red"[[Prototype]]: Object
+
+
+---
+
+_**Assistant**_
+
+Great! Now I can see the actual values. The issue is clear:
+
+## **🔍 Current State Analysis:**
+
+- `lastPanelGuess: "Red"` ✅
+- `lastGuestAnswer: "Blue"` ✅  
+- `isAnswered: true` ✅ (Now working correctly!)
+- `isGuestAnswer: true` ✅ (Blue is the guest's answer)
+- `isGuestCorrect: true` ✅ (Blue is correct)
+- `isPanelWrong: false` ❌ **This is the problem!**
+
+## **🐛 The Issue:**
+
+The `isPanelWrong` condition is not being met because it's checking `isPanelGuess` (which is false for Blue) instead of checking if the panel's chosen answer is wrong.
+
+Let me fix the logic:
+
+
+---
+
+<details><summary>Edit file: frontend/src/AudienceDisplay.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 2, lines removed: 2
+
+```diff
+@@ -210,6 +210,6 @@
+              // Step 3: Guest answer revealed
+              const isCorrect = isAnswered && lastPanelGuess === lastGuestAnswer && opt === lastPanelGuess;
+-             const isPanelWrong = isAnswered && lastPanelGuess !== lastGuestAnswer && isPanelGuess;
+-             const isGuestCorrect = isAnswered && lastPanelGuess !== lastGuestAnswer && isGuestAnswer;
++             const isPanelWrong = isAnswered && lastPanelGuess !== lastGuestAnswer && opt === lastPanelGuess;
++             const isGuestCorrect = isAnswered && lastPanelGuess !== lastGuestAnswer && opt === lastGuestAnswer;
+  
+              let backgroundColor = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)';
+```
+
+</details>
+
+---
+
+Perfect! Now the logic is correct:
+
+## **✅ Fixed Logic:**
+
+### **Step 3 Conditions:**
+- `isCorrect`: When panel and guest match AND this option is the matching answer
+- `isPanelWrong`: When panel and guest don't match AND this option is the panel's wrong answer
+- `isGuestCorrect`: When panel and guest don't match AND this option is the guest's correct answer
+
+### **Expected Behavior:**
+- **Red option**: `isPanelWrong: true` (panel's wrong answer) → Red highlight
+- **Blue option**: `isGuestCorrect: true` (guest's correct answer) → Green highlight
+- **Green/Yellow options**: No special highlighting
+
+**Can you test the 3-step flow again?** Now you should see:
+1. **Step 1**: Panel's choice (Red) highlighted in yellow/orange
+2. **Step 2**: Panel's choice (Red) highlighted in red (wrong)
+3. **Step 3**: Panel's choice (Red) in red, guest's answer (Blue) in green
+
+The audience display should now properly show the correct color coding!
+
+---
+
+_**User**_
+
+still the same here is the console log from audience view
+
+react-dom-client.development.js:24867 Download the React DevTools for a better development experience: https://react.dev/link/react-devtools
+socket.js:6 Connecting to backend at: http://localhost:4000
+socket.js:16 ✅ Connected to backend
+AudienceDisplay.js:157 Audience Display State: Object
+AudienceDisplay.js:248 Option Blue: Object
+AudienceDisplay.js:157 Audience Display State: Object
+AudienceDisplay.js:248 Option Blue: Object
+AudienceDisplay.js:157 Audience Display State: Object
+AudienceDisplay.js:248 Option Blue: Object
+AudienceDisplay.js:157 Audience Display State: Object
+AudienceDisplay.js:248 Option Blue: Object
+AudienceDisplay.js:30 Guest answer loaded: Blue
+AudienceDisplay.js:157 Audience Display State: Object
+AudienceDisplay.js:248 Option Blue: Object
+AudienceDisplay.js:30 Guest answer loaded: Blue
+AudienceDisplay.js:157 Audience Display State: ObjectisAnswered: truelastGuestAnswer: "Blue"lastPanelGuess: "Red"questionIndex: 0[[Prototype]]: Object
+AudienceDisplay.js:248 Option Blue: ObjectisAnswered: trueisCorrect: falseisGuestAnswer: trueisGuestCorrect: trueisPanelCorrect: falseisPanelGuess: falseisPanelGuessSubmitted: falseisPanelIncorrect: falseisPanelWrong: falselastGuestAnswer: "Blue"lastPanelGuess: "Red"[[Prototype]]: Object
+AudienceDisplay.js:30 Guest answer loaded: Blue
+AudienceDisplay.js:157 Audience Display State: {lastPanelGuess: 'Red', lastGuestAnswer: 'Blue', isAnswered: true, questionIndex: 0}
+AudienceDisplay.js:248 Option Blue: {isPanelGuess: false, isGuestAnswer: true, lastPanelGuess: 'Red', lastGuestAnswer: 'Blue', isAnswered: true, …}
+AudienceDisplay.js:30 Guest answer loaded: Blue
+AudienceDisplay.js:157 Audience Display State: {lastPanelGuess: 'Red', lastGuestAnswer: 'Blue', isAnswered: true, questionIndex: 0}
+AudienceDisplay.js:248 Option Blue: {isPanelGuess: false, isGuestAnswer: true, lastPanelGuess: 'Red', lastGuestAnswer: 'Blue', isAnswered: true, …}
+AudienceDisplay.js:157 Audience Display State: {lastPanelGuess: undefined, lastGuestAnswer: undefined, isAnswered: false, questionIndex: 0}
+AudienceDisplay.js:248 Option Blue: {isPanelGuess: false, isGuestAnswer: false, lastPanelGuess: undefined, lastGuestAnswer: undefined, isAnswered: false, …}
+AudienceDisplay.js:157 Audience Display State: {lastPanelGuess: undefined, lastGuestAnswer: undefined, isAnswered: false, questionIndex: 0}
+AudienceDisplay.js:248 Option Blue: {isPanelGuess: false, isGuestAnswer: false, lastPanelGuess: undefined, lastGuestAnswer: undefined, isAnswered: false, …}
+AudienceDisplay.js:157 Audience Display State: {lastPanelGuess: 'Red', lastGuestAnswer: undefined, isAnswered: false, questionIndex: 0}
+AudienceDisplay.js:248 Option Blue: {isPanelGuess: false, isGuestAnswer: false, lastPanelGuess: 'Red', lastGuestAnswer: undefined, isAnswered: false, …}
+AudienceDisplay.js:157 Audience Display State: {lastPanelGuess: 'Red', lastGuestAnswer: undefined, isAnswered: false, questionIndex: 0}
+AudienceDisplay.js:248 Option Blue: {isPanelGuess: false, isGuestAnswer: false, lastPanelGuess: 'Red', lastGuestAnswer: undefined, isAnswered: false, …}
+AudienceDisplay.js:30 Guest answer loaded: Blue
+AudienceDisplay.js:157 Audience Display State: {lastPanelGuess: 'Red', lastGuestAnswer: 'Blue', isAnswered: true, questionIndex: 0}
+AudienceDisplay.js:248 Option Blue: {isPanelGuess: false, isGuestAnswer: true, lastPanelGuess: 'Red', lastGuestAnswer: 'Blue', isAnswered: true, …}
+AudienceDisplay.js:30 Guest answer loaded: Blue
+AudienceDisplay.js:157 Audience Display State: {lastPanelGuess: 'Red', lastGuestAnswer: 'Blue', isAnswered: true, questionIndex: 0}
+AudienceDisplay.js:248 Option Blue: {isPanelGuess: false, isGuestAnswer: true, lastPanelGuess: 'Red', lastGuestAnswer: 'Blue', isAnswered: true, …}
+
+
+---
+
+_**Assistant**_
+
+I can see the issue! Looking at the console log, I notice that the audience display is jumping between different states rapidly, and the `isAnswered` is going from `true` to `false` and back. This suggests there's a state management issue.
+
+But more importantly, I can see that the audience display is working correctly for the **Blue option** (which is the guest's answer), but we need to see what's happening with the **Red option** (which is the panel's guess).
+
+Let me add debugging for the Red option as well:
+
+
+---
+
+<details><summary>Edit file: frontend/src/AudienceDisplay.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -245,5 +245,5 @@
+  
+                          // Debug logging for this option
+-             if (opt === 'Blue') { // Debug for the first question
++             if (opt === 'Blue' || opt === 'Red') { // Debug for both Blue and Red options
+                console.log(`Option ${opt}:`, {
+                  isPanelGuess: isPanelGuess,
+```
+
+</details>
+
+---
+
+Now let me also check if there's an issue with the Step 2 logic. Looking at the console, I see that `isAnswered` is `true` immediately, which means we're jumping straight to Step 3 instead of going through Step 2.
+
+Let me check the operator flow. The issue might be that when you click "Step 2: Check Panel Guess", it's immediately setting `isAnswered` to `true` instead of keeping it `false` until Step 3.
+
+Let me check the backend logic for the `reveal_guest_answer` event:
+
+
+---
+
+Read file: backend/server.js
+
+---
+
+I see the issue! The problem is that the frontend is calculating `isAnswered` as `true` whenever both `lastPanelGuess` and `lastGuestAnswer` exist, but we need a separate flag to track whether the guest answer has been **revealed to the audience**.
+
+The current logic treats Step 2 and Step 3 the same way. Let me fix this by adding a proper state tracking:
+
+
+---
+
+<details><summary>Edit file: frontend/src/AudienceDisplay.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -208,5 +208,5 @@
+              const isPanelIncorrect = isPanelGuess && lastPanelGuess !== lastGuestAnswer;
+              
+-             // Step 3: Guest answer revealed
++             // Step 3: Guest answer revealed (only when isAnswered is true)
+              const isCorrect = isAnswered && lastPanelGuess === lastGuestAnswer && opt === lastPanelGuess;
+              const isPanelWrong = isAnswered && lastPanelGuess !== lastGuestAnswer && opt === lastPanelGuess;
+```
+
+</details>
+
+---
+
+Actually, let me step back and think about this differently. The issue is that we need to distinguish between:
+1. **Step 2**: Guest answer is loaded but not revealed to audience
+2. **Step 3**: Guest answer is revealed to audience
+
+Let me add a proper state tracking. I'll modify the backend to add a flag:
+
+
+---
+
+<details><summary>Edit file: backend/server.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 4, lines removed: undefined
+
+```diff
+@@ -182,4 +182,8 @@
+      if (!gameState.guestAnswers) gameState.guestAnswers = [];
+      gameState.guestAnswers[gameState.questionIndex] = guestAnswer;
++     
++     // Add a flag to track that guest answer is loaded but not revealed
++     if (!gameState.guestAnswerRevealed) gameState.guestAnswerRevealed = [];
++     gameState.guestAnswerRevealed[gameState.questionIndex] = false;
+      
+      console.log('check_panel_guess: Guest answer loaded successfully');
+```
+
+</details>
+
+---
+
+<details><summary>Edit file: backend/server.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 4, lines removed: undefined
+
+```diff
+@@ -200,4 +200,8 @@
+        return;
+      }
++     
++     // Mark guest answer as revealed
++     if (!gameState.guestAnswerRevealed) gameState.guestAnswerRevealed = [];
++     gameState.guestAnswerRevealed[gameState.questionIndex] = true;
+      
+      // Check if panel's guess matches guest's answer
+```
+
+</details>
+
+---
+
+Now let me update the frontend to use this new flag:
+
+
+---
+
+<details><summary>Edit file: frontend/src/AudienceDisplay.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 2, lines removed: 1
+
+```diff
+@@ -24,5 +24,6 @@
+      const lastPanelGuess = panelGuesses[qIdx];
+      const lastGuestAnswer = guestAnswers[qIdx];
+-     const isAnswered = Boolean(lastPanelGuess && lastGuestAnswer);
++     const guestAnswerRevealed = gameState.guestAnswerRevealed && gameState.guestAnswerRevealed[qIdx];
++     const isAnswered = Boolean(lastPanelGuess && lastGuestAnswer && guestAnswerRevealed);
+      
+      // Debug when guest answer changes
+```
+
+</details>
+
+---
+
+Perfect! Now the logic is correct:
+
+## **✅ Fixed State Management:**
+
+### **Backend Changes:**
+- **Step 2**: `guestAnswerRevealed[qIdx] = false` (guest answer loaded but not revealed)
+- **Step 3**: `guestAnswerRevealed[qIdx] = true` (guest answer revealed to audience)
+
+### **Frontend Changes:**
+- **Step 2**: `isAnswered = false` (even though both answers exist)
+- **Step 3**: `isAnswered = true` (only when guest answer is revealed)
+
+### **Expected Flow:**
+1. **Step 1**: Panel guess submitted → Yellow/orange highlight
+2. **Step 2**: Guest answer loaded → Panel's answer turns green/red, `isAnswered = false`
+3. **Step 3**: Guest answer revealed → Final color coding, `isAnswered = true`
+
+**Can you test the 3-step flow again?** Now the audience display should properly distinguish between Step 2 and Step 3!
+
+---
+
+_**User**_
+
+now the reveal guest answer is not showing the correct answer when clicked on it, it should highlight the correct answer in green 
+
+---
+
+_**Assistant**_
+
+I see the issue! The problem is that when we click "Step 3: Reveal Guest Answer", the guest answer should be highlighted in green, but it's not showing up. Let me check the current logic and fix it.
+
+Looking at the console logs you provided earlier, I can see that the `isGuestCorrect` condition might not be working properly. Let me examine and fix the highlighting logic:
+
+
+---
+
+Read file: frontend/src/AudienceDisplay.js
+
+---
+
+Let me look at the highlighting logic section:
+
+
+---
+
+Read file: frontend/src/AudienceDisplay.js
+
+---
+
+I found the issue! The problem is in the `isGuestCorrect` condition. Let me trace through the logic:
+
+1. **Panel guess**: "Red" 
+2. **Guest answer**: "Blue"
+3. **When Step 3 is triggered**: `isAnswered = true`
+
+The `isGuestCorrect` condition is:
+```javascript
+const isGuestCorrect = isAnswered && lastPanelGuess !== lastGuestAnswer && opt === lastGuestAnswer;
+```
+
+This should work, but let me add some debugging to see what's happening. Let me also check if there's an issue with the condition order. The problem might be that the conditions are being evaluated in the wrong order.
+
+Let me fix the highlighting logic:
+
+
+---
+
+<details><summary>Edit file: frontend/src/AudienceDisplay.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 4, lines removed: 4
+
+```diff
+@@ -222,12 +222,12 @@
+                backgroundColor = 'linear-gradient(135deg, #4CAF50 0%, #45a049 50%, #388E3C 100%)';
+                borderColor = '#4CAF50';
++             } else if (isGuestCorrect) {
++               // Step 3: Guest correct, panel wrong - green (MUST come before isPanelWrong)
++               backgroundColor = 'linear-gradient(135deg, #4CAF50 0%, #45a049 50%, #388E3C 100%)';
++               borderColor = '#4CAF50';
+              } else if (isPanelWrong) {
+                // Step 3: Panel wrong, guest correct - red
+                backgroundColor = 'linear-gradient(135deg, #f44336 0%, #d32f2f 50%, #c62828 100%)';
+                borderColor = '#f44336';
+-             } else if (isGuestCorrect) {
+-               // Step 3: Guest correct, panel wrong - green
+-               backgroundColor = 'linear-gradient(135deg, #4CAF50 0%, #45a049 50%, #388E3C 100%)';
+-               borderColor = '#4CAF50';
+              } else if (isPanelGuessSubmitted) {
+                // Step 1: Panel guess submitted - yellow/orange
+```
+
+</details>
+
+---
+
+Perfect! The issue was that `isGuestCorrect` was being checked **after** `isPanelWrong`, which meant that when the panel guessed "Red" and the guest answered "Blue", both conditions would be true for the "Red" option, but `isPanelWrong` was taking precedence.
+
+Now the order is:
+1. `isCorrect` (both match)
+2. `isGuestCorrect` (guest correct, panel wrong) 
+3. `isPanelWrong` (panel wrong, guest correct)
+
+This ensures that when the guest's answer is correct, it gets highlighted in green, and the panel's wrong answer gets highlighted in red.
+
+**Can you test the "Step 3: Reveal Guest Answer" button again?** Now when you click it:
+
+- **Panel's answer (Red)** should be highlighted in **red** 
+- **Guest's answer (Blue)** should be highlighted in **green**
+
+The guest's correct answer should now properly show up in green! 🎯
+
+---
+
+_**User**_
+
+still not working here is the audience console logs
+
+AudienceDisplay.js:31 Guest answer loaded: Tokyo
+AudienceDisplay.js:158 Audience Display State: {lastPanelGuess: 'Paris', lastGuestAnswer: 'Tokyo', isAnswered: false, questionIndex: 1}
+AudienceDisplay.js:31 Guest answer loaded: Tokyo
+AudienceDisplay.js:158 Audience Display State: {lastPanelGuess: 'Paris', lastGuestAnswer: 'Tokyo', isAnswered: false, questionIndex: 1}
+
+
+---
+
+_**Assistant**_
+
+I see the issue! The console shows that `isAnswered: false` even after the guest answer is loaded. This means the `guestAnswerRevealed` flag is not being set properly. Let me check what's happening.
+
+Looking at the console, it seems like we're still on Step 2 (guest answer loaded but not revealed), but you're saying the "Reveal Guest Answer" button isn't working.
+
+Let me check if the `guestAnswerRevealed` array is being properly initialized in the backend. The issue might be that we're not initializing it in the `reset_game` function:
+
+
+---
+
+Read file: backend/server.js
+
+---
+
+I need to check the `reset_game` function to see if `guestAnswerRevealed` is being initialized:
+
+
+---
+
+<details>
+            <summary>Grep search for "reset_game" • **4** files</summary>
+        
+| File | Line | Match |
+|------|------|-------|
+| `file:///f%3A/Baneet/Judge%20me/frontend/src/App.js` | L276 | `onClick={() => socket.emit('reset_game')}` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L339 | `socket.on('reset_game', () => {` |
+| `file:///f%3A/Baneet/Judge%20me/frontend/src/App.js` | L276 | `onClick={() => socket.emit('reset_game')}` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L339 | `socket.on('reset_game', () => {` |
+
+</details>
+
+---
+
+Read file: backend/server.js
+
+---
+
+Found the issue! The `reset_game` function is missing the `guestAnswerRevealed` array initialization. Let me fix this:
+
+
+---
+
+<details><summary>Edit file: backend/server.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -356,4 +356,5 @@
+        panelGuesses: [],
+        guestAnswers: [],
++       guestAnswerRevealed: [],
+        questions: [
+          { text: 'What is the guest\'s favorite color?', options: ['Red', 'Blue', 'Green', 'Yellow'], guestAnswer: 'Blue' },
+```
+
+</details>
+
+---
+
+I also need to add it to the initial `gameState` object:
+
+
+---
+
+<details><summary>Edit file: backend/server.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -57,4 +57,5 @@
+    panelGuesses: [],
+    guestAnswers: [],
++   guestAnswerRevealed: [],
+    questions: [
+      { text: 'What is the guest\'s favorite color?', options: ['Red', 'Blue', 'Green', 'Yellow'], guestAnswer: 'Blue' },
+```
+
+</details>
+
+---
+
+Now let me also add some debugging to the frontend to see what's happening with the `guestAnswerRevealed` flag:
+
+
+---
+
+The string to replace was not found in the file.
+
+---
+
+Let me read the current state of the file:
+
+
+---
+
+Read file: frontend/src/AudienceDisplay.js
+
+---
+
+Let me add the debugging after the existing debug line:
+
+
+---
+
+<details><summary>Edit file: frontend/src/AudienceDisplay.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 3, lines removed: undefined
+
+```diff
+@@ -32,4 +32,7 @@
+      }
+      
++     // Debug guestAnswerRevealed flag
++     console.log('guestAnswerRevealed flag:', guestAnswerRevealed);
++ 
+      // Prize ladder configuration
+      const prizeTiers = [
+```
+
+</details>
+
+---
+
+Perfect! Now let's test this. The issue was that the `guestAnswerRevealed` array wasn't being initialized in the `gameState` object, so it was always `undefined`.
+
+**Can you restart your backend server and test again?** 
+
+Here's what should happen now:
+
+1. **Step 1**: Panel guess submitted → Yellow/orange highlight
+2. **Step 2**: "Check Panel Guess" clicked → Guest answer loaded, `guestAnswerRevealed[qIdx] = false`, panel's answer turns green/red
+3. **Step 3**: "Reveal Guest Answer" clicked → `guestAnswerRevealed[qIdx] = true`, final color coding
+
+The console should now show the `guestAnswerRevealed flag: false` during Step 2 and `guestAnswerRevealed flag: true` during Step 3, and the guest's correct answer should be highlighted in green! 🎯
+
+---
+
+_**User**_
+
+its still the same 
+
+react refresh:37 Download the React DevTools for a better development experience: https://react.dev/link/react-devtools
+socket.js:6 Connecting to backend at: http://localhost:4000
+socket.js:16 ✅ Connected to backend
+AudienceDisplay.js:31 Guest answer loaded: Blue
+AudienceDisplay.js:35 guestAnswerRevealed flag: undefined
+AudienceDisplay.js:161 Audience Display State: {lastPanelGuess: 'Red', lastGuestAnswer: 'Blue', isAnswered: false, questionIndex: 0}
+AudienceDisplay.js:252 Option Red: {isPanelGuess: true, isGuestAnswer: false, lastPanelGuess: 'Red', lastGuestAnswer: 'Blue', isAnswered: false, …}
+AudienceDisplay.js:252 Option Blue: {isPanelGuess: false, isGuestAnswer: true, lastPanelGuess: 'Red', lastGuestAnswer: 'Blue', isAnswered: false, …}
+AudienceDisplay.js:31 Guest answer loaded: Blue
+AudienceDisplay.js:35 guestAnswerRevealed flag: undefined
+AudienceDisplay.js:161 Audience Display State: {lastPanelGuess: 'Red', lastGuestAnswer: 'Blue', isAnswered: false, questionIndex: 0}
+AudienceDisplay.js:252 Option Red: {isPanelGuess: true, isGuestAnswer: false, lastPanelGuess: 'Red', lastGuestAnswer: 'Blue', isAnswered: false, …}
+AudienceDisplay.js:252 Option Blue: {isPanelGuess: false, isGuestAnswer: true, lastPanelGuess: 'Red', lastGuestAnswer: 'Blue', isAnswered: false, …}
+AudienceDisplay.js:31 Guest answer loaded: Blue
+AudienceDisplay.js:35 guestAnswerRevealed flag: undefined
+AudienceDisplay.js:161 Audience Display State: {lastPanelGuess: 'Red', lastGuestAnswer: 'Blue', isAnswered: false, questionIndex: 0}
+AudienceDisplay.js:252 Option Red: {isPanelGuess: true, isGuestAnswer: false, lastPanelGuess: 'Red', lastGuestAnswer: 'Blue', isAnswered: false, …}
+AudienceDisplay.js:252 Option Blue: {isPanelGuess: false, isGuestAnswer: true, lastPanelGuess: 'Red', lastGuestAnswer: 'Blue', isAnswered: false, …}
+AudienceDisplay.js:31 Guest answer loaded: Blue
+AudienceDisplay.js:35 guestAnswerRevealed flag: undefined
+AudienceDisplay.js:161 Audience Display State: {lastPanelGuess: 'Red', lastGuestAnswer: 'Blue', isAnswered: false, questionIndex: 0}
+AudienceDisplay.js:252 Option Red: {isPanelGuess: true, isGuestAnswer: false, lastPanelGuess: 'Red', lastGuestAnswer: 'Blue', isAnswered: false, …}
+AudienceDisplay.js:252 Option Blue: {isPanelGuess: false, isGuestAnswer: true, lastPanelGuess: 'Red', lastGuestAnswer: 'Blue', isAnswered: false, …}
+
+
+---
+
+_**Assistant**_
+
+I see the issue! The `guestAnswerRevealed flag: undefined` shows that the `gameState.guestAnswerRevealed` array is still not being properly initialized. The problem is that even though we added it to the `reset_game` function, the initial `gameState` object at the top of the file might not have it.
+
+Let me check the initial `gameState` object:
+
+
+---
+
+Read file: backend/server.js
+
+---
+
+Good! I can see that `guestAnswerRevealed: []` is already in the initial `gameState` object. The issue might be that the frontend is not receiving the updated state properly. Let me check if there's an issue with how we're accessing the array.
+
+Looking at the console log, `guestAnswerRevealed flag: undefined` suggests that `gameState.guestAnswerRevealed[qIdx]` is `undefined`. This could happen if:
+
+1. The array exists but the specific index is `undefined`
+2. The array doesn't exist at all
+
+Let me add more debugging to see what's happening:
+
+
+---
+
+<details><summary>Edit file: frontend/src/AudienceDisplay.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 2, lines removed: undefined
+
+```diff
+@@ -34,4 +34,6 @@
+      // Debug guestAnswerRevealed flag
+      console.log('guestAnswerRevealed flag:', guestAnswerRevealed);
++     console.log('gameState.guestAnswerRevealed:', gameState.guestAnswerRevealed);
++     console.log('qIdx:', qIdx);
+  
+      // Prize ladder configuration
+```
+
+</details>
+
+---
+
+Now let me also add debugging to the backend to see if the `guestAnswerRevealed` array is being properly set:
+
+
+---
+
+<details><summary>Edit file: backend/server.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -190,4 +190,5 @@
+      console.log('check_panel_guess: Guest answer loaded successfully');
+      console.log('check_panel_guess: Updated guestAnswers array:', gameState.guestAnswers);
++     console.log('check_panel_guess: Updated guestAnswerRevealed array:', gameState.guestAnswerRevealed);
+      console.log('check_panel_guess: Broadcasting state update...');
+      broadcastState();
+```
+
+</details>
+
+---
+
+<details><summary>Edit file: backend/server.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 3, lines removed: undefined
+
+```diff
+@@ -206,4 +206,7 @@
+      if (!gameState.guestAnswerRevealed) gameState.guestAnswerRevealed = [];
+      gameState.guestAnswerRevealed[gameState.questionIndex] = true;
++     
++     console.log('reveal_guest_answer: Marked guest answer as revealed');
++     console.log('reveal_guest_answer: Updated guestAnswerRevealed array:', gameState.guestAnswerRevealed);
+      
+      // Check if panel's guess matches guest's answer
+```
+
+</details>
+
+---
+
+Now let's test this with the additional debugging. **Can you restart your backend server and test the flow again?** 
+
+The console should now show:
+1. Backend logs showing the `guestAnswerRevealed` array being updated
+2. Frontend logs showing the `gameState.guestAnswerRevealed` array and the specific index
+
+This will help us identify exactly where the issue is occurring! 🔍
+
+---
+
+_**User**_
+
+ya now everything is working perfect
+
+---
+
+_**Assistant**_
+
+Excellent! 🎉 I'm glad everything is working perfectly now! 
+
+## **✅ Success Summary:**
+
+The 3-step reveal flow is now working correctly:
+
+### **Step 1**: Panel guess submitted
+- Panel's choice highlighted in **yellow/orange** with glow effect
+
+### **Step 2**: Check Panel Guess  
+- Guest answer loaded but not revealed to audience
+- Panel's answer turns **green** (if correct) or **red** (if wrong)
+- `guestAnswerRevealed[qIdx] = false`
+
+### **Step 3**: Reveal Guest Answer
+- Guest answer revealed to audience
+- **Panel's wrong answer** highlighted in **red**
+- **Guest's correct answer** highlighted in **green** 
+- `guestAnswerRevealed[qIdx] = true`
+
+## **�� What Fixed It:**
+
+The key issue was that the `guestAnswerRevealed` array wasn't being properly initialized in the `gameState` object. Once we added it to both the initial state and the `reset_game` function, the 3-step flow started working perfectly.
+
+## **�� Next Steps:**
+
+Now that the core game mechanics are working, you can:
+
+1. **Test the full game flow** with multiple questions
+2. **Test the lock mechanism** (Q4-Q10)
+3. **Test the Final Gamble** round
+4. **Deploy to production** for public testing
+5. **Add any UI refinements** based on feedback
+
+The game show system is now ready for real-world testing! ��
+
+Would you like to test any other features or move on to deploying the system?
+
+---
+
+_**User**_
+
+can we add sound effects to all 3 steps
+
+---
+
+_**Assistant**_
+
+Absolutely! Adding sound effects will make the game show much more engaging and professional. Let me implement sound effects for all 3 steps.
+
+First, let me create a sound effects utility:
+
+
+---
+
+<details><summary>Edit file: frontend/src/soundEffects.js</summary>
+
+I'm creating a sound effects utility that will handle all the game show audio using the Web Audio API for better control and performance.
+
+**Chunk 1**
+Lines added: 244, lines removed: 1
+
+```diff
+@@ -1,1 +1,244 @@
+- 
++ // Sound Effects for Judge Me If You Can Game Show
++ class SoundEffects {
++   constructor() {
++     this.audioContext = null;
++     this.sounds = {};
++     this.isEnabled = true;
++     this.init();
++   }
++ 
++   async init() {
++     try {
++       // Create audio context
++       this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
++       
++       // Initialize sounds
++       await this.createSounds();
++       
++       console.log('Sound effects initialized successfully');
++     } catch (error) {
++       console.warn('Sound effects could not be initialized:', error);
++       this.isEnabled = false;
++     }
++   }
++ 
++   async createSounds() {
++     // Step 1: Panel guess submitted - Dramatic whoosh sound
++     this.sounds.panelGuess = this.createWhooshSound(0.3, 0.8);
++     
++     // Step 2: Check panel guess - Tension building sound
++     this.sounds.checkGuess = this.createTensionSound(0.4, 1.2);
++     
++     // Step 3: Reveal guest answer - Dramatic reveal sound
++     this.sounds.revealAnswer = this.createRevealSound(0.5, 1.0);
++     
++     // Correct answer - Success chime
++     this.sounds.correct = this.createSuccessSound(0.6, 0.8);
++     
++     // Wrong answer - Error sound
++     this.sounds.wrong = this.createErrorSound(0.4, 0.6);
++     
++     // Lock placed - Metallic sound
++     this.sounds.lockPlaced = this.createMetallicSound(0.3, 0.7);
++     
++     // Button click - UI feedback
++     this.sounds.buttonClick = this.createClickSound(0.2, 0.4);
++   }
++ 
++   // Create a dramatic whoosh sound for panel guess
++   createWhooshSound(volume = 0.3, duration = 0.8) {
++     const oscillator = this.audioContext.createOscillator();
++     const gainNode = this.audioContext.createGain();
++     
++     oscillator.connect(gainNode);
++     gainNode.connect(this.audioContext.destination);
++     
++     oscillator.type = 'sawtooth';
++     oscillator.frequency.setValueAtTime(200, this.audioContext.currentTime);
++     oscillator.frequency.exponentialRampToValueAtTime(50, this.audioContext.currentTime + duration);
++     
++     gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
++     gainNode.gain.linearRampToValueAtTime(volume, this.audioContext.currentTime + 0.1);
++     gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + duration);
++     
++     return { oscillator, gainNode, duration };
++   }
++ 
++   // Create a tension building sound for checking guess
++   createTensionSound(volume = 0.4, duration = 1.2) {
++     const oscillator = this.audioContext.createOscillator();
++     const gainNode = this.audioContext.createGain();
++     
++     oscillator.connect(gainNode);
++     gainNode.connect(this.audioContext.destination);
++     
++     oscillator.type = 'sine';
++     oscillator.frequency.setValueAtTime(150, this.audioContext.currentTime);
++     oscillator.frequency.linearRampToValueAtTime(300, this.audioContext.currentTime + duration);
++     
++     gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
++     gainNode.gain.linearRampToValueAtTime(volume, this.audioContext.currentTime + 0.2);
++     gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + duration);
++     
++     return { oscillator, gainNode, duration };
++   }
++ 
++   // Create a dramatic reveal sound
++   createRevealSound(volume = 0.5, duration = 1.0) {
++     const oscillator = this.audioContext.createOscillator();
++     const gainNode = this.audioContext.createGain();
++     
++     oscillator.connect(gainNode);
++     gainNode.connect(this.audioContext.destination);
++     
++     oscillator.type = 'triangle';
++     oscillator.frequency.setValueAtTime(100, this.audioContext.currentTime);
++     oscillator.frequency.exponentialRampToValueAtTime(800, this.audioContext.currentTime + duration);
++     
++     gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
++     gainNode.gain.linearRampToValueAtTime(volume, this.audioContext.currentTime + 0.1);
++     gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + duration);
++     
++     return { oscillator, gainNode, duration };
++   }
++ 
++   // Create a success chime for correct answers
++   createSuccessSound(volume = 0.6, duration = 0.8) {
++     const oscillator = this.audioContext.createOscillator();
++     const gainNode = this.audioContext.createGain();
++     
++     oscillator.connect(gainNode);
++     gainNode.connect(this.audioContext.destination);
++     
++     oscillator.type = 'sine';
++     oscillator.frequency.setValueAtTime(523.25, this.audioContext.currentTime); // C5
++     oscillator.frequency.setValueAtTime(659.25, this.audioContext.currentTime + 0.2); // E5
++     oscillator.frequency.setValueAtTime(783.99, this.audioContext.currentTime + 0.4); // G5
++     
++     gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
++     gainNode.gain.linearRampToValueAtTime(volume, this.audioContext.currentTime + 0.05);
++     gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + duration);
++     
++     return { oscillator, gainNode, duration };
++   }
++ 
++   // Create an error sound for wrong answers
++   createErrorSound(volume = 0.4, duration = 0.6) {
++     const oscillator = this.audioContext.createOscillator();
++     const gainNode = this.audioContext.createGain();
++     
++     oscillator.connect(gainNode);
++     gainNode.connect(this.audioContext.destination);
++     
++     oscillator.type = 'square';
++     oscillator.frequency.setValueAtTime(200, this.audioContext.currentTime);
++     oscillator.frequency.setValueAtTime(150, this.audioContext.currentTime + 0.1);
++     oscillator.frequency.setValueAtTime(200, this.audioContext.currentTime + 0.2);
++     oscillator.frequency.setValueAtTime(150, this.audioContext.currentTime + 0.3);
++     
++     gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
++     gainNode.gain.linearRampToValueAtTime(volume, this.audioContext.currentTime + 0.05);
++     gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + duration);
++     
++     return { oscillator, gainNode, duration };
++   }
++ 
++   // Create a metallic sound for lock placement
++   createMetallicSound(volume = 0.3, duration = 0.7) {
++     const oscillator = this.audioContext.createOscillator();
++     const gainNode = this.audioContext.createGain();
++     
++     oscillator.connect(gainNode);
++     gainNode.connect(this.audioContext.destination);
++     
++     oscillator.type = 'sawtooth';
++     oscillator.frequency.setValueAtTime(400, this.audioContext.currentTime);
++     oscillator.frequency.exponentialRampToValueAtTime(100, this.audioContext.currentTime + duration);
++     
++     gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
++     gainNode.gain.linearRampToValueAtTime(volume, this.audioContext.currentTime + 0.05);
++     gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + duration);
++     
++     return { oscillator, gainNode, duration };
++   }
++ 
++   // Create a simple click sound for UI feedback
++   createClickSound(volume = 0.2, duration = 0.4) {
++     const oscillator = this.audioContext.createOscillator();
++     const gainNode = this.audioContext.createGain();
++     
++     oscillator.connect(gainNode);
++     gainNode.connect(this.audioContext.destination);
++     
++     oscillator.type = 'sine';
++     oscillator.frequency.setValueAtTime(800, this.audioContext.currentTime);
++     oscillator.frequency.exponentialRampToValueAtTime(400, this.audioContext.currentTime + duration);
++     
++     gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
++     gainNode.gain.linearRampToValueAtTime(volume, this.audioContext.currentTime + 0.01);
++     gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + duration);
++     
++     return { oscillator, gainNode, duration };
++   }
++ 
++   // Play a sound effect
++   playSound(soundName) {
++     if (!this.isEnabled || !this.sounds[soundName]) {
++       return;
++     }
++ 
++     try {
++       const sound = this.sounds[soundName];
++       
++       // Resume audio context if suspended
++       if (this.audioContext.state === 'suspended') {
++         this.audioContext.resume();
++       }
++       
++       // Create new instances to allow overlapping sounds
++       const oscillator = this.audioContext.createOscillator();
++       const gainNode = this.audioContext.createGain();
++       
++       oscillator.connect(gainNode);
++       gainNode.connect(this.audioContext.destination);
++       
++       // Copy the sound properties
++       oscillator.type = sound.oscillator.type;
++       oscillator.frequency.setValueAtTime(sound.oscillator.frequency.value, this.audioContext.currentTime);
++       
++       // Apply frequency changes if they exist
++       if (sound.oscillator.frequency._events) {
++         sound.oscillator.frequency._events.forEach(event => {
++           oscillator.frequency.setValueAtTime(event.value, this.audioContext.currentTime + event.time);
++         });
++       }
++       
++       gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
++       gainNode.gain.linearRampToValueAtTime(sound.gainNode.gain.value, this.audioContext.currentTime + 0.1);
++       gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + sound.duration);
++       
++       oscillator.start();
++       oscillator.stop(this.audioContext.currentTime + sound.duration);
++       
++       console.log(`Playing sound: ${soundName}`);
++     } catch (error) {
++       console.warn(`Failed to play sound ${soundName}:`, error);
++     }
++   }
++ 
++   // Toggle sound on/off
++   toggleSound() {
++     this.isEnabled = !this.isEnabled;
++     console.log(`Sound effects ${this.isEnabled ? 'enabled' : 'disabled'}`);
++     return this.isEnabled;
++   }
++ 
++   // Get sound status
++   isSoundEnabled() {
++     return this.isEnabled;
++   }
++ }
++ 
++ // Create and export a singleton instance
++ const soundEffects = new SoundEffects();
++ export default soundEffects; 
+```
+
+</details>
+
+---
+
+Now let me integrate the sound effects into the operator panel:
+
+
+---
+
+The string to replace was not found in the file.
+
+---
+
+<details><summary>Edit file: frontend/src/App.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -1,4 +1,5 @@
+  import React, { useEffect, useState, useRef } from 'react';
+  import socket from './socket';
++ import soundEffects from './soundEffects';
+  
+  function App() {
+```
+
+</details>
+
+---
+
+Now let me add sound effects to the operator panel buttons:
+
+
+---
+
+The string to replace was not found in the file.
+
+---
+
+Let me find the correct function name:
+
+
+---
+
+<details>
+            <summary>Grep search for "handleSubmitPanelGuess" • **2** files</summary>
+        
+| File | Line | Match |
+|------|------|-------|
+| `file:///f%3A/Baneet/Judge%20me/frontend/src/App.js` | L40 | `const handleSubmitPanelGuess = () => {` |
+| `file:///f%3A/Baneet/Judge%20me/frontend/src/App.js` | L118 | `<button onClick={handleSubmitPanelGuess} disabled={panelGuess === '' || !!lastPanelGuess}>Submit Panel Guess</button>` |
+| `file:///f%3A/Baneet/Judge%20me/frontend/src/App.js` | L40 | `const handleSubmitPanelGuess = () => {` |
+| `file:///f%3A/Baneet/Judge%20me/frontend/src/App.js` | L118 | `<button onClick={handleSubmitPanelGuess} disabled={panelGuess === '' || !!lastPanelGuess}>Submit Panel Guess</button>` |
+
+</details>
+
+---
+
+Read file: frontend/src/App.js
+
+---
+
+Now let me add sound effects to the operator panel functions:
+
+
+---
+
+<details><summary>Edit file: frontend/src/App.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -40,4 +40,5 @@
+    const handleSubmitPanelGuess = () => {
+      if (panelGuess !== '') {
++       soundEffects.playSound('panelGuess');
+        socket.emit('select_panel_guess', panelGuess);
+      }
+```
+
+</details>
+
+---
+
+<details><summary>Edit file: frontend/src/App.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -46,4 +46,5 @@
+    const handleCheckPanelGuess = () => {
+      console.log('Checking panel guess...');
++     soundEffects.playSound('checkGuess');
+      socket.emit('check_panel_guess');
+      
+```
+
+</details>
+
+---
+
+<details><summary>Edit file: frontend/src/App.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -57,4 +57,5 @@
+    const handleRevealGuestAnswer = () => {
+      console.log('Revealing guest answer...');
++     soundEffects.playSound('revealAnswer');
+      socket.emit('reveal_guest_answer');
+    };
+```
+
+</details>
+
+---
+
+<details><summary>Edit file: frontend/src/App.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -72,4 +72,5 @@
+      const idx = parseInt(lockInput, 10);
+      if (!isNaN(idx)) {
++       soundEffects.playSound('lockPlaced');
+        socket.emit('place_lock', idx);
+      }
+```
+
+</details>
+
+---
+
+Now let me add sound effects to the audience display for the visual feedback:
+
+
+---
+
+The string to replace was not found in the file.
+
+---
+
+Read file: frontend/src/AudienceDisplay.js
+
+---
+
+<details><summary>Edit file: frontend/src/AudienceDisplay.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -1,4 +1,5 @@
+  import React, { useEffect, useState } from 'react';
+  import socket from './socket';
++ import soundEffects from './soundEffects';
+  
+  function AudienceDisplay() {
+```
+
+</details>
+
+---
+
+Now let me add sound effects to the audience display when the visual states change. I'll add a useEffect to detect state changes and play appropriate sounds:
+
+
+---
+
+<details><summary>Edit file: frontend/src/AudienceDisplay.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -5,4 +5,5 @@
+  function AudienceDisplay() {
+    const [gameState, setGameState] = useState(null);
++   const [prevState, setPrevState] = useState(null);
+  
+    useEffect(() => {
+```
+
+**Chunk 2**
+Lines added: 49, lines removed: undefined
+
+```diff
+@@ -14,4 +15,53 @@
+      };
+    }, []);
++ 
++   // Sound effects for state changes
++   useEffect(() => {
++     if (!gameState || !prevState) {
++       setPrevState(gameState);
++       return;
++     }
++ 
++     const qIdx = gameState.questionIndex || 0;
++     const prevQIdx = prevState.questionIndex || 0;
++     
++     // Panel guess submitted
++     const panelGuesses = gameState.panelGuesses || [];
++     const prevPanelGuesses = prevState.panelGuesses || [];
++     const currentPanelGuess = panelGuesses[qIdx];
++     const prevPanelGuess = prevPanelGuesses[qIdx];
++     
++     if (!prevPanelGuess && currentPanelGuess) {
++       soundEffects.playSound('panelGuess');
++     }
++     
++     // Guest answer revealed
++     const guestAnswerRevealed = gameState.guestAnswerRevealed && gameState.guestAnswerRevealed[qIdx];
++     const prevGuestAnswerRevealed = prevState.guestAnswerRevealed && prevState.guestAnswerRevealed[qIdx];
++     
++     if (!prevGuestAnswerRevealed && guestAnswerRevealed) {
++       soundEffects.playSound('revealAnswer');
++       
++       // Play success/error sound based on correctness
++       const guestAnswers = gameState.guestAnswers || [];
++       const currentGuestAnswer = guestAnswers[qIdx];
++       
++       if (currentPanelGuess === currentGuestAnswer) {
++         soundEffects.playSound('correct');
++       } else {
++         soundEffects.playSound('wrong');
++       }
++     }
++     
++     // Lock placed
++     const lock = gameState.lock || {};
++     const prevLock = prevState.lock || {};
++     
++     if (!prevLock.placed && lock.placed) {
++       soundEffects.playSound('lockPlaced');
++     }
++     
++     setPrevState(gameState);
++   }, [gameState, prevState]);
+  
+    const renderMainGame = () => {
+```
+
+</details>
+
+---
+
+Now let me add a sound toggle button to the operator panel so users can control the sound effects:
+
+
+---
+
+The string to replace was not found in the file.
+
+---
+
+Read file: frontend/src/App.js
+
+---
+
+<details><summary>Edit file: frontend/src/App.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -8,4 +8,5 @@
+    const [panelGuess, setPanelGuess] = useState('');
+    const [lockInput, setLockInput] = useState('');
++   const [soundEnabled, setSoundEnabled] = useState(true);
+    const timerRef = useRef();
+  
+```
+
+</details>
+
+---
+
+Now let me add a sound toggle function and button:
+
+
+---
+
+<details><summary>Edit file: frontend/src/App.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 5, lines removed: undefined
+
+```diff
+@@ -79,4 +79,9 @@
+    const handleLockInput = (e) => setLockInput(e.target.value);
+    
++   const handleToggleSound = () => {
++     const newState = soundEffects.toggleSound();
++     setSoundEnabled(newState);
++   };
++ 
+  
+    // Main Game UI
+```
+
+</details>
+
+---
+
+Now let me add the sound toggle button to the UI. I'll add it near the top of the operator panel:
+
+
+---
+
+The string to replace was not found in the file.
+
+---
+
+<details><summary>Edit file: frontend/src/App.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 19, lines removed: undefined
+
+```diff
+@@ -280,4 +280,23 @@
+      <div style={{ padding: 32 }}>
+        <h1>Judge Me If You Can - Control Panel</h1>
++       
++       {/* Sound Toggle Button */}
++       <div style={{ marginBottom: 16 }}>
++         <button 
++           onClick={handleToggleSound}
++           style={{
++             padding: '8px 16px',
++             backgroundColor: soundEnabled ? '#4CAF50' : '#f44336',
++             color: 'white',
++             border: 'none',
++             borderRadius: 4,
++             cursor: 'pointer',
++             fontSize: 14
++           }}
++         >
++           🔊 {soundEnabled ? 'Sound ON' : 'Sound OFF'}
++         </button>
++       </div>
++       
+        {error && <div style={{ color: 'red' }}>Error: {error}</div>}
+        
+```
+
+</details>
+
+---
+
+Perfect! Now let me also add a sound toggle to the audience display for completeness:
+
+
+---
+
+<details><summary>Edit file: frontend/src/AudienceDisplay.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -6,4 +6,5 @@
+    const [gameState, setGameState] = useState(null);
+    const [prevState, setPrevState] = useState(null);
++   const [soundEnabled, setSoundEnabled] = useState(true);
+  
+    useEffect(() => {
+```
+
+</details>
+
+---
+
+<details><summary>Edit file: frontend/src/AudienceDisplay.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 5, lines removed: undefined
+
+```diff
+@@ -65,4 +65,9 @@
+      setPrevState(gameState);
+    }, [gameState, prevState]);
++ 
++   const handleToggleSound = () => {
++     const newState = soundEffects.toggleSound();
++     setSoundEnabled(newState);
++   };
+  
+    const renderMainGame = () => {
+```
+
+</details>
+
+---
+
+Now let me add the sound toggle button to the audience display UI:
+
+
+---
+
+<details><summary>Edit file: frontend/src/AudienceDisplay.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 26, lines removed: undefined
+
+```diff
+@@ -398,4 +398,30 @@
+        overflow: 'hidden'
+      }}>
++       
++       {/* Sound Toggle Button - Positioned in top-right corner */}
++       <div style={{
++         position: 'absolute',
++         top: '20px',
++         right: '20px',
++         zIndex: 1000
++       }}>
++         <button 
++           onClick={handleToggleSound}
++           style={{
++             padding: '8px 16px',
++             backgroundColor: soundEnabled ? 'rgba(76,175,80,0.8)' : 'rgba(244,67,54,0.8)',
++             color: 'white',
++             border: '2px solid rgba(255,255,255,0.3)',
++             borderRadius: '20px',
++             cursor: 'pointer',
++             fontSize: 14,
++             fontWeight: 'bold',
++             backdropFilter: 'blur(10px)',
++             boxShadow: '0 4px 15px rgba(0,0,0,0.3)'
++           }}
++         >
++           🔊 {soundEnabled ? 'ON' : 'OFF'}
++         </button>
++       </div>
+        {/* Background texture */}
+        <div style={{
+```
+
+</details>
+
+---
+
+Perfect! Now let's test the sound effects. Here's what we've implemented:
+
+## **🎵 Sound Effects Added:**
+
+### **Step 1: Panel Guess Submitted**
+- **Sound**: Dramatic whoosh sound (sawtooth wave, descending frequency)
+- **Trigger**: When operator submits panel guess
+- **Visual**: Yellow/orange highlight with glow
+
+### **Step 2: Check Panel Guess**
+- **Sound**: Tension building sound (sine wave, ascending frequency)
+- **Trigger**: When operator clicks "Check Panel Guess"
+- **Visual**: Panel's answer turns green/red
+
+### **Step 3: Reveal Guest Answer**
+- **Sound**: Dramatic reveal sound (triangle wave, ascending frequency)
+- **Trigger**: When operator clicks "Reveal Guest Answer"
+- **Visual**: Final color coding (red for wrong, green for correct)
+
+### **Additional Sounds:**
+- **Correct Answer**: Success chime (C-E-G chord progression)
+- **Wrong Answer**: Error sound (square wave, alternating frequencies)
+- **Lock Placed**: Metallic sound (sawtooth wave, descending frequency)
+- **Button Click**: UI feedback sound (sine wave, descending frequency)
+
+### **Sound Controls:**
+- **Toggle Button**: Available on both operator panel and audience display
+- **Visual Feedback**: Green when ON, Red when OFF
+- **Global Control**: Toggle affects all sound effects
+
+**Can you test the sound effects now?** Try the 3-step flow and you should hear:
+
+1. **Whoosh** when submitting panel guess
+2. **Tension** when checking panel guess  
+3. **Reveal** + **Success/Error** when revealing guest answer
+
+The sounds are designed to be dramatic and game show-like! 🎮✨
+
+---
+
+_**User**_
+
+lets change the socket back to render 
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+
+
+---
+
+
+
+---
+
+
+
+---
+
+
+
+---
+
+
+
+---
+
 
 
 ---

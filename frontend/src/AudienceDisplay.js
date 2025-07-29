@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import socket from './socket';
+import soundEffects from './soundEffects';
 
 function AudienceDisplay() {
   const [gameState, setGameState] = useState(null);
+  const [prevState, setPrevState] = useState(null);
+  const [soundEnabled, setSoundEnabled] = useState(true);
 
   useEffect(() => {
     socket.on('game_state', (state) => {
@@ -12,6 +15,60 @@ function AudienceDisplay() {
       socket.off('game_state');
     };
   }, []);
+
+  // Sound effects for state changes
+  useEffect(() => {
+    if (!gameState || !prevState) {
+      setPrevState(gameState);
+      return;
+    }
+
+    const qIdx = gameState.questionIndex || 0;
+    const prevQIdx = prevState.questionIndex || 0;
+    
+    // Panel guess submitted
+    const panelGuesses = gameState.panelGuesses || [];
+    const prevPanelGuesses = prevState.panelGuesses || [];
+    const currentPanelGuess = panelGuesses[qIdx];
+    const prevPanelGuess = prevPanelGuesses[qIdx];
+    
+    if (!prevPanelGuess && currentPanelGuess) {
+      soundEffects.playSound('panelGuess');
+    }
+    
+    // Guest answer revealed
+    const guestAnswerRevealed = gameState.guestAnswerRevealed && gameState.guestAnswerRevealed[qIdx];
+    const prevGuestAnswerRevealed = prevState.guestAnswerRevealed && prevState.guestAnswerRevealed[qIdx];
+    
+    if (!prevGuestAnswerRevealed && guestAnswerRevealed) {
+      soundEffects.playSound('revealAnswer');
+      
+      // Play success/error sound based on correctness
+      const guestAnswers = gameState.guestAnswers || [];
+      const currentGuestAnswer = guestAnswers[qIdx];
+      
+      if (currentPanelGuess === currentGuestAnswer) {
+        soundEffects.playSound('correct');
+      } else {
+        soundEffects.playSound('wrong');
+      }
+    }
+    
+    // Lock placed
+    const lock = gameState.lock || {};
+    const prevLock = prevState.lock || {};
+    
+    if (!prevLock.placed && lock.placed) {
+      soundEffects.playSound('lockPlaced');
+    }
+    
+    setPrevState(gameState);
+  }, [gameState, prevState]);
+
+  const handleToggleSound = () => {
+    const newState = soundEffects.toggleSound();
+    setSoundEnabled(newState);
+  };
 
   const renderMainGame = () => {
     const qIdx = gameState.questionIndex || 0;
@@ -23,7 +80,18 @@ function AudienceDisplay() {
     const guestAnswers = gameState.guestAnswers || [];
     const lastPanelGuess = panelGuesses[qIdx];
     const lastGuestAnswer = guestAnswers[qIdx];
-    const isAnswered = lastPanelGuess && lastGuestAnswer;
+    const guestAnswerRevealed = gameState.guestAnswerRevealed && gameState.guestAnswerRevealed[qIdx];
+    const isAnswered = Boolean(lastPanelGuess && lastGuestAnswer && guestAnswerRevealed);
+    
+    // Debug when guest answer changes
+    if (lastGuestAnswer) {
+      console.log('Guest answer loaded:', lastGuestAnswer);
+    }
+    
+    // Debug guestAnswerRevealed flag
+    console.log('guestAnswerRevealed flag:', guestAnswerRevealed);
+    console.log('gameState.guestAnswerRevealed:', gameState.guestAnswerRevealed);
+    console.log('qIdx:', qIdx);
 
     // Prize ladder configuration
     const prizeTiers = [
@@ -148,6 +216,14 @@ function AudienceDisplay() {
       </div>
     );
 
+    // Debug info
+    console.log('Audience Display State:', {
+      lastPanelGuess: lastPanelGuess,
+      lastGuestAnswer: lastGuestAnswer,
+      isAnswered: isAnswered,
+      questionIndex: qIdx
+    });
+
     return (
       <div style={{ textAlign: 'center', padding: '20px' }}>
         {/* Prize Ladder */}
@@ -188,16 +264,16 @@ function AudienceDisplay() {
             const isGuestAnswer = lastGuestAnswer === opt;
             
             // Step 1: Panel guess submitted (yellow/orange)
-            const isPanelGuessSubmitted = isPanelGuess && !isGuestAnswer;
+            const isPanelGuessSubmitted = isPanelGuess && !lastGuestAnswer;
             
             // Step 2: Panel guess checked (green if correct, red if wrong) - happens when guest answer is known but not revealed
             const isPanelCorrect = isPanelGuess && lastPanelGuess === lastGuestAnswer;
             const isPanelIncorrect = isPanelGuess && lastPanelGuess !== lastGuestAnswer;
             
-            // Step 3: Guest answer revealed
+            // Step 3: Guest answer revealed (only when isAnswered is true)
             const isCorrect = isAnswered && lastPanelGuess === lastGuestAnswer && opt === lastPanelGuess;
-            const isPanelWrong = isAnswered && lastPanelGuess !== lastGuestAnswer && isPanelGuess;
-            const isGuestCorrect = isAnswered && lastPanelGuess !== lastGuestAnswer && isGuestAnswer;
+            const isPanelWrong = isAnswered && lastPanelGuess !== lastGuestAnswer && opt === lastPanelGuess;
+            const isGuestCorrect = isAnswered && lastPanelGuess !== lastGuestAnswer && opt === lastGuestAnswer;
 
             let backgroundColor = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)';
             let borderColor = '#c0c0c0';
@@ -207,40 +283,57 @@ function AudienceDisplay() {
               // Step 3: Both panel and guest match - green
               backgroundColor = 'linear-gradient(135deg, #4CAF50 0%, #45a049 50%, #388E3C 100%)';
               borderColor = '#4CAF50';
+            } else if (isGuestCorrect) {
+              // Step 3: Guest correct, panel wrong - green (MUST come before isPanelWrong)
+              backgroundColor = 'linear-gradient(135deg, #4CAF50 0%, #45a049 50%, #388E3C 100%)';
+              borderColor = '#4CAF50';
             } else if (isPanelWrong) {
               // Step 3: Panel wrong, guest correct - red
               backgroundColor = 'linear-gradient(135deg, #f44336 0%, #d32f2f 50%, #c62828 100%)';
               borderColor = '#f44336';
-            } else if (isGuestCorrect) {
-              // Step 3: Guest correct, panel wrong - green
-              backgroundColor = 'linear-gradient(135deg, #4CAF50 0%, #45a049 50%, #388E3C 100%)';
-              borderColor = '#4CAF50';
             } else if (isPanelGuessSubmitted) {
               // Step 1: Panel guess submitted - yellow/orange
               backgroundColor = 'linear-gradient(135deg, #ff9800 0%, #f57c00 50%, #e65100 100%)';
               borderColor = '#ffffff';
               boxShadow = '0 6px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.3), 0 0 15px rgba(255,152,0,0.4)';
-            } else if (isPanelCorrect && isGuestAnswer && !isAnswered) {
+            } else if (isPanelCorrect && lastGuestAnswer && !isAnswered) {
               // Step 2: Panel guess is correct - green
               backgroundColor = 'linear-gradient(135deg, #4CAF50 0%, #45a049 50%, #388E3C 100%)';
               borderColor = '#4CAF50';
-            } else if (isPanelIncorrect && isGuestAnswer && !isAnswered) {
+            } else if (isPanelIncorrect && lastGuestAnswer && !isAnswered) {
               // Step 2: Panel guess is wrong - red
               backgroundColor = 'linear-gradient(135deg, #f44336 0%, #d32f2f 50%, #c62828 100%)';
               borderColor = '#f44336';
             }
 
+                        // Debug logging for this option
+            if (opt === 'Blue' || opt === 'Red') { // Debug for both Blue and Red options
+              console.log(`Option ${opt}:`, {
+                isPanelGuess: isPanelGuess,
+                isGuestAnswer: isGuestAnswer,
+                lastPanelGuess: lastPanelGuess,
+                lastGuestAnswer: lastGuestAnswer,
+                isAnswered: isAnswered,
+                isPanelGuessSubmitted: isPanelGuessSubmitted,
+                isPanelCorrect: isPanelCorrect,
+                isPanelIncorrect: isPanelIncorrect,
+                isCorrect: isCorrect,
+                isPanelWrong: isPanelWrong,
+                isGuestCorrect: isGuestCorrect
+              });
+            }
+
             return (
-                             <div key={i} style={{
-                 background: backgroundColor,
-                 borderRadius: '40px',
-                 padding: '15px 25px',
-                 border: `3px solid ${borderColor}`,
-                 boxShadow: boxShadow,
-                 position: 'relative',
-                 transition: 'all 0.3s ease',
-                 transform: isAnswered ? 'scale(1.02)' : 'scale(1)'
-               }}>
+              <div key={i} style={{
+                background: backgroundColor,
+                borderRadius: '40px',
+                padding: '15px 25px',
+                border: `3px solid ${borderColor}`,
+                boxShadow: boxShadow,
+                position: 'relative',
+                transition: 'all 0.3s ease',
+                transform: isAnswered ? 'scale(1.02)' : 'scale(1)'
+              }}>
                                  <div style={{
                    display: 'flex',
                    alignItems: 'center',
@@ -304,6 +397,32 @@ function AudienceDisplay() {
       position: 'relative',
       overflow: 'hidden'
     }}>
+      
+      {/* Sound Toggle Button - Positioned in top-right corner */}
+      <div style={{
+        position: 'absolute',
+        top: '20px',
+        right: '20px',
+        zIndex: 1000
+      }}>
+        <button 
+          onClick={handleToggleSound}
+          style={{
+            padding: '8px 16px',
+            backgroundColor: soundEnabled ? 'rgba(76,175,80,0.8)' : 'rgba(244,67,54,0.8)',
+            color: 'white',
+            border: '2px solid rgba(255,255,255,0.3)',
+            borderRadius: '20px',
+            cursor: 'pointer',
+            fontSize: 14,
+            fontWeight: 'bold',
+            backdropFilter: 'blur(10px)',
+            boxShadow: '0 4px 15px rgba(0,0,0,0.3)'
+          }}
+        >
+          🔊 {soundEnabled ? 'ON' : 'OFF'}
+        </button>
+      </div>
       {/* Background texture */}
       <div style={{
         position: 'absolute',

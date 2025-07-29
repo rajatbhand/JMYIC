@@ -1,16 +1,21 @@
 import React, { useEffect, useState, useRef } from 'react';
 import socket from './socket';
+import soundEffects from './soundEffects';
 
 function App() {
   const [gameState, setGameState] = useState(null);
   const [error, setError] = useState(null);
   const [panelGuess, setPanelGuess] = useState('');
   const [lockInput, setLockInput] = useState('');
+  const [soundEnabled, setSoundEnabled] = useState(true);
   const timerRef = useRef();
 
   useEffect(() => {
     socket.on('game_state', (state) => {
       console.log('Received game state update:', state);
+      console.log('Guest answers array:', state.guestAnswers);
+      console.log('Panel guesses array:', state.panelGuesses);
+      console.log('Current question index:', state.questionIndex);
       setGameState(state);
       setError(null);
       setPanelGuess('');
@@ -35,11 +40,13 @@ function App() {
   const handlePanelGuess = (guess) => setPanelGuess(guess);
   const handleSubmitPanelGuess = () => {
     if (panelGuess !== '') {
+      soundEffects.playSound('panelGuess');
       socket.emit('select_panel_guess', panelGuess);
     }
   };
   const handleCheckPanelGuess = () => {
     console.log('Checking panel guess...');
+    soundEffects.playSound('checkGuess');
     socket.emit('check_panel_guess');
     
     // Add a timeout to see if we get a response
@@ -50,6 +57,7 @@ function App() {
   
   const handleRevealGuestAnswer = () => {
     console.log('Revealing guest answer...');
+    soundEffects.playSound('revealAnswer');
     socket.emit('reveal_guest_answer');
   };
   
@@ -64,10 +72,16 @@ function App() {
   const handlePlaceLock = () => {
     const idx = parseInt(lockInput, 10);
     if (!isNaN(idx)) {
+      soundEffects.playSound('lockPlaced');
       socket.emit('place_lock', idx);
     }
   };
   const handleLockInput = (e) => setLockInput(e.target.value);
+  
+  const handleToggleSound = () => {
+    const newState = soundEffects.toggleSound();
+    setSoundEnabled(newState);
+  };
 
 
   // Main Game UI
@@ -265,6 +279,25 @@ function App() {
   return (
     <div style={{ padding: 32 }}>
       <h1>Judge Me If You Can - Control Panel</h1>
+      
+      {/* Sound Toggle Button */}
+      <div style={{ marginBottom: 16 }}>
+        <button 
+          onClick={handleToggleSound}
+          style={{
+            padding: '8px 16px',
+            backgroundColor: soundEnabled ? '#4CAF50' : '#f44336',
+            color: 'white',
+            border: 'none',
+            borderRadius: 4,
+            cursor: 'pointer',
+            fontSize: 14
+          }}
+        >
+          🔊 {soundEnabled ? 'Sound ON' : 'Sound OFF'}
+        </button>
+      </div>
+      
       {error && <div style={{ color: 'red' }}>Error: {error}</div>}
       
       {/* Restart Game Button - always visible */}

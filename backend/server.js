@@ -56,6 +56,7 @@ let gameState = {
   },
   panelGuesses: [],
   guestAnswers: [],
+  guestAnswerRevealed: [],
   questions: [
     { text: 'What is the guest\'s favorite color?', options: ['Red', 'Blue', 'Green', 'Yellow'], guestAnswer: 'Blue' },
     { text: 'Which city would the guest most like to visit?', options: ['Paris', 'Tokyo', 'New York', 'Sydney'], guestAnswer: 'Tokyo' },
@@ -182,8 +183,13 @@ io.on('connection', (socket) => {
     if (!gameState.guestAnswers) gameState.guestAnswers = [];
     gameState.guestAnswers[gameState.questionIndex] = guestAnswer;
     
+    // Add a flag to track that guest answer is loaded but not revealed
+    if (!gameState.guestAnswerRevealed) gameState.guestAnswerRevealed = [];
+    gameState.guestAnswerRevealed[gameState.questionIndex] = false;
+    
     console.log('check_panel_guess: Guest answer loaded successfully');
     console.log('check_panel_guess: Updated guestAnswers array:', gameState.guestAnswers);
+    console.log('check_panel_guess: Updated guestAnswerRevealed array:', gameState.guestAnswerRevealed);
     console.log('check_panel_guess: Broadcasting state update...');
     broadcastState();
     console.log('check_panel_guess: State broadcast complete');
@@ -195,6 +201,13 @@ io.on('connection', (socket) => {
       console.error('reveal_guest_answer: Not in main_game round');
       return;
     }
+    
+    // Mark guest answer as revealed
+    if (!gameState.guestAnswerRevealed) gameState.guestAnswerRevealed = [];
+    gameState.guestAnswerRevealed[gameState.questionIndex] = true;
+    
+    console.log('reveal_guest_answer: Marked guest answer as revealed');
+    console.log('reveal_guest_answer: Updated guestAnswerRevealed array:', gameState.guestAnswerRevealed);
     
     // Check if panel's guess matches guest's answer
     if (gameState.panelGuesses && gameState.guestAnswers && 
@@ -347,6 +360,7 @@ io.on('connection', (socket) => {
       },
       panelGuesses: [],
       guestAnswers: [],
+      guestAnswerRevealed: [],
       questions: [
         { text: 'What is the guest\'s favorite color?', options: ['Red', 'Blue', 'Green', 'Yellow'], guestAnswer: 'Blue' },
         { text: 'Which city would the guest most like to visit?', options: ['Paris', 'Tokyo', 'New York', 'Sydney'], guestAnswer: 'Tokyo' },
