@@ -1159,15 +1159,228 @@ Perfect! Now let me create a simple sequence builder component to help operators
 
 ---
 
+<details><summary>Edit file: frontend/src/App.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 17, lines removed: undefined
+
+```diff
+@@ -120,4 +120,21 @@
+      socket.emit('set_question_sequence', { questionIndices: sequence });
+    };
++ 
++   const handleBuildSequence = () => {
++     // Create a simple sequence builder
++     const sequence = [];
++     
++     // Add some default questions first
++     for (let i = 0; i < Math.min(5, availableQuestions.default.length); i++) {
++       sequence.push({ type: 'default', index: i });
++     }
++     
++     // Add some custom questions if available
++     for (let i = 0; i < Math.min(5, availableQuestions.custom.length); i++) {
++       sequence.push({ type: 'custom', index: i });
++     }
++     
++     handleSetQuestionSequence(sequence);
++   };
+  
+    // Listen for available questions response
+```
+
+</details>
+
+---
+
+Now let me add a button to build a sequence in the question manager:
 
 
 ---
 
+<details><summary>Edit file: frontend/src/App.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 15, lines removed: 1
+
+```diff
+@@ -231,9 +231,23 @@
+                border: 'none', 
+                borderRadius: 4,
+-               cursor: 'pointer'
++               cursor: 'pointer',
++               marginRight: 10
+              }}
+            >
+              Use Default Questions
+            </button>
++           <button 
++             onClick={handleBuildSequence}
++             style={{ 
++               padding: '8px 16px', 
++               backgroundColor: '#9C27B0', 
++               color: 'white', 
++               border: 'none', 
++               borderRadius: 4,
++               cursor: 'pointer'
++             }}
++           >
++             Build Mixed Sequence
++           </button>
+          </div>
+  
+```
+
+</details>
+
+---
+
+Perfect! Now let me create a summary of what we've implemented:
+
+## 🎯 **Question Management System - Complete Implementation**
+
+### **✅ Backend Features Added:**
+
+1. **Custom Question Bank**
+   - Store up to 25 custom questions
+   - Each question has: text, options array, guest answer
+   - Validation ensures guest answer is one of the options
+
+2. **Question Sequence Management**
+   - `currentQuestionSequence` array to define question order
+   - Mix default and custom questions in any order
+   - Helper function `getCurrentQuestion()` to get current question
+
+3. **Socket Events Added:**
+   - `add_custom_question` - Add new custom question
+   - `remove_custom_question` - Remove custom question by index
+   - `set_question_sequence` - Set custom question sequence
+   - `use_default_questions` - Switch back to default questions
+   - `get_available_questions` - Get all available questions
+
+### **✅ Frontend Features Added:**
+
+1. **Question Manager UI**
+   - Add custom questions with text, 4 options, and guest answer
+   - View all custom questions with remove functionality
+   - Refresh available questions from backend
+   - Switch between default and custom questions
+
+2. **Sequence Management**
+   - "Build Mixed Sequence" button creates a mix of default + custom questions
+   - Display current question sequence
+   - Toggle question manager visibility
+
+3. **Audience Display Updates**
+   - Updated to use `getCurrentQuestion()` helper
+   - Supports both default and custom question sequences
+   - Maintains all existing game logic and UI
+
+### **�� How It Works:**
+
+1. **Operator can:**
+   - Add up to 25 custom questions
+   - Choose which questions to use (default, custom, or mixed)
+   - Set custom question sequences
+   - Remove custom questions
+   - Switch back to default questions
+
+2. **Game Logic Preserved:**
+   - All existing panel guess, guest answer, lock mechanics work unchanged
+   - Prize calculation and final gamble logic remain intact
+   - Real-time synchronization between operator and audience
+
+3. **Audience Display:**
+   - Shows the current question (whether default or custom)
+   - All visual effects and sound effects work the same
+   - No changes to the audience experience
+
+### **�� Ready to Test:**
+
+The system is now ready for testing! Operators can:
+- Add custom questions about specific guests
+- Create personalized question sequences
+- Mix default and custom questions
+- All while maintaining the existing game show flow
+
+Would you like me to add any additional features or make any adjustments to the question management system?
+
+---
+
+_**User**_
+
+can you help me push the frontend code to vercel
+
+---
+
+_**Assistant**_
+
+I'll help you deploy the frontend code to Vercel. Let me guide you through the process step by step.
+
+## 🚀 **Deploying Frontend to Vercel**
+
+### **Step 1: Prepare Your Frontend for Deployment**
+
+First, let's make sure your frontend is properly configured for Vercel deployment:
 
 
 ---
 
+Read file: frontend/package.json
 
+---
+
+Great! Your frontend is already properly configured. Now let's deploy to Vercel:
+
+### **Step 2: Deploy to Vercel**
+
+You have several options to deploy to Vercel:
+
+#### **Option A: Using Vercel CLI (Recommended)**
+
+
+---
+
+```bash
+cd frontend && npm install -g vercel
+```
+
+```
+rajatbhandari@MACBOOK-PRO JMYIC % cd frontend && npm install -g vercel
+npm error code EACCES
+npm error syscall mkdir
+npm error path /usr/local/lib/node_modules/vercel
+npm error errno -13
+npm error Error: EACCES: permission denied, mkdir '/usr/local/lib/node_modules/vercel'
+npm error     at async mkdir (node:internal/fs/promises:852:10)
+npm error     at async /usr/local/lib/node_modules/npm/node_modules/@npmcli/arborist/lib/arborist/reify.js:6
+38:20
+npm error     at async Promise.allSettled (index 0)
+npm error     at async [reifyPackages] (/usr/local/lib/node_modules/npm/node_modules/@npmcli/arborist/lib/ar
+borist/reify.js:336:11)
+npm error     at async Arborist.reify (/usr/local/lib/node_modules/npm/node_modules/@npmcli/arborist/lib/arb
+orist/reify.js:141:5)
+npm error     at async Install.exec (/usr/local/lib/node_modules/npm/lib/commands/install.js:149:5)
+npm error     at async Npm.exec (/usr/local/lib/node_modules/npm/lib/npm.js:208:9)
+npm error     at async module.exports (/usr/local/lib/node_modules/npm/lib/cli/entry.js:67:5) {
+npm error   errno: -13,
+npm error   code: 'EACCES',
+npm error   syscall: 'mkdir',
+npm error   path: '/usr/local/lib/node_modules/vercel'
+npm error }
+npm error
+npm error The operation was rejected by your operating system.
+npm error It is likely you do not have the permissions to access this file as the current user
+npm error
+npm error If you believe this might be a permissions issue, please double-check the
+npm error permissions of the file and its containing directories, or try running
+npm error the command again as root/Administrator.
+⠏
+```
 
 ---
 
