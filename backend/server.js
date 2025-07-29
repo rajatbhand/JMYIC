@@ -37,7 +37,7 @@ const io = new Server(server, {
 
 // Placeholder for game state
 let gameState = {
-  round: 'main_game', // 'main_game', 'final_gamble'
+  round: 'setup', // 'setup', 'main_game', 'final_gamble'
   questionIndex: 0,
   lock: {
     placed: false,
@@ -57,42 +57,19 @@ let gameState = {
   panelGuesses: [],
   guestAnswers: [],
   guestAnswerRevealed: [],
-  // Default questions (can be replaced by custom questions)
-  questions: [
-    { text: 'What is the guest\'s favorite color?', options: ['Red', 'Blue', 'Green', 'Yellow'], guestAnswer: 'Blue' },
-    { text: 'Which city would the guest most like to visit?', options: ['Paris', 'Tokyo', 'New York', 'Sydney'], guestAnswer: 'Tokyo' },
-    { text: 'What is the guest\'s spirit animal?', options: ['Cat', 'Dog', 'Eagle', 'Dolphin'], guestAnswer: 'Eagle' },
-    { text: 'Which food does the guest hate?', options: ['Broccoli', 'Pizza', 'Chocolate', 'Fish'], guestAnswer: 'Broccoli' },
-    { text: 'What is the guest\'s secret talent?', options: ['Singing', 'Dancing', 'Juggling', 'Magic'], guestAnswer: 'Singing' },
-    { text: 'Which movie genre does the guest prefer?', options: ['Comedy', 'Horror', 'Drama', 'Action'], guestAnswer: 'Comedy' },
-    { text: 'What is the guest\'s biggest fear?', options: ['Heights', 'Spiders', 'Darkness', 'Public Speaking'], guestAnswer: 'Heights' },
-    { text: 'Which superpower would the guest choose?', options: ['Invisibility', 'Flying', 'Time Travel', 'Super Strength'], guestAnswer: 'Flying' },
-    { text: 'What is the guest\'s favorite season?', options: ['Spring', 'Summer', 'Autumn', 'Winter'], guestAnswer: 'Autumn' },
-    { text: 'Which hobby does the guest enjoy most?', options: ['Reading', 'Sports', 'Gaming', 'Cooking'], guestAnswer: 'Reading' }
-  ],
-  // Custom question bank (up to 25 questions)
-  customQuestions: [],
-  // Current question sequence (can be custom or default)
-  currentQuestionSequence: []
+  // Question pool (25 questions maximum)
+  questionPool: [],
+  // Currently selected question
+  currentQuestion: null,
+  // Track used questions
+  usedQuestions: [],
+  // Game progress
+  questionsAnswered: 0
 };
 
-// Helper function to get current question based on sequence
+// Helper function to get current question
 function getCurrentQuestion() {
-  if (gameState.currentQuestionSequence.length === 0) {
-    // Use default questions
-    return gameState.questions[gameState.questionIndex] || null;
-  } else {
-    // Use custom sequence
-    const sequenceItem = gameState.currentQuestionSequence[gameState.questionIndex];
-    if (!sequenceItem) return null;
-    
-    if (sequenceItem.type === 'custom') {
-      return gameState.customQuestions[sequenceItem.index] || null;
-    } else if (sequenceItem.type === 'default') {
-      return gameState.questions[sequenceItem.index] || null;
-    }
-  }
-  return null;
+  return gameState.currentQuestion;
 }
 
 // Broadcast game state to all clients
@@ -114,6 +91,122 @@ io.on('connection', (socket) => {
   socket.on('test_event', () => {
     console.log('test_event: Received from client:', socket.id);
     socket.emit('test_response', { message: 'Backend is working!' });
+  });
+
+  // New Flow: Question Setup and Selection
+  socket.on('add_question_to_pool', (questionData) => {
+    if (!questionData || typeof questionData.text !== 'string' || !Array.isArray(questionData.options) || typeof questionData.guestAnswer !== 'string') {
+      socket.emit('error', { message: 'Invalid question data. Must include text, options array, and guestAnswer.' });
+      console.error('add_question_to_pool: Invalid data', questionData);
+      return;
+    }
+    
+    if (questionData.options.length < 2 || questionData.options.length > 10) {
+      socket.emit('error', { message: 'Question must have between 2 and 10 options.' });
+      console.error('add_question_to_pool: Invalid options count', questionData.options.length);
+      return;
+    }
+    
+    if (gameState.questionPool.length >= 25) {
+      socket.emit('error', { message: 'Maximum 25 questions allowed in pool.' });
+      console.error('add_question_to_pool: Too many questions');
+      return;
+    }
+    
+    // Validate that guestAnswer is one of the options
+    if (!questionData.options.includes(questionData.guestAnswer)) {
+      socket.emit('error', { message: 'Guest answer must be one of the provided options.' });
+      console.error('add_question_to_pool: Invalid guest answer');
+      return;
+    }
+    
+    const newQuestion = {
+      id: Date.now() + Math.random(), // Unique ID
+      text: questionData.text,
+      options: questionData.options,
+      guestAnswer: questionData.guestAnswer
+    };
+    
+    gameState.questionPool.push(newQuestion);
+    console.log(`Question added to pool: ${questionData.text}`);
+    broadcastState();
+  });
+
+  socket.on('remove_question_from_pool', (questionId) => {
+    const index = gameState.questionPool.findIndex(q => q.id === questionId);
+    if (index === -1) {
+      socket.emit('error', { message: 'Question not found in pool.' });
+      console.error('remove_question_from_pool: Question not found', questionId);
+      return;
+    }
+    
+    const removedQuestion = gameState.questionPool.splice(index, 1)[0];
+    console.log(`Question removed from pool: ${removedQuestion.text}`);
+    broadcastState();
+  });
+
+  socket.on('select_question_from_pool', (questionId) => {
+    const question = gameState.questionPool.find(q => q.id === questionId);
+    if (!question) {
+      socket.emit('error', { message: 'Question not found in pool.' });
+      console.error('select_question_from_pool: Question not found', questionId);
+      return;
+    }
+    
+    // Check if question has already been used
+    if (gameState.usedQuestions.includes(questionId)) {
+      socket.emit('error', { message: 'Question has already been used.' });
+      console.error('select_question_from_pool: Question already used', questionId);
+      return;
+    }
+    
+    gameState.currentQuestion = question;
+    gameState.usedQuestions.push(questionId);
+    gameState.questionsAnswered += 1;
+    
+    // Reset current question state
+    gameState.panelGuesses[gameState.questionsAnswered - 1] = null;
+    gameState.guestAnswers[gameState.questionsAnswered - 1] = null;
+    gameState.guestAnswerRevealed[gameState.questionsAnswered - 1] = false;
+    
+    console.log(`Question selected from pool: ${question.text}`);
+    broadcastState();
+  });
+
+  socket.on('start_game', () => {
+    if (gameState.questionPool.length === 0) {
+      socket.emit('error', { message: 'No questions in pool. Add at least one question before starting.' });
+      console.error('start_game: No questions in pool');
+      return;
+    }
+    
+    gameState.round = 'main_game';
+    gameState.questionIndex = 0;
+    gameState.correctCount = 0;
+    gameState.prize = 0;
+    gameState.lock = { placed: false, question: null, shifted: false };
+    gameState.finalGamble = {
+      eligible: false,
+      inProgress: false,
+      question: '',
+      answer: '',
+      attempts: [],
+      result: null
+    };
+    gameState.currentQuestion = null;
+    gameState.usedQuestions = [];
+    gameState.questionsAnswered = 0;
+    
+    console.log('Game started with question pool');
+    broadcastState();
+  });
+
+  socket.on('get_question_pool', () => {
+    socket.emit('question_pool', {
+      questions: gameState.questionPool,
+      usedQuestions: gameState.usedQuestions,
+      currentQuestion: gameState.currentQuestion
+    });
   });
 
   // Listen for operator actions (to be expanded)
@@ -165,16 +258,20 @@ io.on('connection', (socket) => {
       console.error('select_panel_guess: Not in main_game round');
       return;
     }
+    if (!gameState.currentQuestion) {
+      socket.emit('error', { message: 'No question selected. Please select a question first.' });
+      console.error('select_panel_guess: No question selected');
+      return;
+    }
     if (typeof guess !== 'string' && typeof guess !== 'number') {
       socket.emit('error', { message: 'Invalid guess format.' });
       console.error('select_panel_guess: Invalid guess', guess);
       return;
     }
     if (!gameState.panelGuesses) gameState.panelGuesses = [];
-    gameState.panelGuesses[gameState.questionIndex] = guess;
-    console.log(`Panel guessed: ${guess} for Q${gameState.questionIndex + 1}`);
+    gameState.panelGuesses[gameState.questionsAnswered - 1] = guess;
+    console.log(`Panel guessed: ${guess} for current question`);
     
-    // Don't auto-advance - let operator control the flow
     broadcastState();
   });
 
@@ -187,10 +284,14 @@ io.on('connection', (socket) => {
       return;
     }
     
-    console.log('check_panel_guess: Starting check...');
-    console.log('check_panel_guess: Current question index:', gameState.questionIndex);
+    if (!gameState.currentQuestion) {
+      socket.emit('error', { message: 'No question selected. Please select a question first.' });
+      console.error('check_panel_guess: No question selected');
+      return;
+    }
     
-    // Use the helper function to get current question (supports custom sequence)
+    console.log('check_panel_guess: Starting check...');
+    
     const currentQuestion = getCurrentQuestion();
     console.log('check_panel_guess: Current question:', currentQuestion);
     
@@ -204,11 +305,11 @@ io.on('connection', (socket) => {
     }
     
     if (!gameState.guestAnswers) gameState.guestAnswers = [];
-    gameState.guestAnswers[gameState.questionIndex] = guestAnswer;
+    gameState.guestAnswers[gameState.questionsAnswered - 1] = guestAnswer;
     
     // Add a flag to track that guest answer is loaded but not revealed
     if (!gameState.guestAnswerRevealed) gameState.guestAnswerRevealed = [];
-    gameState.guestAnswerRevealed[gameState.questionIndex] = false;
+    gameState.guestAnswerRevealed[gameState.questionsAnswered - 1] = false;
     
     console.log('check_panel_guess: Guest answer loaded successfully');
     console.log('check_panel_guess: Updated guestAnswers array:', gameState.guestAnswers);
@@ -218,23 +319,29 @@ io.on('connection', (socket) => {
     console.log('check_panel_guess: State broadcast complete');
   });
 
-  socket.on('reveal_guest_answer', (answer) => {
+  socket.on('reveal_guest_answer', () => {
     if (gameState.round !== 'main_game') {
       socket.emit('error', { message: 'Cannot reveal answer outside main game.' });
       console.error('reveal_guest_answer: Not in main_game round');
       return;
     }
     
+    if (!gameState.currentQuestion) {
+      socket.emit('error', { message: 'No question selected. Please select a question first.' });
+      console.error('reveal_guest_answer: No question selected');
+      return;
+    }
+    
     // Mark guest answer as revealed
     if (!gameState.guestAnswerRevealed) gameState.guestAnswerRevealed = [];
-    gameState.guestAnswerRevealed[gameState.questionIndex] = true;
+    gameState.guestAnswerRevealed[gameState.questionsAnswered - 1] = true;
     
     console.log('reveal_guest_answer: Marked guest answer as revealed');
     console.log('reveal_guest_answer: Updated guestAnswerRevealed array:', gameState.guestAnswerRevealed);
     
     // Check if panel's guess matches guest's answer
     if (gameState.panelGuesses && gameState.guestAnswers && 
-        gameState.panelGuesses[gameState.questionIndex] === gameState.guestAnswers[gameState.questionIndex]) {
+        gameState.panelGuesses[gameState.questionsAnswered - 1] === gameState.guestAnswers[gameState.questionsAnswered - 1]) {
       gameState.correctCount += 1;
       gameState.prize = Math.min(10000 * gameState.correctCount, 100000);
       console.log('Panel guessed correctly!');
@@ -458,7 +565,7 @@ io.on('connection', (socket) => {
     console.log('Game reset to initial state.');
     // Reset the game to initial state
     gameState = {
-      round: 'main_game',
+      round: 'setup',
       questionIndex: 0,
       lock: { placed: false, question: null, shifted: false },
       correctCount: 0,
@@ -474,20 +581,10 @@ io.on('connection', (socket) => {
       panelGuesses: [],
       guestAnswers: [],
       guestAnswerRevealed: [],
-      questions: [
-        { text: 'What is the guest\'s favorite color?', options: ['Red', 'Blue', 'Green', 'Yellow'], guestAnswer: 'Blue' },
-        { text: 'Which city would the guest most like to visit?', options: ['Paris', 'Tokyo', 'New York', 'Sydney'], guestAnswer: 'Tokyo' },
-        { text: 'What is the guest\'s spirit animal?', options: ['Cat', 'Dog', 'Eagle', 'Dolphin'], guestAnswer: 'Eagle' },
-        { text: 'Which food does the guest hate?', options: ['Broccoli', 'Pizza', 'Chocolate', 'Fish'], guestAnswer: 'Broccoli' },
-        { text: 'What is the guest\'s secret talent?', options: ['Singing', 'Dancing', 'Juggling', 'Magic'], guestAnswer: 'Singing' },
-        { text: 'Which movie genre does the guest prefer?', options: ['Comedy', 'Horror', 'Drama', 'Action'], guestAnswer: 'Comedy' },
-        { text: 'What is the guest\'s biggest fear?', options: ['Heights', 'Spiders', 'Darkness', 'Public Speaking'], guestAnswer: 'Heights' },
-        { text: 'Which superpower would the guest choose?', options: ['Invisibility', 'Flying', 'Time Travel', 'Super Strength'], guestAnswer: 'Flying' },
-        { text: 'What is the guest\'s favorite season?', options: ['Spring', 'Summer', 'Autumn', 'Winter'], guestAnswer: 'Autumn' },
-        { text: 'Which hobby does the guest enjoy most?', options: ['Reading', 'Sports', 'Gaming', 'Cooking'], guestAnswer: 'Reading' }
-      ],
-      customQuestions: [],
-      currentQuestionSequence: []
+      questionPool: [],
+      currentQuestion: null,
+      usedQuestions: [],
+      questionsAnswered: 0
     };
     broadcastState();
   });

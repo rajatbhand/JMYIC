@@ -83,79 +83,62 @@ function App() {
     setSoundEnabled(newState);
   };
 
-  // Question Management State
-  const [showQuestionManager, setShowQuestionManager] = useState(false);
+  // New Flow: Question Setup and Selection
+  const [showQuestionSetup, setShowQuestionSetup] = useState(false);
   const [newQuestion, setNewQuestion] = useState({
     text: '',
-    options: ['', '', '', ''],
+    options: ['', ''],
     guestAnswer: ''
   });
-  const [availableQuestions, setAvailableQuestions] = useState({
-    default: [],
-    custom: [],
-    currentSequence: []
+  const [questionPool, setQuestionPool] = useState({
+    questions: [],
+    usedQuestions: [],
+    currentQuestion: null
   });
 
-  // Question Management Handlers
-  const handleAddCustomQuestion = () => {
+  // Question Setup Handlers
+  const handleAddQuestionToPool = () => {
     if (newQuestion.text && newQuestion.options.every(opt => opt.trim()) && newQuestion.guestAnswer) {
-      socket.emit('add_custom_question', newQuestion);
-      setNewQuestion({ text: '', options: ['', '', '', ''], guestAnswer: '' });
+      socket.emit('add_question_to_pool', newQuestion);
+      setNewQuestion({ text: '', options: ['', ''], guestAnswer: '' });
     }
   };
 
-  const handleRemoveCustomQuestion = (index) => {
-    socket.emit('remove_custom_question', index);
+  const handleRemoveQuestionFromPool = (questionId) => {
+    socket.emit('remove_question_from_pool', questionId);
   };
 
-  const handleGetAvailableQuestions = () => {
-    socket.emit('get_available_questions');
+  const handleSelectQuestionFromPool = (questionId) => {
+    socket.emit('select_question_from_pool', questionId);
   };
 
-  const handleUseDefaultQuestions = () => {
-    socket.emit('use_default_questions');
+  const handleStartGame = () => {
+    socket.emit('start_game');
   };
 
-  const handleSetQuestionSequence = (sequence) => {
-    socket.emit('set_question_sequence', { questionIndices: sequence });
+  const handleGetQuestionPool = () => {
+    socket.emit('get_question_pool');
   };
 
-  const handleBuildSequence = () => {
-    // Create a simple sequence builder
-    const sequence = [];
-    
-    // Add some default questions first
-    for (let i = 0; i < Math.min(5, availableQuestions.default.length); i++) {
-      sequence.push({ type: 'default', index: i });
-    }
-    
-    // Add some custom questions if available
-    for (let i = 0; i < Math.min(5, availableQuestions.custom.length); i++) {
-      sequence.push({ type: 'custom', index: i });
-    }
-    
-    handleSetQuestionSequence(sequence);
-  };
-
-  // Listen for available questions response
+  // Listen for question pool response
   useEffect(() => {
-    socket.on('available_questions', (data) => {
-      setAvailableQuestions(data);
+    socket.on('question_pool', (data) => {
+      setQuestionPool(data);
     });
     return () => {
-      socket.off('available_questions');
+      socket.off('question_pool');
     };
   }, []);
 
-  // Question Manager UI
-  const renderQuestionManager = () => {
+  // Question Setup UI
+  const renderQuestionSetup = () => {
     return (
       <div style={{ marginBottom: 32, padding: 20, backgroundColor: '#f5f5f5', borderRadius: 8 }}>
-        <h3>Question Management</h3>
+        <h3>Question Setup ({questionPool.questions.length}/25)</h3>
         
         {/* Add New Question */}
         <div style={{ marginBottom: 20 }}>
-          <h4>Add Custom Question</h4>
+          <h4>Add Question to Pool</h4>
           <div style={{ marginBottom: 10 }}>
             <input
               type="text"
@@ -167,19 +150,56 @@ function App() {
           </div>
           <div style={{ marginBottom: 10 }}>
             {newQuestion.options.map((option, index) => (
-              <input
-                key={index}
-                type="text"
-                placeholder={`Option ${index + 1}`}
-                value={option}
-                onChange={(e) => {
-                  const newOptions = [...newQuestion.options];
-                  newOptions[index] = e.target.value;
-                  setNewQuestion({...newQuestion, options: newOptions});
-                }}
-                style={{ width: '100%', padding: 8, marginBottom: 4 }}
-              />
+              <div key={index} style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
+                <input
+                  type="text"
+                  placeholder={`Option ${index + 1}`}
+                  value={option}
+                  onChange={(e) => {
+                    const newOptions = [...newQuestion.options];
+                    newOptions[index] = e.target.value;
+                    setNewQuestion({...newQuestion, options: newOptions});
+                  }}
+                  style={{ flex: 1, padding: 8 }}
+                />
+                <button
+                  onClick={() => {
+                    const newOptions = [...newQuestion.options];
+                    newOptions.splice(index, 1);
+                    setNewQuestion({...newQuestion, options: newOptions});
+                  }}
+                  disabled={newQuestion.options.length <= 2}
+                  style={{ 
+                    padding: '8px 12px', 
+                    backgroundColor: '#f44336', 
+                    color: 'white', 
+                    border: 'none', 
+                    borderRadius: 4,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Remove
+                </button>
+              </div>
             ))}
+            <button
+              onClick={() => {
+                const newOptions = [...newQuestion.options, ''];
+                setNewQuestion({...newQuestion, options: newOptions});
+              }}
+              disabled={newQuestion.options.length >= 10}
+              style={{ 
+                padding: '8px 16px', 
+                backgroundColor: '#2196F3', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: 4,
+                cursor: 'pointer',
+                marginTop: 8
+              }}
+            >
+              Add Option
+            </button>
           </div>
           <div style={{ marginBottom: 10 }}>
             <input
@@ -191,7 +211,8 @@ function App() {
             />
           </div>
           <button 
-            onClick={handleAddCustomQuestion}
+            onClick={handleAddQuestionToPool}
+            disabled={!newQuestion.text || !newQuestion.options.every(opt => opt.trim()) || !newQuestion.guestAnswer}
             style={{ 
               padding: '8px 16px', 
               backgroundColor: '#4CAF50', 
@@ -201,15 +222,15 @@ function App() {
               cursor: 'pointer'
             }}
           >
-            Add Question
+            Add to Pool
           </button>
         </div>
 
-        {/* View Available Questions */}
+        {/* Question Pool */}
         <div style={{ marginBottom: 20 }}>
-          <h4>Available Questions</h4>
+          <h4>Question Pool</h4>
           <button 
-            onClick={handleGetAvailableQuestions}
+            onClick={handleGetQuestionPool}
             style={{ 
               padding: '8px 16px', 
               backgroundColor: '#2196F3', 
@@ -217,85 +238,88 @@ function App() {
               border: 'none', 
               borderRadius: 4,
               cursor: 'pointer',
-              marginRight: 10
+              marginBottom: 10
             }}
           >
-            Refresh Questions
+            Refresh Pool
           </button>
-          <button 
-            onClick={handleUseDefaultQuestions}
-            style={{ 
-              padding: '8px 16px', 
-              backgroundColor: '#FF9800', 
-              color: 'white', 
-              border: 'none', 
-              borderRadius: 4,
-              cursor: 'pointer',
-              marginRight: 10
-            }}
-          >
-            Use Default Questions
-          </button>
-          <button 
-            onClick={handleBuildSequence}
-            style={{ 
-              padding: '8px 16px', 
-              backgroundColor: '#9C27B0', 
-              color: 'white', 
-              border: 'none', 
-              borderRadius: 4,
-              cursor: 'pointer'
-            }}
-          >
-            Build Mixed Sequence
-          </button>
-        </div>
-
-        {/* Custom Questions List */}
-        {availableQuestions.custom.length > 0 && (
-          <div style={{ marginBottom: 20 }}>
-            <h4>Custom Questions ({availableQuestions.custom.length}/25)</h4>
-            {availableQuestions.custom.map((question, index) => (
-              <div key={index} style={{ 
-                padding: 10, 
-                marginBottom: 8, 
-                backgroundColor: 'white', 
-                borderRadius: 4,
-                border: '1px solid #ddd'
-              }}>
-                <div><strong>{question.text}</strong></div>
-                <div>Options: {question.options.join(', ')}</div>
-                <div>Guest Answer: {question.guestAnswer}</div>
-                <button 
-                  onClick={() => handleRemoveCustomQuestion(index)}
-                  style={{ 
-                    padding: '4px 8px', 
-                    backgroundColor: '#f44336', 
-                    color: 'white', 
-                    border: 'none', 
-                    borderRadius: 4,
-                    cursor: 'pointer',
-                    fontSize: 12
-                  }}
-                >
-                  Remove
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Current Sequence */}
-        {availableQuestions.currentSequence.length > 0 && (
-          <div style={{ marginBottom: 20 }}>
-            <h4>Current Question Sequence</h4>
-            <div style={{ fontSize: 12, color: '#666' }}>
-              {availableQuestions.currentSequence.map((item, index) => (
-                <span key={index} style={{ marginRight: 8 }}>
-                  {item.type === 'custom' ? 'C' : 'D'}{item.index + 1}
-                </span>
+          
+          {questionPool.questions.length > 0 && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 10 }}>
+              {questionPool.questions.map((question) => (
+                <div key={question.id} style={{ 
+                  padding: 10, 
+                  backgroundColor: 'white', 
+                  borderRadius: 4,
+                  border: '1px solid #ddd',
+                  opacity: questionPool.usedQuestions.includes(question.id) ? 0.6 : 1
+                }}>
+                  <div><strong>{question.text}</strong></div>
+                  <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>
+                    Options: {question.options.join(', ')}
+                  </div>
+                  <div style={{ fontSize: 12, color: '#666' }}>
+                    Guest Answer: {question.guestAnswer}
+                  </div>
+                  <div style={{ marginTop: 8 }}>
+                    {!questionPool.usedQuestions.includes(question.id) ? (
+                      <button 
+                        onClick={() => handleSelectQuestionFromPool(question.id)}
+                        style={{ 
+                          padding: '4px 8px', 
+                          backgroundColor: '#4CAF50', 
+                          color: 'white', 
+                          border: 'none', 
+                          borderRadius: 4,
+                          cursor: 'pointer',
+                          fontSize: 12,
+                          marginRight: 8
+                        }}
+                      >
+                        Select
+                      </button>
+                    ) : (
+                      <span style={{ color: '#f44336', fontSize: 12 }}>Used</span>
+                    )}
+                    <button 
+                      onClick={() => handleRemoveQuestionFromPool(question.id)}
+                      style={{ 
+                        padding: '4px 8px', 
+                        backgroundColor: '#f44336', 
+                        color: 'white', 
+                        border: 'none', 
+                        borderRadius: 4,
+                        cursor: 'pointer',
+                        fontSize: 12
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
               ))}
             </div>
+          )}
+        </div>
+
+        {/* Start Game Button */}
+        {questionPool.questions.length > 0 && (
+          <div style={{ marginTop: 20 }}>
+            <button 
+              onClick={handleStartGame}
+              style={{ 
+                padding: '12px 24px', 
+                backgroundColor: '#FF9800', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: 4,
+                cursor: 'pointer',
+                fontSize: 16,
+                fontWeight: 'bold'
+              }}
+            >
+              🎮 Start Game
+            </button>
           </div>
         )}
       </div>
@@ -304,11 +328,9 @@ function App() {
 
   // Main Game UI
   const renderMainGame = () => {
-    const qIdx = gameState.questionIndex || 0;
-    const questions = gameState.questions || [];
-    const question = questions[qIdx] || { text: 'No question', options: [] };
+    const currentQuestion = gameState.currentQuestion || { text: 'No question selected', options: [] };
     const lock = gameState.lock || {};
-    const canLock = qIdx >= 3 && qIdx <= 9;
+    const canLock = gameState.questionsAnswered >= 3 && gameState.questionsAnswered <= 9;
     const lockPlaced = lock.placed;
     const lockShifted = lock.shifted;
     const lockQuestion = lock.question;
@@ -316,35 +338,60 @@ function App() {
     const prize = gameState.prize || 0;
     const panelGuesses = gameState.panelGuesses || [];
     const guestAnswers = gameState.guestAnswers || [];
-    const lastPanelGuess = panelGuesses[qIdx];
-    const lastGuestAnswer = guestAnswers[qIdx];
-    const isAnswered = lastPanelGuess && lastGuestAnswer;
+    const guestAnswerRevealed = gameState.guestAnswerRevealed && gameState.guestAnswerRevealed[gameState.questionsAnswered - 1];
+    const lastPanelGuess = panelGuesses[gameState.questionsAnswered - 1];
+    const lastGuestAnswer = guestAnswers[gameState.questionsAnswered - 1];
+    const isGuestAnswerRevealed = guestAnswerRevealed;
+    const isAnswered = Boolean(lastPanelGuess && lastGuestAnswer && isGuestAnswerRevealed);
     const gameOver = correctCount >= 2;
     const gameOverWithoutLock = gameOver && !lockPlaced;
     const gameOverWithLock = gameOver && lockPlaced;
 
     return (
       <div style={{ marginTop: 24 }}>
-        <h3>Main Game - Question {qIdx + 1} of 10</h3>
-        <div style={{ marginBottom: 16 }}>
-          <strong>Q: {question.text}</strong>
-        </div>
-        <div style={{ marginBottom: 16 }}>
-          {question.options.map((opt, i) => (
-            <label key={i} style={{ marginRight: 16 }}>
-              <input
-                type="radio"
-                name="panelGuess"
-                value={opt}
-                checked={panelGuess === opt}
-                onChange={() => handlePanelGuess(opt)}
-                disabled={!!lastPanelGuess}
-              />{' '}
-              {opt}
-            </label>
-          ))}
-          <button onClick={handleSubmitPanelGuess} disabled={panelGuess === '' || !!lastPanelGuess}>Submit Panel Guess</button>
-        </div>
+        <h3>Main Game - Question {gameState.questionsAnswered} of Pool</h3>
+        
+        {!currentQuestion.text || currentQuestion.text === 'No question selected' ? (
+          <div style={{ marginBottom: 16, padding: 12, backgroundColor: '#fff3cd', borderRadius: 4, border: '1px solid #ffeaa7' }}>
+            <strong>⚠️ No Question Selected</strong>
+            <p>Please select a question from the pool to continue the game.</p>
+            <button 
+              onClick={() => setShowQuestionSetup(true)}
+              style={{ 
+                padding: '8px 16px', 
+                backgroundColor: '#2196F3', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: 4,
+                cursor: 'pointer'
+              }}
+            >
+              Select Question
+            </button>
+          </div>
+        ) : (
+          <>
+            <div style={{ marginBottom: 16 }}>
+              <strong>Q: {currentQuestion.text}</strong>
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              {currentQuestion.options.map((opt, i) => (
+                <label key={i} style={{ marginRight: 16 }}>
+                  <input
+                    type="radio"
+                    name="panelGuess"
+                    value={opt}
+                    checked={panelGuess === opt}
+                    onChange={() => handlePanelGuess(opt)}
+                    disabled={!!lastPanelGuess}
+                  />{' '}
+                  {opt}
+                </label>
+              ))}
+              <button onClick={handleSubmitPanelGuess} disabled={panelGuess === '' || !!lastPanelGuess}>Submit Panel Guess</button>
+            </div>
+          </>
+        )}
         
         {/* Show Panel Guess */}
         {lastPanelGuess && (
@@ -537,7 +584,7 @@ function App() {
           🔄 Restart Game (New Guest)
         </button>
         <button 
-          onClick={() => setShowQuestionManager(!showQuestionManager)}
+          onClick={() => setShowQuestionSetup(!showQuestionSetup)}
           style={{ 
             padding: '12px 24px', 
             fontSize: 16, 
@@ -550,7 +597,7 @@ function App() {
             marginRight: '10px'
           }}
         >
-          📝 {showQuestionManager ? 'Hide' : 'Show'} Question Manager
+          📝 {showQuestionSetup ? 'Hide' : 'Show'} Question Setup
         </button>
         <button 
           onClick={handleTestBackend}
@@ -571,7 +618,7 @@ function App() {
       {gameState ? (
         <div>
           <h2>Current Round: {gameState.round}</h2>
-          {showQuestionManager && renderQuestionManager()}
+          {showQuestionSetup && renderQuestionSetup()}
           {gameState.round === 'main_game' && renderMainGame()}
         </div>
       ) : (

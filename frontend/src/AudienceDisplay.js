@@ -23,29 +23,29 @@ function AudienceDisplay() {
       return;
     }
 
-    const qIdx = gameState.questionIndex || 0;
-    const prevQIdx = prevState.questionIndex || 0;
+    const currentQuestionIndex = gameState.questionsAnswered - 1;
+    const prevQuestionIndex = prevState.questionsAnswered - 1;
     
     // Panel guess submitted
     const panelGuesses = gameState.panelGuesses || [];
     const prevPanelGuesses = prevState.panelGuesses || [];
-    const currentPanelGuess = panelGuesses[qIdx];
-    const prevPanelGuess = prevPanelGuesses[qIdx];
+    const currentPanelGuess = panelGuesses[currentQuestionIndex];
+    const prevPanelGuess = prevPanelGuesses[prevQuestionIndex];
     
     if (!prevPanelGuess && currentPanelGuess) {
       soundEffects.playSound('panelGuess');
     }
     
     // Guest answer revealed
-    const guestAnswerRevealed = gameState.guestAnswerRevealed && gameState.guestAnswerRevealed[qIdx];
-    const prevGuestAnswerRevealed = prevState.guestAnswerRevealed && prevState.guestAnswerRevealed[qIdx];
+    const guestAnswerRevealed = gameState.guestAnswerRevealed && gameState.guestAnswerRevealed[currentQuestionIndex];
+    const prevGuestAnswerRevealed = prevState.guestAnswerRevealed && prevState.guestAnswerRevealed[prevQuestionIndex];
     
     if (!prevGuestAnswerRevealed && guestAnswerRevealed) {
       soundEffects.playSound('revealAnswer');
       
       // Play success/error sound based on correctness
       const guestAnswers = gameState.guestAnswers || [];
-      const currentGuestAnswer = guestAnswers[qIdx];
+      const currentGuestAnswer = guestAnswers[currentQuestionIndex];
       
       if (currentPanelGuess === currentGuestAnswer) {
         soundEffects.playSound('correct');
@@ -70,37 +70,21 @@ function AudienceDisplay() {
     setSoundEnabled(newState);
   };
 
-  // Helper function to get current question based on sequence (same logic as backend)
+  // Helper function to get current question
   const getCurrentQuestion = () => {
-    const qIdx = gameState.questionIndex || 0;
-    
-    if (!gameState.currentQuestionSequence || gameState.currentQuestionSequence.length === 0) {
-      // Use default questions
-      return gameState.questions[qIdx] || null;
-    } else {
-      // Use custom sequence
-      const sequenceItem = gameState.currentQuestionSequence[qIdx];
-      if (!sequenceItem) return null;
-      
-      if (sequenceItem.type === 'custom') {
-        return gameState.customQuestions[sequenceItem.index] || null;
-      } else if (sequenceItem.type === 'default') {
-        return gameState.questions[sequenceItem.index] || null;
-      }
-    }
-    return null;
+    return gameState.currentQuestion || null;
   };
 
   const renderMainGame = () => {
-    const qIdx = gameState.questionIndex || 0;
-    const currentQuestion = getCurrentQuestion() || { text: 'No question', options: [] };
+    const currentQuestion = getCurrentQuestion() || { text: 'No question selected', options: [] };
     const lock = gameState.lock || {};
     const prize = gameState.prize || 0;
     const panelGuesses = gameState.panelGuesses || [];
     const guestAnswers = gameState.guestAnswers || [];
-    const lastPanelGuess = panelGuesses[qIdx];
-    const lastGuestAnswer = guestAnswers[qIdx];
-    const guestAnswerRevealed = gameState.guestAnswerRevealed && gameState.guestAnswerRevealed[qIdx];
+    const currentQuestionIndex = gameState.questionsAnswered - 1;
+    const lastPanelGuess = panelGuesses[currentQuestionIndex];
+    const lastGuestAnswer = guestAnswers[currentQuestionIndex];
+    const guestAnswerRevealed = gameState.guestAnswerRevealed && gameState.guestAnswerRevealed[currentQuestionIndex];
     const isAnswered = Boolean(lastPanelGuess && lastGuestAnswer && guestAnswerRevealed);
     
     // Debug when guest answer changes
@@ -111,7 +95,7 @@ function AudienceDisplay() {
     // Debug guestAnswerRevealed flag
     console.log('guestAnswerRevealed flag:', guestAnswerRevealed);
     console.log('gameState.guestAnswerRevealed:', gameState.guestAnswerRevealed);
-    console.log('qIdx:', qIdx);
+    console.log('currentQuestionIndex:', currentQuestionIndex);
 
     // Prize ladder configuration
     const prizeTiers = [
@@ -250,35 +234,58 @@ function AudienceDisplay() {
         {renderPrizeLadder()}
         
         {/* Question Container */}
-        <div style={{
-          background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
-          borderRadius: '50px',
-          padding: '20px 40px',
-          margin: '20px auto',
-          maxWidth: '800px',
-          border: '3px solid #c0c0c0',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)',
-          position: 'relative'
-        }}>
+        {currentQuestion.text && currentQuestion.text !== 'No question selected' ? (
           <div style={{
-            fontSize: '28px',
-            fontWeight: 'bold',
-            color: '#ffffff',
-            textShadow: '2px 2px 4px rgba(0,0,0,0.5)'
+            background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+            borderRadius: '50px',
+            padding: '20px 40px',
+            margin: '20px auto',
+            maxWidth: '800px',
+            border: '3px solid #c0c0c0',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)',
+            position: 'relative'
           }}>
-            {currentQuestion.text}
+            <div style={{
+              fontSize: '28px',
+              fontWeight: 'bold',
+              color: '#ffffff',
+              textShadow: '2px 2px 4px rgba(0,0,0,0.5)'
+            }}>
+              {currentQuestion.text}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div style={{
+            background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+            borderRadius: '50px',
+            padding: '20px 40px',
+            margin: '20px auto',
+            maxWidth: '800px',
+            border: '3px solid #c0c0c0',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)',
+            position: 'relative'
+          }}>
+            <div style={{
+              fontSize: '28px',
+              fontWeight: 'bold',
+              color: '#ffffff',
+              textShadow: '2px 2px 4px rgba(0,0,0,0.5)'
+            }}>
+              Waiting for question selection...
+            </div>
+          </div>
+        )}
 
         {/* Answer Options Grid */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: '20px',
-          maxWidth: '900px',
-          margin: '30px auto'
-        }}>
-          {currentQuestion.options.map((opt, i) => {
+        {currentQuestion.text && currentQuestion.text !== 'No question selected' && currentQuestion.options.length > 0 && (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '20px',
+            maxWidth: '900px',
+            margin: '30px auto'
+          }}>
+            {currentQuestion.options.map((opt, i) => {
             const letter = String.fromCharCode(65 + i); // A, B, C, D
             const isPanelGuess = lastPanelGuess === opt;
             const isGuestAnswer = lastGuestAnswer === opt;
@@ -398,10 +405,7 @@ function AudienceDisplay() {
             );
           })}
         </div>
-
-
-
-
+        )}
       </div>
     );
   };
