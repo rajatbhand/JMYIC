@@ -250,7 +250,7 @@ function AudienceDisplay() {
         }}>
           {prizeTiers.map((tier, index) => {
             const isCurrentQuestion = tier.question === currentQuestionNumber;
-            const isLocked = lock.placed && lock.question === tier.question - 1;
+            const isLocked = lock.placed && lock.level === tier.question; // Use lock.level instead of lock.question
             const isMoneyLocked = gameState.lockedMoney >= tier.amount; // NEW: Check if money is locked at this level
             
             let borderColor = '#6c2eb7'; // Purple for unreached

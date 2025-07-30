@@ -732,7 +732,7 @@ function App() {
             </div>
 
             {/* Lock Controls */}
-            {gameState?.questionsAnswered >= 3 && !gameState?.lock?.placed && (
+            {gameState?.lifeUsed && !gameState?.lock?.placed && (
               <div style={{
                 padding: '15px',
                 backgroundColor: '#fff3e0',
@@ -740,31 +740,48 @@ function App() {
                 border: '1px solid #ff9800',
                 marginBottom: '20px'
               }}>
-                <h4 style={{ margin: '0 0 10px 0', color: '#f57c00' }}>🔒 Place Lock (Q4-Q10)</h4>
+                <h4 style={{ margin: '0 0 10px 0', color: '#f57c00' }}>
+                  🔒 Place Lock on Prize Ladder (After Life Lost)
+                </h4>
+                <p style={{ fontSize: '12px', color: '#666', marginBottom: '10px' }}>
+                  Current Level: {gameState.currentQuestionNumber || 1} | 
+                  Choose future level to secure prize up to that point
+                </p>
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                  <input
-                    type="number"
+                  <select
                     value={lockInput}
                     onChange={handleLockInput}
-                    placeholder="Question number (4-10)"
-                    min="4"
-                    max="10"
                     style={{
                       padding: '8px',
                       border: '1px solid #ddd',
                       borderRadius: '4px',
-                      width: '150px'
+                      width: '200px'
                     }}
-                  />
+                  >
+                    <option value="">Select level to lock...</option>
+                    {[2, 3, 4, 5, 6, 7].map(level => {
+                      const currentLevel = gameState.currentQuestionNumber || 1;
+                      const prizes = ['₹2K', '₹4K', '₹8K', '₹12K', '₹20K', '₹30K', '₹50K'];
+                      if (level > currentLevel) {
+                        return (
+                          <option key={level} value={level}>
+                            Level {level} - {prizes[level - 1]}
+                          </option>
+                        );
+                      }
+                      return null;
+                    })}
+                  </select>
                   <button
                     onClick={handlePlaceLock}
+                    disabled={!lockInput}
                     style={{
                       padding: '8px 16px',
-                      backgroundColor: '#ff9800',
+                      backgroundColor: lockInput ? '#ff9800' : '#ccc',
                       color: 'white',
                       border: 'none',
                       borderRadius: '4px',
-                      cursor: 'pointer',
+                      cursor: lockInput ? 'pointer' : 'not-allowed',
                       fontWeight: 'bold'
                     }}
                   >
@@ -783,7 +800,7 @@ function App() {
                 marginBottom: '20px'
               }}>
                 <strong style={{ color: '#d32f2f' }}>
-                  🔒 Lock placed on Question {gameState.lock.question}
+                  🔒 Lock placed on Level {gameState.lock.level} (₹{['2K', '4K', '8K', '12K', '20K', '30K', '50K'][gameState.lock.level - 1]})
                 </strong>
               </div>
             )}

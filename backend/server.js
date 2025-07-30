@@ -628,7 +628,7 @@ io.on('connection', (socket) => {
     broadcastState();
   });
 
-  socket.on('place_lock', (questionIndex) => {
+  socket.on('place_lock', (lockLevel) => {
     // Allow lock placement after life is used (more strategic)
     if (!gameState.lifeUsed) {
       socket.emit('error', { message: 'Lock can only be placed after losing a life.' });
@@ -640,16 +640,25 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // Validate lock placement on remaining questions
-    const remainingQuestions = 7 - gameState.questionsAnswered;
-    if (questionIndex < gameState.questionsAnswered + 1 || questionIndex > 7) {
-      socket.emit('error', { message: `Lock can only be placed on questions ${gameState.questionsAnswered + 1} to 7.` });
+    // Validate lock placement on future progression levels only
+    const currentLevel = gameState.currentQuestionNumber || 1;
+    const maxLevel = 7; // Maximum prize levels (₹2K to ₹50K)
+    
+    if (lockLevel <= currentLevel) {
+      socket.emit('error', { message: `Lock can only be placed on future levels. Current level: ${currentLevel}` });
+      return;
+    }
+    
+    if (lockLevel < 1 || lockLevel > maxLevel) {
+      socket.emit('error', { message: `Lock must be placed between levels ${currentLevel + 1} and ${maxLevel}.` });
       return;
     }
 
     gameState.lock.placed = true;
-    gameState.lock.question = questionIndex;
-    console.log(`Lock placed on question ${questionIndex} after life lost`);
+    gameState.lock.level = lockLevel; // Change from 'question' to 'level'
+    gameState.lock.question = lockLevel; // Keep for compatibility
+    
+    console.log(`Lock placed on prize level ${lockLevel} after life lost. Current level: ${currentLevel}`);
     broadcastState();
   });
 

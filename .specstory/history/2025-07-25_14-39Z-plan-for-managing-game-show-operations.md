@@ -21496,6 +21496,71 @@ only if there is mismacth in the answer then the progression of ladder should ha
 
 _**Assistant**_
 
+**Fix - Move ladder progression to mismatch logic in `backend/server.js`:**
+
+Update the `reveal_guest_answer` handler around line 593 in the **mismatch section**:
+
+```javascript
+} else {
+  // MISMATCH: Panel and guest disagree - add prize, continue normal flow
+  gameState.mismatchCount = (gameState.mismatchCount || 0) + 1;
+
+  // NEW PRIZE BRACKETS: 2000, 4000, 8000, 12000, 20000, 30000, 50000
+  const prizeBrackets = [2000, 4000, 8000, 12000, 20000, 30000, 50000];
+  const prizeIndex = Math.min(gameState.mismatchCount - 1, prizeBrackets.length - 1);
+  gameState.prize = prizeIndex >= 0 ? prizeBrackets[prizeIndex] : 0;
+  gameState.score.currentPrize = gameState.prize;
+
+  // Lock the money when guest wins a prize (mismatch occurs)
+  gameState.lockedMoney = gameState.prize;
+
+  // NEW: Progress ladder ONLY on mismatch
+  gameState.currentQuestionNumber = gameState.mismatchCount;
+
+  console.log(`✅ MISMATCH! Panel: "${panelAnswer}", Guest: "${guestAnswer}". Prize increased to: ₹${gameState.prize} (LOCKED)`);
+  console.log(`Ladder progressed to level: ${gameState.currentQuestionNumber}`);
+}
+```
+
+**And remove progression from `select_question_from_pool` handler around line 346:**
+
+```javascript
+// NEW: Track the order of selected questions for progression
+if (!gameState.selectedQuestions.includes(questionId)) {
+  gameState.selectedQuestions.push(questionId);
+}
+
+// Remove this line - no longer set currentQuestionNumber here:
+// gameState.currentQuestionNumber = gameState.selectedQuestions.length;
+```
+
+**Also initialize `currentQuestionNumber` properly in game state (around line 215):**
+
+```javascript
+// NEW: Current question number (1-7) for progression tracking - starts at 1
+currentQuestionNumber: 1,
+```
+
+This ensures the ladder only progresses when there's a mismatch, and stays at the same level when answers match.
+
+---
+
+_**User**_
+
+after the life is gone the presenter will ask guest that where do he want to place the lock on progression ladder and this will happen at every question once the life is exhausted the guest can choose to place lock on future amount progressions only
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+
+
+---
+
 
 
 ---
