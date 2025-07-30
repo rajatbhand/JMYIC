@@ -35,160 +35,10 @@ const io = new Server(server, {
   }
 });
 
-// Function to generate random questions
+// Function to generate random questions (now returns empty array)
 function generateRandomQuestions() {
-  const questions = [];
-  
-  // Question templates with exactly 4 options each
-  const questionTemplates = [
-    // Personal preferences
-    {
-      text: "What is the guest's favorite color?",
-      options: ['Red', 'Blue', 'Green', 'Yellow'],
-      guestAnswer: 'Blue'
-    },
-    {
-      text: "Which food does the guest hate the most?",
-      options: ['Pizza', 'Broccoli', 'Chocolate', 'Fish'],
-      guestAnswer: 'Broccoli'
-    },
-    {
-      text: "What is the guest's dream vacation destination?",
-      options: ['Paris', 'Tokyo', 'New York', 'Bali'],
-      guestAnswer: 'Tokyo'
-    },
-    {
-      text: "Which movie genre does the guest prefer?",
-      options: ['Comedy', 'Horror', 'Drama', 'Action'],
-      guestAnswer: 'Comedy'
-    },
-    {
-      text: "What is the guest's biggest fear?",
-      options: ['Heights', 'Spiders', 'Darkness', 'Public Speaking'],
-      guestAnswer: 'Heights'
-    },
-    {
-      text: "Which superpower would the guest choose?",
-      options: ['Invisibility', 'Flying', 'Time Travel', 'Super Strength'],
-      guestAnswer: 'Flying'
-    },
-    {
-      text: "What is the guest's favorite season?",
-      options: ['Spring', 'Summer', 'Autumn', 'Winter'],
-      guestAnswer: 'Autumn'
-    },
-    {
-      text: "Which hobby does the guest enjoy most?",
-      options: ['Reading', 'Sports', 'Gaming', 'Cooking'],
-      guestAnswer: 'Reading'
-    },
-    {
-      text: "What is the guest's spirit animal?",
-      options: ['Cat', 'Dog', 'Eagle', 'Dolphin'],
-      guestAnswer: 'Eagle'
-    },
-    {
-      text: "Which city would the guest most like to visit?",
-      options: ['Paris', 'Tokyo', 'New York', 'Sydney'],
-      guestAnswer: 'Tokyo'
-    },
-    {
-      text: "What is the guest's secret talent?",
-      options: ['Singing', 'Dancing', 'Juggling', 'Magic'],
-      guestAnswer: 'Singing'
-    },
-    {
-      text: "Which drink does the guest prefer?",
-      options: ['Coffee', 'Tea', 'Water', 'Juice'],
-      guestAnswer: 'Coffee'
-    },
-    {
-      text: "What is the guest's ideal weekend activity?",
-      options: ['Netflix marathon', 'Outdoor adventure', 'Shopping', 'Cooking'],
-      guestAnswer: 'Netflix marathon'
-    },
-    {
-      text: "Which pet would the guest prefer?",
-      options: ['Dog', 'Cat', 'Fish', 'Bird'],
-      guestAnswer: 'Dog'
-    },
-    {
-      text: "What is the guest's favorite type of music?",
-      options: ['Pop', 'Rock', 'Jazz', 'Classical'],
-      guestAnswer: 'Pop'
-    },
-    {
-      text: "Which weather does the guest enjoy most?",
-      options: ['Sunny', 'Rainy', 'Snowy', 'Cloudy'],
-      guestAnswer: 'Sunny'
-    },
-    {
-      text: "What is the guest's preferred sleeping position?",
-      options: ['Back', 'Side', 'Stomach', 'Fetal'],
-      guestAnswer: 'Side'
-    },
-    {
-      text: "Which social media platform does the guest use most?",
-      options: ['Instagram', 'Facebook', 'Twitter', 'TikTok'],
-      guestAnswer: 'Instagram'
-    },
-    {
-      text: "What is the guest's favorite type of cuisine?",
-      options: ['Italian', 'Chinese', 'Mexican', 'Indian'],
-      guestAnswer: 'Italian'
-    },
-    {
-      text: "Which mode of transportation does the guest prefer?",
-      options: ['Car', 'Public transport', 'Bicycle', 'Walking'],
-      guestAnswer: 'Car'
-    },
-    {
-      text: "What is the guest's ideal date night?",
-      options: ['Dinner and movie', 'Adventure sports', 'Concert', 'Museum'],
-      guestAnswer: 'Dinner and movie'
-    },
-    {
-      text: "Which type of book does the guest enjoy most?",
-      options: ['Fiction', 'Non-fiction', 'Mystery', 'Romance'],
-      guestAnswer: 'Fiction'
-    },
-    {
-      text: "What is the guest's favorite time of day?",
-      options: ['Morning', 'Afternoon', 'Evening', 'Night'],
-      guestAnswer: 'Morning'
-    },
-    {
-      text: "Which personality trait does the guest value most?",
-      options: ['Honesty', 'Kindness', 'Intelligence', 'Humor'],
-      guestAnswer: 'Honesty'
-    },
-    {
-      text: "What is the guest's preferred way to relax?",
-      options: ['Reading', 'Meditation', 'Exercise', 'Bath'],
-      guestAnswer: 'Reading'
-    },
-    {
-      text: "Which type of gift does the guest appreciate most?",
-      options: ['Experiences', 'Books', 'Technology', 'Clothing'],
-      guestAnswer: 'Experiences'
-    }
-  ];
-
-  // Shuffle the templates and take first 25
-  const shuffled = questionTemplates.sort(() => Math.random() - 0.5);
-  
-  for (let i = 0; i < 25; i++) {
-    const template = shuffled[i];
-    const question = {
-      id: Date.now() + Math.random() + i, // Unique ID
-      text: template.text,
-      options: template.options,
-      guestAnswer: template.guestAnswer
-    };
-    questions.push(question);
-  }
-
-  return questions;
+  // Return empty array - no sample questions
+  return [];
 }
 
 // Placeholder for game state
@@ -213,7 +63,7 @@ let gameState = {
   panelGuesses: [],
   guestAnswers: [],
   guestAnswerRevealed: [],
-  // Question pool (25 questions maximum) - pre-populated with random questions
+  // Question pool (25 questions maximum) - starts empty
   questionPool: generateRandomQuestions(),
   // Currently selected question
   currentQuestion: null,
