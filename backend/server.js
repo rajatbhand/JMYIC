@@ -81,6 +81,7 @@ let gameState = {
     currentPrize: 0
   },
   mismatchCount: 0, // NEW: count mismatches for prize
+  lockedMoney: 0, // NEW: money locked for guest
   // NEW: Lives system
   lives: 2, // Mystery guest starts with 2 lives
   gameOver: false, // Track if game ended due to lives lost
@@ -233,6 +234,7 @@ io.on('connection', (socket) => {
       currentPrize: 0
     };
     gameState.mismatchCount = 0; // Reset mismatch count
+    gameState.lockedMoney = 0; // Reset locked money
     // NEW: Reset lives and gameOver
     gameState.lives = 2;
     gameState.gameOver = false;
@@ -426,10 +428,17 @@ io.on('connection', (socket) => {
     } else {
       // MISMATCH: Panel and guest disagree - add prize, continue normal flow
       gameState.mismatchCount = (gameState.mismatchCount || 0) + 1;
-      gameState.prize = Math.min(10000 * gameState.mismatchCount, 100000);
+      
+      // NEW PRIZE BRACKETS: 2000, 4000, 8000, 12000, 20000, 30000, 50000
+      const prizeBrackets = [2000, 4000, 8000, 12000, 20000, 30000, 50000];
+      const prizeIndex = Math.min(gameState.mismatchCount - 1, prizeBrackets.length - 1);
+      gameState.prize = prizeIndex >= 0 ? prizeBrackets[prizeIndex] : 0;
       gameState.score.currentPrize = gameState.prize;
       
-      console.log(`✅ MISMATCH! Panel: "${panelAnswer}", Guest: "${guestAnswer}". Prize increased to: ₹${gameState.prize}`);
+      // Lock the money when guest wins a prize (mismatch occurs)
+      gameState.lockedMoney = gameState.prize;
+      
+      console.log(`✅ MISMATCH! Panel: "${panelAnswer}", Guest: "${guestAnswer}". Prize increased to: ₹${gameState.prize} (LOCKED)`);
     }
     
     // Check game end conditions (only if game not already over from lives)
@@ -683,6 +692,7 @@ io.on('connection', (socket) => {
         currentPrize: 0
       },
       mismatchCount: 0, // Reset mismatch count
+      lockedMoney: 0, // Reset locked money
       // NEW: Reset lives and gameOver
       lives: 2,
       gameOver: false,

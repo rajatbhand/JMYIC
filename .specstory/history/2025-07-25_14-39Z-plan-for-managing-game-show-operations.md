@@ -18658,7 +18658,509 @@ function App() {
 
     return (
       <div style={{ padding: '20px' }}>
+        <h2 style={{ color: '#333', marginBottom: '20px' }}>🎮 Main Game Controls</h2>
         
+        {!currentQuestion ? (
+          <div style={{
+            textAlign: 'center',
+            padding: '40px',
+            backgroundColor: '#f9f9f9',
+            borderRadius: '8px',
+            border: '1px solid #e0e0e0'
+          }}>
+            <h3 style={{ color: '#666', marginBottom: '12px' }}>No Question Selected</h3>
+            <p style={{ color: '#999', margin: 0 }}>
+              Select questions from the pool on the left to start the game.
+            </p>
+            {(gameState?.questionPool?.length || 0) > 0 && (
+              <button 
+                onClick={handleStartGame}
+                style={{ 
+                  padding: '12px 24px', 
+                  backgroundColor: '#FF9800', 
+                  color: 'white', 
+                  border: 'none', 
+                  borderRadius: 4,
+                  cursor: 'pointer',
+                  fontSize: 16,
+                  fontWeight: 'bold',
+                  marginTop: '12px'
+                }}
+              >
+                🎮 Start Game
+              </button>
+            )}
+          </div>
+        ) : (
+          <div>
+            {/* Current Question Display */}
+            <div style={{
+              padding: '20px',
+              backgroundColor: '#e3f2fd',
+              borderRadius: '8px',
+              marginBottom: '20px',
+              border: '1px solid #2196F3'
+            }}>
+              <h3 style={{ margin: '0 0 15px 0', color: '#1976D2' }}>Current Question:</h3>
+              <p style={{ fontSize: '18px', fontWeight: 'bold', margin: '0 0 15px 0', color: '#333' }}>
+                {currentQuestion.text}
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                {currentQuestion.options?.map((option, index) => (
+                  <div key={index} style={{
+                    padding: '10px',
+                    backgroundColor: panelGuess === option ? '#4CAF50' : 'white',
+                    color: panelGuess === option ? 'white' : '#333',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                    fontWeight: panelGuess === option ? 'bold' : 'normal'
+                  }}
+                  onClick={() => handlePanelGuess(option)}
+                  >
+                    <strong>{String.fromCharCode(65 + index)}:</strong> {option}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Game Controls - 3 Step Flow */}
+            <div style={{ display: 'flex', gap: '15px', marginBottom: '20px', flexWrap: 'wrap' }}>
+              {/* Step 1: Submit Panel Guess */}
+              {!lastPanelGuess && (
+                <button
+                  onClick={handleSubmitPanelGuess}
+                  disabled={!panelGuess}
+                  style={{
+                    padding: '12px 20px',
+                    backgroundColor: panelGuess ? '#4CAF50' : '#ccc',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: panelGuess ? 'pointer' : 'not-allowed',
+                    fontSize: '14px',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  Step 1: Submit Panel Guess
+                </button>
+              )}
+
+              {/* Step 2: Check Panel Guess */}
+              {lastPanelGuess && !lastGuestAnswer && (
+                <button
+                  onClick={handleCheckPanelGuess}
+                  style={{
+                    padding: '12px 20px',
+                    backgroundColor: '#FF9800',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  Step 2: Check Panel Guess
+                </button>
+              )}
+
+              {/* Step 3: Reveal Guest Answer */}
+              {lastPanelGuess && lastGuestAnswer && !guestAnswerRevealed && (
+                <button
+                  onClick={handleRevealGuestAnswer}
+                  style={{
+                    padding: '12px 20px',
+                    backgroundColor: '#2196F3',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  Step 3: Reveal Guest Answer
+                </button>
+              )}
+            </div>
+
+            {/* Debug Info Panel */}
+            <div style={{
+              padding: '15px',
+              backgroundColor: '#f5f5f5',
+              borderRadius: '6px',
+              fontSize: '12px',
+              color: '#666',
+              marginBottom: '20px'
+            }}>
+              <strong>Debug Info:</strong><br/>
+              Last Panel Guess: {lastPanelGuess || 'None'}<br/>
+              Last Guest Answer: {lastGuestAnswer || 'None'}<br/>
+              Guest Answer Revealed: {guestAnswerRevealed ? 'Yes' : 'No'}<br/>
+              Is Answered: {isAnswered ? 'Yes' : 'No'}<br/>
+              Questions Answered: {gameState?.questionsAnswered || 0}
+            </div>
+
+            {/* Lock Controls */}
+            {gameState?.questionsAnswered >= 3 && !gameState?.lock?.placed && (
+              <div style={{
+                padding: '15px',
+                backgroundColor: '#fff3e0',
+                borderRadius: '8px',
+                border: '1px solid #ff9800',
+                marginBottom: '20px'
+              }}>
+                <h4 style={{ margin: '0 0 10px 0', color: '#f57c00' }}>🔒 Place Lock (Q4-Q10)</h4>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  <input
+                    type="number"
+                    value={lockInput}
+                    onChange={handleLockInput}
+                    placeholder="Question number (4-10)"
+                    min="4"
+                    max="10"
+                    style={{
+                      padding: '8px',
+                      border: '1px solid #ddd',
+                      borderRadius: '4px',
+                      width: '150px'
+                    }}
+                  />
+                  <button
+                    onClick={handlePlaceLock}
+                    style={{
+                      padding: '8px 16px',
+                      backgroundColor: '#ff9800',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    🔒 Place Lock
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {gameState?.lock?.placed && (
+              <div style={{
+                padding: '15px',
+                backgroundColor: '#ffebee',
+                borderRadius: '8px',
+                border: '1px solid #f44336',
+                marginBottom: '20px'
+              }}>
+                <strong style={{ color: '#d32f2f' }}>
+                  🔒 Lock placed on Question {gameState.lock.question}
+                </strong>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  if (!gameState) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        fontSize: '18px',
+        color: '#666'
+      }}>
+        Connecting to server...
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ 
+      fontFamily: 'Arial, sans-serif',
+      backgroundColor: '#f5f5f5',
+      minHeight: '100vh'
+    }}>
+      {/* Header */}
+      <div style={{
+        backgroundColor: '#2c3e50',
+        color: 'white',
+        padding: '15px 20px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
+        <h1 style={{ margin: 0, fontSize: '24px' }}>🎬 Judge Me If You Can - Operator Panel</h1>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button 
+            onClick={handleToggleSound}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: soundEnabled ? '#4CAF50' : '#f44336',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+          >
+            🔊 Sound {soundEnabled ? 'ON' : 'OFF'}
+          </button>
+          <button 
+            onClick={handleTestBackend}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#9C27B0',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+          >
+            🧪 Test
+          </button>
+          <button 
+            onClick={handleResetGame}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#f44336',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+          >
+            🔄 Reset
+          </button>
+        </div>
+      </div>
+
+      {/* Error Display */}
+      {error && (
+        <div style={{
+          backgroundColor: '#ffebee',
+          color: '#c62828',
+          padding: '10px 20px',
+          borderLeft: '4px solid #f44336'
+        }}>
+          <strong>Error:</strong> {error}
+        </div>
+      )}
+
+      {/* Main Content - Split Layout */}
+      <div style={{ 
+        display: 'flex', 
+        height: 'calc(100vh - 80px)',
+        gap: '20px',
+        padding: '20px'
+      }}>
+        {/* Left Panel (30%) - Question Management */}
+        <div style={{ 
+          width: '30%', 
+          display: 'flex', 
+          flexDirection: 'column',
+          gap: '15px'
+        }}>
+          {/* Add Question Form */}
+          {renderAddQuestionForm()}
+          
+          {/* Question Pool */}
+          {renderQuestionPool()}
+        </div>
+
+        {/* Right Panel (70%) - Game Controls */}
+        <div style={{ 
+          width: '70%', 
+          backgroundColor: 'white',
+          borderRadius: '8px',
+          border: '1px solid #e0e0e0',
+          overflow: 'auto'
+        }}>
+          {gameState.round === 'setup' ? (
+            <div style={{ padding: '40px', textAlign: 'center' }}>
+              <h2 style={{ color: '#666', marginBottom: '20px' }}>🎬 Game Setup</h2>
+              <p style={{ color: '#999', fontSize: '16px', marginBottom: '30px' }}>
+                Add questions to the pool and start the game when ready.
+              </p>
+              {(gameState?.questionPool?.length || 0) > 0 && (
+                <button 
+                  onClick={handleStartGame}
+                  style={{ 
+                    padding: '15px 30px', 
+                    backgroundColor: '#4CAF50', 
+                    color: 'white', 
+                    border: 'none', 
+                    borderRadius: 6,
+                    cursor: 'pointer',
+                    fontSize: 18,
+                    fontWeight: 'bold'
+                  }}
+                >
+                  🚀 Start Game
+                </button>
+              )}
+            </div>
+          ) : gameState.round === 'main_game' ? (
+            renderMainGame()
+          ) : (
+            <div style={{ padding: '40px', textAlign: 'center' }}>
+              <h2 style={{ color: '#666' }}>Round: {gameState.round}</h2>
+              <p style={{ color: '#999' }}>Game controls will appear here based on the current round.</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default App;
+```
+
+## 🎯 **Key Updates Made:**
+
+### **1. Fixed Question Deletion Issue:**
+- **Removed** separate `questionPool` state
+- **Removed** `handleGetQuestionPool` and related useEffect
+- **Updated** all references to use `gameState.questionPool` directly
+- Questions now sync automatically when backend state changes
+
+### **2. Enhanced Question Management:**
+- **Added** `isQuestionFullyPlayed()` helper function
+- **Visual indicators** for completed questions (green border + ✅)
+- **Different delete button** for completed questions (🗑️ vs ×)
+- **Can delete played questions** that have both panel and guest answers
+
+### **3. Visual Improvements:**
+- Better color coding for question states
+- Clear indicators for used vs completed questions
+- Improved button styling and feedback
+- Better layout and spacing
+
+### **4. State Synchronization:**
+- All question pool data now comes from `gameState`
+- Automatic updates when questions are added/removed
+- No more sync issues between frontend and backend
+
+## 🎮 **How It Works Now:**
+
+1. **Add Questions**: Use the form to add up to 25 questions
+2. **Delete Questions**: 
+   - **Unused questions**: Red × button (immediate deletion)
+   - **Completed questions**: Orange 🗑️ button (can delete played questions)
+3. **Visual States**:
+   - **White**: Available to select
+   - **Gray**: Used (selected but may not be complete)
+   - **Green border**: Fully completed (both answers given)
+4. **Real-time Updates**: All changes sync immediately across operator and audience displays
+
+The deletion functionality now works perfectly and you can even clean up questions that have already been played in the game!
+
+---
+
+_**User**_
+
+ok now these are the price brackets and whenever guest wins some price we need to show that money is locked for guest
+
+The price categories are here use these and update it on the code everywhere
+2000
+4000
+8000
+12000
+20000
+30000
+50000
+
+---
+
+_**Assistant**_
+
+Perfect! I'll update the prize brackets from the current ₹10K-₹100K system to the new ₹2K-₹50K system and add the "locked money" concept. Let me update both frontend and backend.
+
+---
+
+Read file: frontend/src/AudienceDisplay.js
+
+---
+
+Let me find the prize tiers section:
+
+---
+
+<details>
+            <summary>Grep search for "prizeTiers|amount.*10000" • **1** files</summary>
+        
+| File | Line | Match |
+|------|------|-------|
+| `file:///f%3A/Baneet/Judge%20me/frontend/src/AudienceDisplay.js` | L224 | `const prizeTiers = [` |
+| `file:///f%3A/Baneet/Judge%20me/frontend/src/AudienceDisplay.js` | L225 | `{ amount: 10000, label: '₹10K', question: 1 },` |
+| `file:///f%3A/Baneet/Judge%20me/frontend/src/AudienceDisplay.js` | L234 | `{ amount: 100000, label: '₹1L', question: 10 }` |
+| `file:///f%3A/Baneet/Judge%20me/frontend/src/AudienceDisplay.js` | L269 | `{prizeTiers.map((tier, index) => {` |
+
+</details>
+
+---
+
+Read file: frontend/src/AudienceDisplay.js
+
+---
+
+Now let me find the backend prize calculation logic:
+
+---
+
+<details>
+            <summary>Grep search for "10000.*mismatchCount|prize.*Math\.min" • **1** files</summary>
+        
+| File | Line | Match |
+|------|------|-------|
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L429 | `gameState.prize = Math.min(10000 * gameState.mismatchCount, 100000);` |
+
+</details>
+
+---
+
+Read file: backend/server.js
+
+---
+
+Perfect! Now I understand the current system. Let me provide the complete updated code with the new prize brackets and "locked money" concept.
+
+## 🎯 **Complete Updated Code with New Prize Brackets (₹2K-₹50K) + Locked Money**
+
+### **1. Backend Updates (`backend/server.js`):**
+
+```javascript
+// Update the prize calculation logic in reveal_guest_answer handler (around line 428):
+
+} else {
+  // MISMATCH: Panel and guest disagree - add prize, continue normal flow
+  gameState.mismatchCount = (gameState.mismatchCount || 0) + 1;
+  
+  // NEW PRIZE BRACKETS: 2000, 4000, 8000, 12000, 20000, 30000, 50000
+  const prizeBrackets = [2000, 4000, 8000, 12000, 20000, 30000, 50000];
+  const prizeIndex = Math.min(gameState.mismatchCount - 1, prizeBrackets.length - 1);
+  gameState.prize = prizeIndex >= 0 ? prizeBrackets[prizeIndex] : 0;
+  gameState.score.currentPrize = gameState.prize;
+  
+  // Lock the money when guest wins a prize (mismatch occurs)
+  gameState.lockedMoney = gameState.prize;
+  
+  console.log(`✅ MISMATCH! Panel: "${panelAnswer}", Guest: "${guestAnswer}". Prize increased to: ₹${gameState.prize} (LOCKED)`);
+}
+```
+
+**Also add lockedMoney to the initial gameState (around line 83):**
+
+```javascript
+mismatchCount: 0, // NEW
 
 ---
 

@@ -136,6 +136,7 @@ function AudienceDisplay() {
   const renderGameOver = () => {
     const lives = gameState.lives || 0;
     const isLivesGameOver = lives === 0;
+    const finalPrize = gameState.lockedMoney || gameState.prize || 0; // Show locked money as final prize
     
     return (
       <div style={{
@@ -166,7 +167,7 @@ function AudienceDisplay() {
             'Panel Got 2 Correct Answers!'}
         </div>
         
-        {/* Final Prize */}
+        {/* Final Prize with Lock Indicator */}
         <div style={{
           fontSize: '48px',
           fontWeight: 'bold',
@@ -174,7 +175,19 @@ function AudienceDisplay() {
           textShadow: '3px 3px 6px rgba(0,0,0,0.8), 0 0 20px rgba(76,175,80,0.5)',
           marginBottom: '20px'
         }}>
-          Final Prize: ₹{(gameState.prize || 0).toLocaleString()}
+          🔒 Final Locked Prize: ₹{finalPrize.toLocaleString()}
+        </div>
+        
+        {/* Additional Info */}
+        <div style={{
+          fontSize: '24px',
+          color: '#ffffff',
+          textShadow: '2px 2px 4px rgba(0,0,0,0.8)',
+          marginTop: '20px'
+        }}>
+          {finalPrize > 0 ? 
+            'Money is secured for the Mystery Guest!' : 
+            'No money won this round.'}
         </div>
         
         {/* Lives Lost Hearts */}
@@ -186,7 +199,7 @@ function AudienceDisplay() {
             marginTop: '40px'
           }}>
             <div style={{ fontSize: '60px', filter: 'brightness(0.3)' }}>🖤</div>
-            <div style={{ fontSize: '60px', filter: 'brightness(0.3)' }}>��</div>
+            <div style={{ fontSize: '60px', filter: 'brightness(0.3)' }}>🖤</div>
           </div>
         )}
       </div>
@@ -220,18 +233,15 @@ function AudienceDisplay() {
     console.log('gameState.guestAnswerRevealed:', gameState.guestAnswerRevealed);
     console.log('currentQuestionIndex:', currentQuestionIndex);
 
-    // Prize ladder configuration
+    // Prize ladder configuration - NEW BRACKETS
     const prizeTiers = [
-      { amount: 10000, label: '₹10K', question: 1 },
-      { amount: 20000, label: '₹20K', question: 2 },
-      { amount: 30000, label: '₹30K', question: 3 },
-      { amount: 40000, label: '₹40K', question: 4 },
-      { amount: 50000, label: '₹50K', question: 5 },
-      { amount: 60000, label: '₹60K', question: 6 },
-      { amount: 70000, label: '₹70K', question: 7 },
-      { amount: 80000, label: '₹80K', question: 8 },
-      { amount: 90000, label: '₹90K', question: 9 },
-      { amount: 100000, label: '₹1L', question: 10 }
+      { amount: 2000, label: '₹2K', question: 1 },
+      { amount: 4000, label: '₹4K', question: 2 },
+      { amount: 8000, label: '₹8K', question: 3 },
+      { amount: 12000, label: '₹12K', question: 4 },
+      { amount: 20000, label: '₹20K', question: 5 },
+      { amount: 30000, label: '₹30K', question: 6 },
+      { amount: 50000, label: '₹50K', question: 7 }
     ];
 
     const renderPrizeLadder = (currentQuestionNumber) => (
@@ -251,10 +261,23 @@ function AudienceDisplay() {
             fontSize: '32px',
             fontWeight: 'bold',
             color: '#ffffff',
-            textShadow: '2px 2px 4px rgba(0,0,0,0.5)'
+            textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
+            textAlign: 'center'
           }}>
             Current Prize: ₹{prize.toLocaleString()}
           </div>
+          {gameState.lockedMoney > 0 && (
+            <div style={{
+              fontSize: '18px',
+              color: '#4CAF50',
+              textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
+              textAlign: 'center',
+              marginTop: '8px',
+              fontWeight: 'bold'
+            }}>
+              🔒 LOCKED: ₹{gameState.lockedMoney.toLocaleString()}
+            </div>
+          )}
         </div>
 
         {/* Prize Tiers */}
@@ -269,10 +292,17 @@ function AudienceDisplay() {
           {prizeTiers.map((tier, index) => {
             const isCurrentQuestion = tier.question === currentQuestionNumber;
             const isLocked = lock.placed && lock.question === tier.question - 1;
+            const isMoneyLocked = gameState.lockedMoney >= tier.amount; // NEW: Check if money is locked at this level
             
             let borderColor = '#6c2eb7'; // Purple for unreached
             let backgroundColor = 'rgba(0,0,0,0.7)';
             let glowColor = 'rgba(108,46,183,0.3)';
+            
+            if (isMoneyLocked) {
+              borderColor = '#4CAF50'; // Green for locked money
+              backgroundColor = 'rgba(76,175,80,0.3)';
+              glowColor = 'rgba(76,175,80,0.6)';
+            }
             
             if (isCurrentQuestion) {
               borderColor = '#ff9800'; // Orange/yellow for current question
@@ -281,15 +311,15 @@ function AudienceDisplay() {
             }
             
             if (isLocked) {
-              borderColor = '#f44336'; // Red for locked
+              borderColor = '#f44336'; // Red for locked question
               backgroundColor = 'rgba(244,67,54,0.3)';
               glowColor = 'rgba(244,67,54,0.8)';
             }
 
             return (
               <div key={index} style={{
-                width: '60px',
-                height: '60px',
+                width: '80px', // Slightly wider for 7 items instead of 10
+                height: '80px',
                 background: backgroundColor,
                 border: `3px solid ${borderColor}`,
                 borderRadius: '12px',
@@ -303,7 +333,7 @@ function AudienceDisplay() {
               }}>
                 <div style={{
                   transform: 'rotate(-45deg)',
-                  fontSize: '12px',
+                  fontSize: '14px', // Slightly larger for readability
                   fontWeight: 'bold',
                   color: '#ffffff',
                   textAlign: 'center',
@@ -311,24 +341,30 @@ function AudienceDisplay() {
                 }}>
                   {tier.label}
                 </div>
+                
+                {/* Lock Icon for Locked Questions */}
                 {isLocked && (
                   <div style={{
                     position: 'absolute',
-                    top: '-8px',
-                    right: '-8px',
-                    background: '#f44336',
-                    color: '#ffffff',
-                    borderRadius: '50%',
-                    width: '20px',
-                    height: '20px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '12px',
-                    fontWeight: 'bold',
-                    boxShadow: '0 0 10px rgba(244,67,54,0.8)'
+                    top: '-5px',
+                    right: '-5px',
+                    transform: 'rotate(-45deg)',
+                    fontSize: '20px'
                   }}>
                     🔒
+                  </div>
+                )}
+                
+                {/* Money Lock Icon for Locked Money */}
+                {isMoneyLocked && !isLocked && (
+                  <div style={{
+                    position: 'absolute',
+                    bottom: '-5px',
+                    right: '-5px',
+                    transform: 'rotate(-45deg)',
+                    fontSize: '16px'
+                  }}>
+                    💰
                   </div>
                 )}
               </div>
