@@ -15731,6 +15731,7 @@ git commit -m "Add question progression tracking and scoring system to backend"
 PS F:\Baneet\Judge me> git commit -m "Add question progression tracking and scoring system to backend"
 [master 8a68bdc] Add question progression tracking and scoring system to backend
  3 files changed, 916 insertions(+), 5 deletions(-)
+PS F:\Baneet\Judge me> ^C
 PS F:\Baneet\Judge me>
 ```
 
@@ -15744,17 +15745,262 @@ this is updated on git master branch
 
 _**Assistant**_
 
+<think><details><summary>Thought Process</summary>
+**Updating the Frontend**
 
+I've just received the confirmation that the backend is updated with the new scoring and progression logic. Now, I need to update the frontend to reflect these changes. It's time to start working on that.
+
+
+**Beginning Implementation**
+
+Okay, the `master` branch has been updated, and the backend is ready. My immediate focus is now on the frontend. I'll start by examining `AudienceDisplay.js` to grasp the prize ladder's structure. Then, I'll modify this file, incorporating the new `currentQuestionNumber` to highlight the appropriate prize level. I also will need to display the score, and a new panel will be necessary for that.
+
+
+**Defining the Scope**
+
+I've analyzed the existing codebase and outlined the necessary changes. I'll be focusing on `AudienceDisplay.js` and, potentially, `App.js`. The core tasks involve integrating the `currentQuestionNumber` and `score` from the `gameState` to visually represent the game's state on the audience's screen. I'm creating a score display that should appear after the answer is revealed, using the user-supplied `isAnswered` flag for timing.
+
+
+**Mapping Out The Process**
+
+I've reviewed the plans, and have a clear roadmap for the frontend modifications. First up, I'm focused on `AudienceDisplay.js`.  I'll integrate the new `currentQuestionNumber` and `score` from the `gameState` object to display the score and highlight the appropriate level in the prize ladder.  I've got the structure of `AudienceDisplay.js` in mind now, and it looks straightforward to implement the logic to highlight the correct prize level, and to display the score after the question has been answered.
+
+
+</details></think>
 
 ---
 
 
 
+Excellent! Now that the backend is updated and deployed, let's implement the frontend changes to display the question progression and the new scoring panel.
+
+I will start with the `AudienceDisplay.js` file to highlight the current question on the prize ladder and show the score.
+
+First, let me get the latest version of `AudienceDisplay.js`.
+
 ---
 
+Read file: frontend/src/AudienceDisplay.js
+
+---
+
+Okay, I have the latest version of `AudienceDisplay.js`. Now, I will update the prize ladder to highlight the current question and add a scoring panel.
+
+I will start by modifying the `renderPrizeLadder` function to accept the `currentQuestionNumber` and highlight the corresponding prize tier. Then I'll add a new `renderScorePanel` function to display the score after the guest answer is revealed.
+
+Here are the changes:
+
+---
+
+<details><summary>Edit file: frontend/src/AudienceDisplay.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -112,5 +112,5 @@
+      ];
+  
+-     const renderPrizeLadder = () => (
++     const renderPrizeLadder = (currentQuestionNumber) => (
+        <div style={{ marginBottom: '30px' }}>
+          {/* Current Prize Bar */}
+```
+
+**Chunk 2**
+Lines added: 9, lines removed: 7
+
+```diff
+@@ -145,21 +145,23 @@
+          }}>
+            {prizeTiers.map((tier, index) => {
+-             const isCurrentPrize = prize >= tier.amount;
++             const isCurrentQuestion = tier.question === currentQuestionNumber;
++             const isAchieved = prize >= tier.amount;
+              const isLocked = lock.placed && lock.question === tier.question - 1;
+-             const isPast = prize > tier.amount;
+              
+              let borderColor = '#6c2eb7'; // Purple for unreached
+              let backgroundColor = 'rgba(0,0,0,0.7)';
+              let glowColor = 'rgba(108,46,183,0.3)';
+              
+-             if (isCurrentPrize) {
+-               borderColor = '#2196F3'; // Blue for current
+-               backgroundColor = 'rgba(33,150,243,0.2)';
+-               glowColor = 'rgba(33,150,243,0.6)';
+-             } else if (isPast) {
++             if (isAchieved) {
+                borderColor = '#4CAF50'; // Green for achieved
+                backgroundColor = 'rgba(76,175,80,0.2)';
+                glowColor = 'rgba(76,175,80,0.4)';
+              }
++             
++             if (isCurrentQuestion) {
++               borderColor = '#ff9800'; // Orange/yellow for current question
++               backgroundColor = 'rgba(255,152,0,0.3)';
++               glowColor = 'rgba(255,152,0,0.8)';
++             }
+              
+              if (isLocked) {
+```
+
+</details>
+
+---
+
+Now let me add the `renderScorePanel` function and call it from the `renderMainGame` function:
 
 
 ---
+
+<details><summary>Edit file: frontend/src/AudienceDisplay.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 40, lines removed: undefined
+
+```diff
+@@ -222,4 +222,44 @@
+        </div>
+      );
++ 
++     const renderScorePanel = () => {
++       const score = gameState.score || { correctAnswers: 0, totalQuestions: 0, currentPrize: 0 };
++       const showScore = isAnswered;
++ 
++       return (
++         <div style={{
++           position: 'absolute',
++           bottom: '20px',
++           left: '20px',
++           background: 'rgba(0, 0, 0, 0.7)',
++           borderRadius: '15px',
++           padding: '15px 25px',
++           border: '2px solid #2196F3',
++           boxShadow: '0 0 20px rgba(33,150,243,0.6)',
++           backdropFilter: 'blur(10px)',
++           transition: 'opacity 0.5s ease',
++           opacity: showScore ? 1 : 0
++         }}>
++           <div style={{
++             fontSize: '24px',
++             fontWeight: 'bold',
++             color: '#ffffff',
++             textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
++             textAlign: 'left'
++           }}>
++             Score: {score.correctAnswers}/{score.totalQuestions}
++           </div>
++           <div style={{
++             fontSize: '18px',
++             color: '#bbdefb',
++             textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
++             textAlign: 'left',
++             marginTop: '5px'
++           }}>
++             Prize: ₹{score.currentPrize.toLocaleString()}
++           </div>
++         </div>
++       );
++     };
+  
+      // Debug info
+```
+
+</details>
+
+---
+
+Now let me update the `renderMainGame` function to call the new `renderPrizeLadder` and `renderScorePanel` functions:
+
+
+---
+
+<details><summary>Edit file: frontend/src/AudienceDisplay.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 5, lines removed: 2
+
+```diff
+@@ -272,7 +272,10 @@
+  
+      return (
+-       <div style={{ textAlign: 'center', padding: '20px' }}>
++       <div style={{ textAlign: 'center', padding: '20px', position: 'relative' }}>
+          {/* Prize Ladder */}
+-         {renderPrizeLadder()}
++         {renderPrizeLadder(gameState.currentQuestionNumber)}
++         
++         {/* Score Panel */}
++         {renderScorePanel()}
+          
+          {/* Question Container */}
+```
+
+</details>
+
+---
+
+Now let me deploy the frontend changes and test them:
+
+
+---
+
+```bash
+cd frontend
+```
+
+```
+PS F:\Baneet\Judge me> cd frontend
+PS F:\Baneet\Judge me\frontend>
+```
+
+---
+
+```bash
+npm install
+```
+
+```
+PS F:\Baneet\Judge me\frontend> npm install
+
+up to date, audited 1351 packages in 43s
+
+269 packages are looking for funding
+  run `npm fund` for details
+
+9 vulnerabilities (3 moderate, 6 high)
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+PS F:\Baneet\Judge me\frontend> ^C
+PS F:\Baneet\Judge me\frontend>
+```
+
+---
+
+I noticed you cancelled the `npm install` command. Is there something you'd like to do instead?
+
+I was about to deploy the frontend changes to Vercel so we can test the new prize ladder highlighting and the score panel.
+
+Would you like me to proceed with the deployment, or is there another change you'd like to make first?
+
+---
+
+_**User**_
+
+npm installed on frontend lets move to deploy on vercel you guide me i will do the terminal commands 
+
+---
+
+_**Assistant**_
 
 
 
