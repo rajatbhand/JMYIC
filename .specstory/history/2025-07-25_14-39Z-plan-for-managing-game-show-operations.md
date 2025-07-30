@@ -20908,6 +20908,24 @@ How can I resolve this? If you propose a fix, please make it concise.
 
 _**Assistant**_
 
+The error occurs because you have `handleDownloadTemplate` declared twice in the same scope. You need to remove the duplicate declaration.
+
+**Fix: Remove lines 178-200 (the second declaration)**
+
+Keep only the first `handleDownloadTemplate` function (lines 156-176) and delete the duplicate "Alternative approach" section entirely.
+
+The first declaration is complete and correct - it handles the download properly with error handling.
+
+---
+
+_**User**_
+
+after csv upload it should show the questions in the question pool
+
+---
+
+_**Assistant**_
+
 
 
 ---

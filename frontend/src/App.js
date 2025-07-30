@@ -206,6 +206,9 @@ function App() {
         });
         // Clear file input
         document.getElementById('csv-file-input').value = '';
+        
+        // Force refresh of game state to show new questions
+        socket.emit('get_question_pool');
       } else {
         setCsvUpload(prev => ({
           ...prev,
