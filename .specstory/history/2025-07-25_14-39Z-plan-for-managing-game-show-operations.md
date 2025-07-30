@@ -19160,7 +19160,670 @@ Perfect! Now I understand the current system. Let me provide the complete update
 **Also add lockedMoney to the initial gameState (around line 83):**
 
 ```javascript
-mismatchCount: 0, // NEW
+mismatchCount: 0, // NEW: count mismatches for prize
+lockedMoney: 0, // NEW: money locked for guest
+// NEW: Lives system
+lives: 2, // Mystery guest starts with 2 lives
+gameOver: false, // Track if game ended due to lives lost
+```
+
+**And reset lockedMoney in start_game and reset_game handlers:**
+
+```javascript
+// In start_game handler (around line 235):
+gameState.mismatchCount = 0; // Reset mismatch count
+gameState.lockedMoney = 0; // Reset locked money
+// NEW: Reset lives and gameOver
+gameState.lives = 2;
+gameState.gameOver = false;
+
+// In reset_game handler (around line 670):
+mismatchCount: 0, // Reset mismatch count
+lockedMoney: 0, // Reset locked money
+// NEW: Reset lives and gameOver
+lives: 2,
+gameOver: false,
+```
+
+### **2. Frontend Updates (`frontend/src/AudienceDisplay.js`):**
+
+```javascript
+// Update the prize tiers (around line 224):
+
+// Prize ladder configuration - NEW BRACKETS
+const prizeTiers = [
+  { amount: 2000, label: '₹2K', question: 1 },
+  { amount: 4000, label: '₹4K', question: 2 },
+  { amount: 8000, label: '₹8K', question: 3 },
+  { amount: 12000, label: '₹12K', question: 4 },
+  { amount: 20000, label: '₹20K', question: 5 },
+  { amount: 30000, label: '₹30K', question: 6 },
+  { amount: 50000, label: '₹50K', question: 7 }
+];
+
+// Update the Current Prize Bar to show locked money (around line 240):
+
+{/* Current Prize Bar */}
+<div style={{
+  background: 'linear-gradient(90deg, #1976D2 0%, #42A5F5 50%, #1976D2 100%)',
+  borderRadius: '20px',
+  padding: '15px 30px',
+  margin: '0 auto 20px',
+  maxWidth: '600px',
+  border: '2px solid #2196F3',
+  boxShadow: '0 0 20px rgba(33,150,243,0.6)',
+  position: 'relative'
+}}>
+  <div style={{
+    fontSize: '32px',
+    fontWeight: 'bold',
+    color: '#ffffff',
+    textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
+    textAlign: 'center'
+  }}>
+    Current Prize: ₹{prize.toLocaleString()}
+  </div>
+  {gameState.lockedMoney > 0 && (
+    <div style={{
+      fontSize: '18px',
+      color: '#4CAF50',
+      textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
+      textAlign: 'center',
+      marginTop: '8px',
+      fontWeight: 'bold'
+    }}>
+      🔒 LOCKED: ₹{gameState.lockedMoney.toLocaleString()}
+    </div>
+  )}
+</div>
+
+// Update the prize ladder rendering logic (around line 268):
+
+{prizeTiers.map((tier, index) => {
+  const isCurrentQuestion = tier.question === currentQuestionNumber;
+  const isLocked = lock.placed && lock.question === tier.question - 1;
+  const isMoneyLocked = gameState.lockedMoney >= tier.amount; // NEW: Check if money is locked at this level
+  
+  let borderColor = '#6c2eb7'; // Purple for unreached
+  let backgroundColor = 'rgba(0,0,0,0.7)';
+  let glowColor = 'rgba(108,46,183,0.3)';
+  
+  if (isMoneyLocked) {
+    borderColor = '#4CAF50'; // Green for locked money
+    backgroundColor = 'rgba(76,175,80,0.3)';
+    glowColor = 'rgba(76,175,80,0.6)';
+  }
+  
+  if (isCurrentQuestion) {
+    borderColor = '#ff9800'; // Orange/yellow for current question
+    backgroundColor = 'rgba(255,152,0,0.3)';
+    glowColor = 'rgba(255,152,0,0.8)';
+  }
+  
+  if (isLocked) {
+    borderColor = '#f44336'; // Red for locked question
+    backgroundColor = 'rgba(244,67,54,0.3)';
+    glowColor = 'rgba(244,67,54,0.8)';
+  }
+
+  return (
+    <div key={index} style={{
+      width: '80px', // Slightly wider for 7 items instead of 10
+      height: '80px',
+      background: backgroundColor,
+      border: `3px solid ${borderColor}`,
+      borderRadius: '12px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      boxShadow: `0 0 15px ${glowColor}`,
+      position: 'relative',
+      transform: 'rotate(45deg)',
+      margin: '5px'
+    }}>
+      <div style={{
+        transform: 'rotate(-45deg)',
+        fontSize: '14px', // Slightly larger for readability
+        fontWeight: 'bold',
+        color: '#ffffff',
+        textAlign: 'center',
+        lineHeight: '1'
+      }}>
+        {tier.label}
+      </div>
+      
+      {/* Lock Icon for Locked Questions */}
+      {isLocked && (
+        <div style={{
+          position: 'absolute',
+          top: '-5px',
+          right: '-5px',
+          transform: 'rotate(-45deg)',
+          fontSize: '20px'
+        }}>
+          🔒
+        </div>
+      )}
+      
+      {/* Money Lock Icon for Locked Money */}
+      {isMoneyLocked && !isLocked && (
+        <div style={{
+          position: 'absolute',
+          bottom: '-5px',
+          right: '-5px',
+          transform: 'rotate(-45deg)',
+          fontSize: '16px'
+        }}>
+          💰
+        </div>
+      )}
+    </div>
+  );
+})}
+```
+
+### **3. Game Over Screen Update:**
+
+```javascript
+// Update the renderGameOver function to show locked money:
+
+const renderGameOver = () => {
+  const lives = gameState.lives || 0;
+  const isLivesGameOver = lives === 0;
+  const finalPrize = gameState.lockedMoney || gameState.prize || 0; // Show locked money as final prize
+  
+  return (
+    <div style={{
+      textAlign: 'center',
+      color: '#ffffff',
+      padding: '60px 20px'
+    }}>
+      {/* Game Over Title */}
+      <div style={{
+        fontSize: '72px',
+        fontWeight: 'bold',
+        color: isLivesGameOver ? '#ff4757' : '#ff9800',
+        textShadow: '4px 4px 8px rgba(0,0,0,0.8), 0 0 30px rgba(255,71,87,0.5)',
+        marginBottom: '30px'
+      }}>
+        {isLivesGameOver ? '💀 GAME OVER 💀' : '🎯 GAME COMPLETE 🎯'}
+      </div>
+      
+      {/* Game Over Reason */}
+      <div style={{
+        fontSize: '36px',
+        marginBottom: '40px',
+        color: '#ffffff',
+        textShadow: '2px 2px 4px rgba(0,0,0,0.8)'
+      }}>
+        {isLivesGameOver ? 
+          'Mystery Guest Lost All Lives!' : 
+          'Panel Got 2 Correct Answers!'}
+      </div>
+      
+      {/* Final Prize with Lock Indicator */}
+      <div style={{
+        fontSize: '48px',
+        fontWeight: 'bold',
+        color: '#4CAF50',
+        textShadow: '3px 3px 6px rgba(0,0,0,0.8), 0 0 20px rgba(76,175,80,0.5)',
+        marginBottom: '20px'
+      }}>
+        🔒 Final Locked Prize: ₹{finalPrize.toLocaleString()}
+      </div>
+      
+      {/* Additional Info */}
+      <div style={{
+        fontSize: '24px',
+        color: '#ffffff',
+        textShadow: '2px 2px 4px rgba(0,0,0,0.8)',
+        marginTop: '20px'
+      }}>
+        {finalPrize > 0 ? 
+          'Money is secured for the Mystery Guest!' : 
+          'No money won this round.'}
+      </div>
+      
+      {/* Lives Lost Hearts */}
+      {isLivesGameOver && (
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          gap: '20px',
+          marginTop: '40px'
+        }}>
+          <div style={{ fontSize: '60px', filter: 'brightness(0.3)' }}>🖤</div>
+          <div style={{ fontSize: '60px', filter: 'brightness(0.3)' }}>🖤</div>
+        </div>
+      )}
+    </div>
+  );
+};
+```
+
+## 🎯 **New Prize System Summary:**
+
+### **Prize Brackets (7 levels):**
+1. ₹2,000 (Question 1)
+2. ₹4,000 (Question 2) 
+3. ₹8,000 (Question 3)
+4. ₹12,000 (Question 4)
+5. ₹20,000 (Question 5)
+6. ₹30,000 (Question 6)
+7. ₹50,000 (Question 7)
+
+### **Locked Money Concept:**
+- **When**: Money gets locked when panel and guest disagree (mismatch)
+- **Visual**: Green border + 💰 icon on achieved levels
+- **Display**: Shows "🔒 LOCKED: ₹X" under current prize
+- **Security**: Once locked, money is guaranteed for guest
+- **Final Prize**: Game over shows locked amount as final winnings
+
+### **Visual Indicators:**
+- **Purple**: Unreached levels
+- **Orange**: Current question level  
+- **Green**: Money locked at this level (💰 icon)
+- **Red**: Question lock placed (🔒 icon)
+
+### **Game Flow:**
+1. Guest starts with ₹0
+2. Each mismatch moves up one prize bracket AND locks that money
+3. Money stays locked even if guest loses later
+4. Final prize = highest locked amount
+
+This creates a more strategic and secure feeling for the mystery guest - once they earn money through mismatches, it's theirs to keep!
+
+---
+
+_**User**_
+
+reset game should not remove the questions user added its removing all the questions user added
+
+---
+
+_**Assistant**_
+
+You're absolutely right! The reset game functionality should only reset the game progress, not delete the questions that the operator manually added. Let me fix this issue in the backend.
+
+---
+
+Read file: backend/server.js
+
+---
+
+Read file: backend/server.js
+
+---
+
+Found the issue! On **line 681**, the `reset_game` handler is calling `generateRandomQuestions()` which returns an empty array (as we updated it earlier), but it's completely replacing the `questionPool` instead of preserving the manually added questions.
+
+Here's the fix:
+
+## 🔧 **Fix for reset_game Handler**
+
+**Replace the problematic line 681 in `backend/server.js`:**
+
+```javascript
+// BEFORE (line 681):
+questionPool: generateRandomQuestions(), // Generate new random questions
+
+// AFTER:
+questionPool: gameState.questionPool, // PRESERVE manually added questions
+```
+
+**Complete Updated `reset_game` Handler:**
+
+```javascript
+socket.on('reset_game', () => {
+  console.log('Game reset to initial state.');
+  
+  // Preserve the current question pool (user's manually added questions)
+  const preservedQuestionPool = gameState.questionPool || [];
+  
+  // Reset the game to initial state BUT keep the questions
+  gameState = {
+    round: 'setup',
+    questionIndex: 0,
+    lock: { placed: false, question: null, shifted: false },
+    correctCount: 0,
+    prize: 0,
+    finalGamble: {
+      eligible: false,
+      inProgress: false,
+      question: '',
+      answer: '',
+      attempts: [],
+      result: null
+    },
+    panelGuesses: [],
+    guestAnswers: [],
+    guestAnswerRevealed: [],
+    questionPool: preservedQuestionPool, // PRESERVE manually added questions
+    currentQuestion: null,
+    usedQuestions: [], // Reset usage tracking
+    questionsAnswered: 0,
+    // NEW: Reset progression tracking
+    selectedQuestions: [],
+    currentQuestionNumber: 0,
+    // NEW: Reset scoring
+    score: {
+      correctAnswers: 0,
+      totalQuestions: 0,
+      currentPrize: 0
+    },
+    mismatchCount: 0, // Reset mismatch count
+    lockedMoney: 0, // Reset locked money
+    // NEW: Reset lives and gameOver
+    lives: 2,
+    gameOver: false,
+  };
+  broadcastState();
+});
+```
+
+## 🎯 **What This Fix Does:**
+
+### **✅ PRESERVES (Keeps):**
+- **Question Pool**: All manually added questions remain
+- **Question Content**: Text, options, guest answers stay intact
+
+### **🔄 RESETS (Clears):**
+- **Game Progress**: Back to setup round
+- **Used Questions**: Can reuse all questions again
+- **Scores & Prizes**: Back to zero
+- **Lives**: Back to 2 hearts
+- **Lock Status**: Remove any placed locks
+- **Panel/Guest Answers**: Clear all game history
+
+### **🎮 User Experience:**
+1. **Operator adds 10 questions** → Questions saved ✅
+2. **Plays a few rounds** → Game progresses ✅  
+3. **Clicks "Reset Game"** → Game resets BUT questions remain ✅
+4. **Can immediately start new game** → With same question pool ✅
+
+## 🚀 **Alternative: More Granular Reset Options**
+
+If you want even more control, you could add **two different reset buttons**:
+
+**Option 1: Reset Game Only (keep questions)**
+```javascript
+socket.on('reset_game', () => {
+  // Current fix above - preserves questions
+});
+```
+
+**Option 2: Reset Everything (clear questions too)**
+```javascript
+socket.on('reset_everything', () => {
+  // Complete reset including questions
+  gameState = { /* completely fresh state */ };
+});
+```
+
+**Frontend buttons:**
+```javascript
+<button onClick={() => socket.emit('reset_game')}>
+  🔄 Reset Game (Keep Questions)
+</button>
+<button onClick={() => socket.emit('reset_everything')}>
+  🗑️ Reset Everything (Clear All)
+</button>
+```
+
+Would you like me to implement the single fix (preserve questions on reset) or the dual-button approach? The single fix is probably what you want - preserve the operator's hard work adding questions!
+
+---
+
+_**User**_
+
+lets have the dual approach button
+
+---
+
+_**Assistant**_
+
+Perfect! Let me implement the dual-button approach with both "Reset Game (Keep Questions)" and "Reset Everything (Clear All)" options.
+
+---
+
+Read file: backend/server.js
+
+---
+
+Read file: backend/server.js
+
+---
+
+Perfect! Now I'll provide the complete implementation for the dual-button approach:
+
+## 🔧 **Backend Implementation (`backend/server.js`)**
+
+**Add the new `reset_everything` handler after the existing `reset_game` handler (after line 705):**
+
+```javascript
+socket.on('reset_game', () => {
+  console.log('Game reset to initial state (keeping questions).');
+  
+  // Preserve the current question pool (user's manually added questions)
+  const preservedQuestionPool = gameState.questionPool || [];
+  
+  // Reset the game to initial state BUT keep the questions
+  gameState = {
+    round: 'setup',
+    questionIndex: 0,
+    lock: { placed: false, question: null, shifted: false },
+    correctCount: 0,
+    prize: 0,
+    finalGamble: {
+      eligible: false,
+      inProgress: false,
+      question: '',
+      answer: '',
+      attempts: [],
+      result: null
+    },
+    panelGuesses: [],
+    guestAnswers: [],
+    guestAnswerRevealed: [],
+    questionPool: preservedQuestionPool, // PRESERVE manually added questions
+    currentQuestion: null,
+    usedQuestions: [], // Reset usage tracking
+    questionsAnswered: 0,
+    // Reset progression tracking
+    selectedQuestions: [],
+    currentQuestionNumber: 0,
+    // Reset scoring
+    score: {
+      correctAnswers: 0,
+      totalQuestions: 0,
+      currentPrize: 0
+    },
+    mismatchCount: 0, // Reset mismatch count
+    lockedMoney: 0, // Reset locked money
+    // Reset lives and gameOver
+    lives: 2,
+    gameOver: false,
+  };
+  broadcastState();
+});
+
+socket.on('reset_everything', () => {
+  console.log('Complete reset - clearing everything including questions.');
+  
+  // Complete reset including questions
+  gameState = {
+    round: 'setup',
+    questionIndex: 0,
+    lock: { placed: false, question: null, shifted: false },
+    correctCount: 0,
+    prize: 0,
+    finalGamble: {
+      eligible: false,
+      inProgress: false,
+      question: '',
+      answer: '',
+      attempts: [],
+      result: null
+    },
+    panelGuesses: [],
+    guestAnswers: [],
+    guestAnswerRevealed: [],
+    questionPool: [], // CLEAR all questions
+    currentQuestion: null,
+    usedQuestions: [],
+    questionsAnswered: 0,
+    // Reset progression tracking
+    selectedQuestions: [],
+    currentQuestionNumber: 0,
+    // Reset scoring
+    score: {
+      correctAnswers: 0,
+      totalQuestions: 0,
+      currentPrize: 0
+    },
+    mismatchCount: 0,
+    lockedMoney: 0,
+    // Reset lives and gameOver
+    lives: 2,
+    gameOver: false,
+  };
+  broadcastState();
+});
+```
+
+## 🎨 **Frontend Implementation (`frontend/src/App.js`)**
+
+**Update the header section with two separate buttons (around line 320 where the current reset button is):**
+
+```javascript
+// Add new handler functions (around line 115):
+const handleResetGame = () => {
+  if (window.confirm('Reset game progress but keep all questions?')) {
+    socket.emit('reset_game');
+  }
+};
+
+const handleResetEverything = () => {
+  if (window.confirm('⚠️ WARNING: This will delete ALL questions and game progress. Are you absolutely sure?')) {
+    socket.emit('reset_everything');
+  }
+};
+
+// Update the header section (around line 320):
+<div style={{
+  backgroundColor: '#2c3e50',
+  color: 'white',
+  padding: '15px 20px',
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center'
+}}>
+  <h1 style={{ margin: 0, fontSize: '24px' }}>🎬 Judge Me If You Can - Operator Panel</h1>
+  <div style={{ display: 'flex', gap: '10px' }}>
+    <button 
+      onClick={handleToggleSound}
+      style={{
+        padding: '8px 16px',
+        backgroundColor: soundEnabled ? '#4CAF50' : '#f44336',
+        color: 'white',
+        border: 'none',
+        borderRadius: '4px',
+        cursor: 'pointer',
+        fontSize: '14px'
+      }}
+    >
+      🔊 Sound {soundEnabled ? 'ON' : 'OFF'}
+    </button>
+    <button 
+      onClick={handleTestBackend}
+      style={{
+        padding: '8px 16px',
+        backgroundColor: '#9C27B0',
+        color: 'white',
+        border: 'none',
+        borderRadius: '4px',
+        cursor: 'pointer',
+        fontSize: '14px'
+      }}
+    >
+      🧪 Test
+    </button>
+    <button 
+      onClick={handleResetGame}
+      style={{
+        padding: '8px 16px',
+        backgroundColor: '#FF9800',
+        color: 'white',
+        border: 'none',
+        borderRadius: '4px',
+        cursor: 'pointer',
+        fontSize: '14px'
+      }}
+      title="Reset game progress but keep questions"
+    >
+      🔄 Reset Game
+    </button>
+    <button 
+      onClick={handleResetEverything}
+      style={{
+        padding: '8px 16px',
+        backgroundColor: '#f44336',
+        color: 'white',
+        border: 'none',
+        borderRadius: '4px',
+        cursor: 'pointer',
+        fontSize: '14px'
+      }}
+      title="Delete everything including questions"
+    >
+      🗑️ Clear All
+    </button>
+  </div>
+</div>
+```
+
+## 🎯 **Dual-Button System Summary:**
+
+### **🔄 Reset Game (Orange Button)**
+- **Keeps**: All manually added questions
+- **Resets**: Game progress, scores, lives, used questions
+- **Use Case**: Start a new game with same questions
+- **Confirmation**: Simple confirmation dialog
+
+### **🗑️ Clear All (Red Button)**  
+- **Deletes**: Everything including all questions
+- **Resets**: Complete fresh start
+- **Use Case**: Start completely over with new questions
+- **Confirmation**: Strong warning dialog
+
+### **Visual Differences:**
+- **Reset Game**: Orange color (🔄), gentler warning
+- **Clear All**: Red color (🗑️), strong warning with ⚠️ symbol
+
+### **User Experience:**
+1. **During Testing**: Use "Reset Game" to quickly restart with same questions
+2. **New Session**: Use "Clear All" to start fresh with new questions  
+3. **Safety**: Two different confirmations prevent accidental data loss
+4. **Tooltips**: Hover text explains what each button does
+
+### **Confirmation Messages:**
+- **Reset Game**: "Reset game progress but keep all questions?"
+- **Clear All**: "⚠️ WARNING: This will delete ALL questions and game progress. Are you absolutely sure?"
+
+This gives operators the flexibility they need while protecting their valuable question-building work! 🎮
+
+---
+
+_**User**_
+
+Now understand the concept of lifes, there will be only one life it gets exhausted when the answer matches but the game does not end there its still playbale and the question is asked to the guest to place a lock on future questions and then the game continues from there 
+Exapmple user lost life at q3 then he is given opportunity to place a lock on q5 to q7 and if in between another answer matches then only game ends and if no answe matches the game is played till last question 
+
+---
+
+_**Assistant**_
+
+
 
 ---
 

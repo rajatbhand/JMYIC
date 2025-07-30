@@ -83,7 +83,8 @@ function AudienceDisplay() {
 
   // Lives display component
   const renderLives = () => {
-    const lives = gameState.lives !== undefined ? gameState.lives : 2;
+    const lives = gameState.lives !== undefined ? gameState.lives : 1;
+    const lifeUsed = gameState.lifeUsed || false;
     
     return (
       <div style={{
@@ -102,12 +103,12 @@ function AudienceDisplay() {
           marginRight: '10px',
           textShadow: '2px 2px 4px rgba(0,0,0,0.8)'
         }}>
-          Mystery Guest Lives:
+          Mystery Guest Life:
         </span>
         
-        {/* Heart 1 */}
+        {/* Single Life Heart */}
         <div style={{
-          fontSize: '45px',
+          fontSize: '50px',
           color: lives >= 1 ? '#ff4757' : '#2f3542',
           textShadow: lives >= 1 ? '0 0 15px rgba(255,71,87,0.8), 0 0 30px rgba(255,71,87,0.4)' : 'none',
           transition: 'all 0.5s ease',
@@ -117,17 +118,17 @@ function AudienceDisplay() {
           {lives >= 1 ? '❤️' : '🖤'}
         </div>
         
-        {/* Heart 2 */}
-        <div style={{
-          fontSize: '45px',
-          color: lives >= 2 ? '#ff4757' : '#2f3542',
-          textShadow: lives >= 2 ? '0 0 15px rgba(255,71,87,0.8), 0 0 30px rgba(255,71,87,0.4)' : 'none',
-          transition: 'all 0.5s ease',
-          transform: lives >= 2 ? 'scale(1)' : 'scale(0.8)',
-          filter: lives >= 2 ? 'brightness(1)' : 'brightness(0.3)'
-        }}>
-          {lives >= 2 ? '❤️' : '🖤'}
-        </div>
+        {/* Life Status */}
+        {lifeUsed && (
+          <div style={{
+            fontSize: '18px',
+            color: lives >= 1 ? '#ff4757' : '#f44336',
+            fontWeight: 'bold',
+            marginLeft: '10px'
+          }}>
+            {lives >= 1 ? 'LIFE USED' : 'NO LIVES LEFT'}
+          </div>
+        )}
       </div>
     );
   };
@@ -135,8 +136,9 @@ function AudienceDisplay() {
   // Game over screen component
   const renderGameOver = () => {
     const lives = gameState.lives || 0;
-    const isLivesGameOver = lives === 0;
-    const finalPrize = gameState.lockedMoney || gameState.prize || 0; // Show locked money as final prize
+    const lifeUsed = gameState.lifeUsed || false;
+    const isSecondMatch = lifeUsed && lives === 0;
+    const finalPrize = gameState.lockedMoney || gameState.prize || 0;
     
     return (
       <div style={{
@@ -144,30 +146,27 @@ function AudienceDisplay() {
         color: '#ffffff',
         padding: '60px 20px'
       }}>
-        {/* Game Over Title */}
         <div style={{
           fontSize: '72px',
           fontWeight: 'bold',
-          color: isLivesGameOver ? '#ff4757' : '#ff9800',
+          color: '#ff4757',
           textShadow: '4px 4px 8px rgba(0,0,0,0.8), 0 0 30px rgba(255,71,87,0.5)',
           marginBottom: '30px'
         }}>
-          {isLivesGameOver ? '💀 GAME OVER 💀' : '🎯 GAME COMPLETE 🎯'}
+          💀 GAME OVER 💀
         </div>
         
-        {/* Game Over Reason */}
         <div style={{
           fontSize: '36px',
           marginBottom: '40px',
           color: '#ffffff',
           textShadow: '2px 2px 4px rgba(0,0,0,0.8)'
         }}>
-          {isLivesGameOver ? 
-            'Mystery Guest Lost All Lives!' : 
-            'Panel Got 2 Correct Answers!'}
+          {isSecondMatch ? 
+            'Second Match After Life Lost!' : 
+            'Mystery Guest Eliminated!'}
         </div>
         
-        {/* Final Prize with Lock Indicator */}
         <div style={{
           fontSize: '48px',
           fontWeight: 'bold',
@@ -175,33 +174,17 @@ function AudienceDisplay() {
           textShadow: '3px 3px 6px rgba(0,0,0,0.8), 0 0 20px rgba(76,175,80,0.5)',
           marginBottom: '20px'
         }}>
-          🔒 Final Locked Prize: ₹{finalPrize.toLocaleString()}
+          🔒 Final Prize: ₹{finalPrize.toLocaleString()}
         </div>
         
-        {/* Additional Info */}
+        {/* Single Dead Heart */}
         <div style={{
-          fontSize: '24px',
-          color: '#ffffff',
-          textShadow: '2px 2px 4px rgba(0,0,0,0.8)',
-          marginTop: '20px'
+          display: 'flex',
+          justifyContent: 'center',
+          marginTop: '40px'
         }}>
-          {finalPrize > 0 ? 
-            'Money is secured for the Mystery Guest!' : 
-            'No money won this round.'}
+          <div style={{ fontSize: '80px', filter: 'brightness(0.3)' }}>🖤</div>
         </div>
-        
-        {/* Lives Lost Hearts */}
-        {isLivesGameOver && (
-          <div style={{
-            display: 'flex',
-            justifyContent: 'center',
-            gap: '20px',
-            marginTop: '40px'
-          }}>
-            <div style={{ fontSize: '60px', filter: 'brightness(0.3)' }}>🖤</div>
-            <div style={{ fontSize: '60px', filter: 'brightness(0.3)' }}>🖤</div>
-          </div>
-        )}
       </div>
     );
   };

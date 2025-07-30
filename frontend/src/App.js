@@ -96,8 +96,14 @@ function App() {
   };
 
   const handleResetGame = () => {
-    if (window.confirm('Are you sure you want to reset the entire game? This will clear all progress and questions.')) {
+    if (window.confirm('Reset game progress but keep all questions?')) {
       socket.emit('reset_game');
+    }
+  };
+
+  const handleResetEverything = () => {
+    if (window.confirm('⚠️ WARNING: This will delete ALL questions and game progress. Are you absolutely sure?')) {
+      socket.emit('reset_everything');
     }
   };
 
@@ -650,6 +656,21 @@ function App() {
             onClick={handleResetGame}
             style={{
               padding: '8px 16px',
+              backgroundColor: '#FF9800',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+            title="Reset game progress but keep questions"
+          >
+            🔄 Reset Game
+          </button>
+          <button 
+            onClick={handleResetEverything}
+            style={{
+              padding: '8px 16px',
               backgroundColor: '#f44336',
               color: 'white',
               border: 'none',
@@ -657,8 +678,9 @@ function App() {
               cursor: 'pointer',
               fontSize: '14px'
             }}
+            title="Delete everything including questions"
           >
-            🔄 Reset
+            🗑️ Clear All
           </button>
         </div>
       </div>

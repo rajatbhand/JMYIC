@@ -83,8 +83,9 @@ let gameState = {
   mismatchCount: 0, // NEW: count mismatches for prize
   lockedMoney: 0, // NEW: money locked for guest
   // NEW: Lives system
-  lives: 2, // Mystery guest starts with 2 lives
+  lives: 1, // Mystery guest starts with 1 life
   gameOver: false, // Track if game ended due to lives lost
+  lifeUsed: false, // NEW: Track if the single life has been used
 };
 
 // Helper function to get current question
@@ -236,8 +237,9 @@ io.on('connection', (socket) => {
     gameState.mismatchCount = 0; // Reset mismatch count
     gameState.lockedMoney = 0; // Reset locked money
     // NEW: Reset lives and gameOver
-    gameState.lives = 2;
+    gameState.lives = 1;
     gameState.gameOver = false;
+    gameState.lifeUsed = false; // Reset life usage
     
     console.log('Game started with question pool');
     broadcastState();
@@ -408,25 +410,31 @@ io.on('connection', (socket) => {
     gameState.score.totalQuestions += 1;
     
     if (panelAnswer === guestAnswer) {
-      // MATCH: Panel and guest agree - lose a life, no prize increase
-      gameState.lives = Math.max(0, gameState.lives - 1);
-      gameState.correctCount += 1;
-      gameState.score.correctAnswers += 1;
-      
-      console.log(`🔴 MATCH! Panel and guest both answered "${panelAnswer}". Life lost! Lives remaining: ${gameState.lives}`);
-      
-      // Check if all lives are lost
-      if (gameState.lives === 0) {
+      // MATCH: Panel and guest agree
+      if (!gameState.lifeUsed) {
+        // First match - lose life but continue playing
+        gameState.lives = 0;
+        gameState.lifeUsed = true;
+        gameState.correctCount += 1;
+        gameState.score.correctAnswers += 1;
+        
+        console.log(`🔴 FIRST MATCH! Panel and guest both answered "${panelAnswer}". Life lost! Game continues...`);
+        
+        // Give opportunity to place lock on remaining questions
+        // (Lock placement logic remains the same)
+        
+      } else {
+        // Second match after life is already used - GAME OVER
         gameState.gameOver = true;
         gameState.round = 'game_over';
-        console.log('💀 GAME OVER: All lives lost!');
+        console.log(`💀 SECOND MATCH! Game Over! Panel and guest both answered "${panelAnswer}".`);
       }
       
       // NO prize increase on match - prize stays the same
       console.log(`Prize remains: ₹${gameState.prize} (no increase for matches)`);
       
     } else {
-      // MISMATCH: Panel and guest disagree - add prize, continue normal flow
+      // MISMATCH: Normal flow continues...
       gameState.mismatchCount = (gameState.mismatchCount || 0) + 1;
       
       // NEW PRIZE BRACKETS: 2000, 4000, 8000, 12000, 20000, 30000, 50000
@@ -464,30 +472,27 @@ io.on('connection', (socket) => {
   });
 
   socket.on('place_lock', (questionIndex) => {
-    if (gameState.questionIndex < 3) {
-      socket.emit('error', { message: 'Cannot place lock before Q4.' });
-      console.error('place_lock: Attempted before Q4');
+    // Allow lock placement after life is used (more strategic)
+    if (!gameState.lifeUsed) {
+      socket.emit('error', { message: 'Lock can only be placed after losing a life.' });
       return;
     }
-    if (typeof questionIndex !== 'number' || questionIndex < 4 || questionIndex > 10) {
-      socket.emit('error', { message: 'Invalid lock question index (must be 4-10).' });
-      console.error('place_lock: Invalid question index', questionIndex);
+    
+    if (gameState.lock.placed) {
+      socket.emit('error', { message: 'Lock already placed.' });
       return;
     }
-    if (!gameState.lock.placed) {
-      gameState.lock.placed = true;
-      gameState.lock.question = questionIndex - 1; // Convert to 0-based index for storage
-      gameState.lock.shifted = false;
-      console.log(`Lock placed on Q${questionIndex}`);
-    } else if (!gameState.lock.shifted) {
-      gameState.lock.question = questionIndex - 1; // Convert to 0-based index for storage
-      gameState.lock.shifted = true;
-      console.log(`Lock shifted to Q${questionIndex}`);
-    } else {
-      socket.emit('error', { message: 'Lock can only be shifted once.' });
-      console.error('place_lock: Lock already shifted');
+    
+    // Validate lock placement on remaining questions
+    const remainingQuestions = 7 - gameState.questionsAnswered;
+    if (questionIndex < gameState.questionsAnswered + 1 || questionIndex > 7) {
+      socket.emit('error', { message: `Lock can only be placed on questions ${gameState.questionsAnswered + 1} to 7.` });
       return;
     }
+    
+    gameState.lock.placed = true;
+    gameState.lock.question = questionIndex;
+    console.log(`Lock placed on question ${questionIndex} after life lost`);
     broadcastState();
   });
 
@@ -659,8 +664,12 @@ io.on('connection', (socket) => {
   });
 
   socket.on('reset_game', () => {
-    console.log('Game reset to initial state.');
-    // Reset the game to initial state with new random questions
+    console.log('Game reset to initial state (keeping questions).');
+    
+    // Preserve the current question pool (user's manually added questions)
+    const preservedQuestionPool = gameState.questionPool || [];
+    
+    // Reset the game to initial state BUT keep the questions
     gameState = {
       round: 'setup',
       questionIndex: 0,
@@ -678,14 +687,14 @@ io.on('connection', (socket) => {
       panelGuesses: [],
       guestAnswers: [],
       guestAnswerRevealed: [],
-      questionPool: generateRandomQuestions(), // Generate new random questions
+      questionPool: preservedQuestionPool, // PRESERVE manually added questions
       currentQuestion: null,
-      usedQuestions: [],
+      usedQuestions: [], // Reset usage tracking
       questionsAnswered: 0,
-      // NEW: Reset progression tracking
+      // Reset progression tracking
       selectedQuestions: [],
       currentQuestionNumber: 0,
-      // NEW: Reset scoring
+      // Reset scoring
       score: {
         correctAnswers: 0,
         totalQuestions: 0,
@@ -693,9 +702,54 @@ io.on('connection', (socket) => {
       },
       mismatchCount: 0, // Reset mismatch count
       lockedMoney: 0, // Reset locked money
-      // NEW: Reset lives and gameOver
-      lives: 2,
+      // Reset lives and gameOver
+      lives: 1,
       gameOver: false,
+      lifeUsed: false, // Reset life usage
+    };
+    broadcastState();
+  });
+
+  socket.on('reset_everything', () => {
+    console.log('Complete reset - clearing everything including questions.');
+    
+    // Complete reset including questions
+    gameState = {
+      round: 'setup',
+      questionIndex: 0,
+      lock: { placed: false, question: null, shifted: false },
+      correctCount: 0,
+      prize: 0,
+      finalGamble: {
+        eligible: false,
+        inProgress: false,
+        question: '',
+        answer: '',
+        attempts: [],
+        result: null
+      },
+      panelGuesses: [],
+      guestAnswers: [],
+      guestAnswerRevealed: [],
+      questionPool: [], // CLEAR all questions
+      currentQuestion: null,
+      usedQuestions: [],
+      questionsAnswered: 0,
+      // Reset progression tracking
+      selectedQuestions: [],
+      currentQuestionNumber: 0,
+      // Reset scoring
+      score: {
+        correctAnswers: 0,
+        totalQuestions: 0,
+        currentPrize: 0
+      },
+      mismatchCount: 0,
+      lockedMoney: 0,
+      // Reset lives and gameOver
+      lives: 1,
+      gameOver: false,
+      lifeUsed: false,
     };
     broadcastState();
   });
