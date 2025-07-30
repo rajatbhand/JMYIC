@@ -16318,13 +16318,411 @@ Let me know when you’re ready to proceed!
 
 _**User**_
 
-lets move with the frontend changes also
+lets proceed
 
 ---
 
 _**Assistant**_
 
+Perfect! Now let's update the frontend to match the new prize logic. I'll make the following changes:
 
+1. Remove green highlighting for achieved questions in the prize ladder
+2. Remove the custom score panel at the bottom left
+3. Only highlight the current question in orange/yellow
+
+---
+
+Read file: frontend/src/AudienceDisplay.js
+
+---
+
+Read file: frontend/src/AudienceDisplay.js
+
+---
+
+Read file: frontend/src/AudienceDisplay.js
+
+---
+
+Now let me search for any score panel that might exist:
+
+---
+
+<details>
+            <summary>Grep search for "Score|score panel|blue panel" • **2** files</summary>
+        
+| File | Line | Match |
+|------|------|-------|
+| `file:///f%3A/Baneet/Judge%20me/frontend/src/AudienceDisplay.js` | L225 | `const renderScorePanel = () => {` |
+| `file:///f%3A/Baneet/Judge%20me/frontend/src/AudienceDisplay.js` | L226 | `const score = gameState.score || { correctAnswers: 0, totalQuestions: 0, currentPrize: 0 };` |
+| `file:///f%3A/Baneet/Judge%20me/frontend/src/AudienceDisplay.js` | L227 | `const showScore = isAnswered;` |
+| `file:///f%3A/Baneet/Judge%20me/frontend/src/AudienceDisplay.js` | L241 | `opacity: showScore ? 1 : 0` |
+| `file:///f%3A/Baneet/Judge%20me/frontend/src/AudienceDisplay.js` | L250 | `Score: {score.correctAnswers}/{score.totalQuestions}` |
+| `file:///f%3A/Baneet/Judge%20me/frontend/src/AudienceDisplay.js` | L259 | `Prize: ₹{score.currentPrize.toLocaleString()}` |
+| `file:///f%3A/Baneet/Judge%20me/frontend/src/AudienceDisplay.js` | L278 | `{/* Score Panel */}` |
+| `file:///f%3A/Baneet/Judge%20me/frontend/src/AudienceDisplay.js` | L279 | `{renderScorePanel()}` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L229 | `score: {` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L378 | `gameState.score = {` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L424 | `gameState.score = {` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L537 | `gameState.score.totalQuestions += 1;` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L544 | `gameState.score.correctAnswers += 1;` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L545 | `gameState.score.currentPrize = gameState.prize;` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L546 | `console.log('Panel guessed correctly! Score updated.');` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L563 | `gameState.score.currentPrize = gameState.prize;` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L580 | `gameState.score.currentPrize = 0;` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L810 | `score: {` |
+
+</details>
+
+---
+
+Found it! Let me read the score panel section:
+
+---
+
+Read file: frontend/src/AudienceDisplay.js
+
+---
+
+Perfect! Now I can make the necessary changes. I'll:
+
+1. Remove the green highlighting for achieved questions in the prize ladder (lines 155-159)
+2. Remove the entire score panel section (lines 225-263 and line 279)
+
+---
+
+
+
+---
+
+Now let me check for any linting errors and clean up any unused variables:
+
+---
+
+
+
+---
+
+Perfect! Now let's deploy the updated frontend to Vercel. Since you mentioned earlier that you prefer guidance rather than automatic execution [[memory:4725137]], I'll guide you through the deployment steps:
+
+---
+
+<details>
+            <summary>Memory Updated</summary>
+        
+
+**Title:** User prefers guidance over automatic terminal commands
+
+**Content:** The user prefers that the assistant guide them through terminal commands rather than running them automatically. They want to execute the commands themselves after receiving guidance.</details>
+
+---
+
+## Frontend Changes Complete! 🎉
+
+I've successfully updated the `AudienceDisplay.js` file with the following changes:
+
+### ✅ Changes Made:
+
+1. **Removed Green Highlighting**: Prize ladder no longer shows green highlighting for achieved questions
+2. **Current Question Only**: Only the current question is highlighted in orange/yellow 
+3. **Removed Score Panel**: The blue score panel at the bottom left is completely removed
+4. **Cleaner UI**: The "Current Prize" bar at the top of the prize ladder now serves as the only prize indicator
+
+### 🚀 Deployment Steps:
+
+To deploy these changes to Vercel, please run these commands:
+
+```bash
+# Make sure you're in the frontend directory
+cd frontend
+
+# Deploy to Vercel
+npx vercel --prod
+```
+
+### 🎮 How It Works Now:
+
+- **Prize Logic**: Prize only increases when panel and guest answers don't match (mismatches)
+- **Visual Feedback**: Only the current question number is highlighted in the prize ladder
+- **Simplified Display**: No redundant scoring - just the main "Current Prize" bar
+- **Clean Interface**: Removed the separate score panel for a cleaner look
+
+The system now perfectly matches your requirements:
+- Prize accumulates only on mismatches ✅
+- Current question highlighted in prize ladder ✅  
+- No separate score panel ✅
+
+Please test the updated functionality and let me know how it works!
+
+---
+
+_**User**_
+
+also remove the 25 prefilled questions and then we will push the frontend and backend code
+
+---
+
+_**Assistant**_
+
+I'll remove the 25 prefilled questions from the backend. Let me update the `generateRandomQuestions()` function to return an empty array instead of generating 25 questions.
+
+---
+
+Read file: backend/server.js
+
+---
+
+<details>
+            <summary>Grep search for "generateRandomQuestions" • **1** files</summary>
+        
+| File | Line | Match |
+|------|------|-------|
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L39 | `function generateRandomQuestions() {` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L217 | `questionPool: generateRandomQuestions(),` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L802 | `questionPool: generateRandomQuestions(), // Generate new random questions` |
+
+</details>
+
+---
+
+Read file: backend/server.js
+
+---
+
+Now I'll update the `generateRandomQuestions()` function to return an empty array instead of generating 25 questions:
+
+---
+
+<details><summary>Edit file: backend/server.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 2, lines removed: 153
+
+```diff
+@@ -36,158 +36,7 @@
+  });
+  
+- // Function to generate random questions
++ // Function to generate random questions (now returns empty array)
+  function generateRandomQuestions() {
+-   const questions = [];
+-   
+-   // Question templates with exactly 4 options each
+-   const questionTemplates = [
+-     // Personal preferences
+-     {
+-       text: "What is the guest's favorite color?",
+-       options: ['Red', 'Blue', 'Green', 'Yellow'],
+-       guestAnswer: 'Blue'
+-     },
+-     {
+-       text: "Which food does the guest hate the most?",
+-       options: ['Pizza', 'Broccoli', 'Chocolate', 'Fish'],
+-       guestAnswer: 'Broccoli'
+-     },
+-     {
+-       text: "What is the guest's dream vacation destination?",
+-       options: ['Paris', 'Tokyo', 'New York', 'Bali'],
+-       guestAnswer: 'Tokyo'
+-     },
+-     {
+-       text: "Which movie genre does the guest prefer?",
+-       options: ['Comedy', 'Horror', 'Drama', 'Action'],
+-       guestAnswer: 'Comedy'
+-     },
+-     {
+-       text: "What is the guest's biggest fear?",
+-       options: ['Heights', 'Spiders', 'Darkness', 'Public Speaking'],
+-       guestAnswer: 'Heights'
+-     },
+-     {
+-       text: "Which superpower would the guest choose?",
+-       options: ['Invisibility', 'Flying', 'Time Travel', 'Super Strength'],
+-       guestAnswer: 'Flying'
+-     },
+-     {
+-       text: "What is the guest's favorite season?",
+-       options: ['Spring', 'Summer', 'Autumn', 'Winter'],
+-       guestAnswer: 'Autumn'
+-     },
+-     {
+-       text: "Which hobby does the guest enjoy most?",
+-       options: ['Reading', 'Sports', 'Gaming', 'Cooking'],
+-       guestAnswer: 'Reading'
+-     },
+-     {
+-       text: "What is the guest's spirit animal?",
+-       options: ['Cat', 'Dog', 'Eagle', 'Dolphin'],
+-       guestAnswer: 'Eagle'
+-     },
+-     {
+-       text: "Which city would the guest most like to visit?",
+-       options: ['Paris', 'Tokyo', 'New York', 'Sydney'],
+-       guestAnswer: 'Tokyo'
+-     },
+-     {
+-       text: "What is the guest's secret talent?",
+-       options: ['Singing', 'Dancing', 'Juggling', 'Magic'],
+-       guestAnswer: 'Singing'
+-     },
+-     {
+-       text: "Which drink does the guest prefer?",
+-       options: ['Coffee', 'Tea', 'Water', 'Juice'],
+-       guestAnswer: 'Coffee'
+-     },
+-     {
+-       text: "What is the guest's ideal weekend activity?",
+-       options: ['Netflix marathon', 'Outdoor adventure', 'Shopping', 'Cooking'],
+-       guestAnswer: 'Netflix marathon'
+-     },
+-     {
+-       text: "Which pet would the guest prefer?",
+-       options: ['Dog', 'Cat', 'Fish', 'Bird'],
+-       guestAnswer: 'Dog'
+-     },
+-     {
+-       text: "What is the guest's favorite type of music?",
+-       options: ['Pop', 'Rock', 'Jazz', 'Classical'],
+-       guestAnswer: 'Pop'
+-     },
+-     {
+-       text: "Which weather does the guest enjoy most?",
+-       options: ['Sunny', 'Rainy', 'Snowy', 'Cloudy'],
+-       guestAnswer: 'Sunny'
+-     },
+-     {
+-       text: "What is the guest's preferred sleeping position?",
+-       options: ['Back', 'Side', 'Stomach', 'Fetal'],
+-       guestAnswer: 'Side'
+-     },
+-     {
+-       text: "Which social media platform does the guest use most?",
+-       options: ['Instagram', 'Facebook', 'Twitter', 'TikTok'],
+-       guestAnswer: 'Instagram'
+-     },
+-     {
+-       text: "What is the guest's favorite type of cuisine?",
+-       options: ['Italian', 'Chinese', 'Mexican', 'Indian'],
+-       guestAnswer: 'Italian'
+-     },
+-     {
+-       text: "Which mode of transportation does the guest prefer?",
+-       options: ['Car', 'Public transport', 'Bicycle', 'Walking'],
+-       guestAnswer: 'Car'
+-     },
+-     {
+-       text: "What is the guest's ideal date night?",
+-       options: ['Dinner and movie', 'Adventure sports', 'Concert', 'Museum'],
+-       guestAnswer: 'Dinner and movie'
+-     },
+-     {
+-       text: "Which type of book does the guest enjoy most?",
+-       options: ['Fiction', 'Non-fiction', 'Mystery', 'Romance'],
+-       guestAnswer: 'Fiction'
+-     },
+-     {
+-       text: "What is the guest's favorite time of day?",
+-       options: ['Morning', 'Afternoon', 'Evening', 'Night'],
+-       guestAnswer: 'Morning'
+-     },
+-     {
+-       text: "Which personality trait does the guest value most?",
+-       options: ['Honesty', 'Kindness', 'Intelligence', 'Humor'],
+-       guestAnswer: 'Honesty'
+-     },
+-     {
+-       text: "What is the guest's preferred way to relax?",
+-       options: ['Reading', 'Meditation', 'Exercise', 'Bath'],
+-       guestAnswer: 'Reading'
+-     },
+-     {
+-       text: "Which type of gift does the guest appreciate most?",
+-       options: ['Experiences', 'Books', 'Technology', 'Clothing'],
+-       guestAnswer: 'Experiences'
+-     }
+-   ];
+- 
+-   // Shuffle the templates and take first 25
+-   const shuffled = questionTemplates.sort(() => Math.random() - 0.5);
+-   
+-   for (let i = 0; i < 25; i++) {
+-     const template = shuffled[i];
+-     const question = {
+-       id: Date.now() + Math.random() + i, // Unique ID
+-       text: template.text,
+-       options: template.options,
+-       guestAnswer: template.guestAnswer
+-     };
+-     questions.push(question);
+-   }
+- 
+-   return questions;
++   return []; // No prefilled questions - operators must add their own
+  }
+  
+```
+
+</details>
+
+---
+
+Perfect! Now let me check for any linting errors:
+
+---
+
+
+
+---
+
+Excellent! Now let's prepare the deployment steps. Since you mentioned you want to push both frontend and backend code, here are the steps:
+
+## ✅ Changes Complete!
+
+I've successfully removed the 25 prefilled questions. Now the system starts with an empty question pool, and operators must add their own questions manually.
+
+### 🚀 Deployment Steps:
+
+**Step 1: Commit and Push to GitHub**
+```bash
+# From the root directory
+git add .
+git commit -m "Remove prefilled questions and update prize logic"
+git push origin master
+```
+
+**Step 2: Deploy Frontend to Vercel**
+```bash
+cd frontend
+npx vercel --prod
+```
+
+**Step 3: Deploy Backend to Render**
+The backend will automatically redeploy on Render since it's connected to your GitHub repository. The push in Step 1 will trigger an automatic deployment.
+
+### 📋 Summary of All Changes Made:
+
+**Backend (`server.js`):**
+- ✅ Prize only accumulates on mismatches (panel ≠ guest answer)
+- ✅ Added `mismatchCount` tracking
+- ✅ Removed 25 prefilled questions - starts with empty pool
+
+**Frontend (`AudienceDisplay.js`):**
+- ✅ Removed green highlighting for achieved questions
+- ✅ Only current question highlighted in orange/yellow
+- ✅ Removed blue score panel at bottom left
+- ✅ Clean interface with just "Current Prize" bar
+
+### 🎮 Ready to Test:
+
+After deployment, the system will:
+1. Start with no questions (operators must add their own)
+2. Only increase prize money when panel and guest disagree
+3. Show clean audience display with current question highlighting
+4. Display prize accumulation in the main "Current Prize" bar
+
+Would you like to proceed with these deployment steps?
 
 ---
 
