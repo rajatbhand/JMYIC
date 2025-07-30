@@ -130,6 +130,76 @@ function App() {
     return hasPanelAnswer && hasGuestAnswer && isRevealed;
   };
 
+  // Add state for CSV upload (around line 90):
+  const [csvUpload, setCsvUpload] = useState({
+    file: null,
+    uploading: false,
+    error: null,
+    success: null
+  });
+
+  // Add CSV upload handlers:
+  const handleCSVFileSelect = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setCsvUpload({
+        file: file,
+        uploading: false,
+        error: null,
+        success: null
+      });
+    }
+  };
+
+  const handleCSVUpload = async () => {
+    if (!csvUpload.file) {
+      setCsvUpload(prev => ({ ...prev, error: 'Please select a CSV file first' }));
+      return;
+    }
+    
+    setCsvUpload(prev => ({ ...prev, uploading: true, error: null, success: null }));
+    
+    const formData = new FormData();
+    formData.append('csvFile', csvUpload.file);
+    
+    try {
+      const response = await fetch('/upload-questions', {
+        method: 'POST',
+        body: formData
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok) {
+        setCsvUpload({
+          file: null,
+          uploading: false,
+          error: null,
+          success: result.message
+        });
+        // Clear file input
+        document.getElementById('csv-file-input').value = '';
+      } else {
+        setCsvUpload(prev => ({
+          ...prev,
+          uploading: false,
+          error: result.error + (result.details ? ': ' + result.details.join(', ') : '')
+        }));
+      }
+    } catch (error) {
+      setCsvUpload(prev => ({
+        ...prev,
+        uploading: false,
+        error: 'Upload failed: ' + error.message
+      }));
+    }
+  };
+
+  const handleDownloadTemplate = () => {
+    window.open('/download-template', '_blank');
+  };
+
+  // Update the renderAddQuestionForm function to include CSV upload:
   const renderAddQuestionForm = () => (
     <div style={{
       padding: '15px',
@@ -139,100 +209,204 @@ function App() {
       border: '1px solid #e0e0e0'
     }}>
       <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', color: '#333' }}>
-        ➕ Add New Question
+        ➕ Add Questions
       </h3>
       
-      {/* Question Text */}
-      <div style={{ marginBottom: '10px' }}>
-        <label style={{ display: 'block', fontSize: '12px', color: '#666', marginBottom: '4px' }}>
-          Question:
-        </label>
-        <input
-          type="text"
-          value={newQuestion.text}
-          onChange={(e) => setNewQuestion({ ...newQuestion, text: e.target.value })}
-          placeholder="Enter your question here..."
-          style={{
-            width: '100%',
-            padding: '8px',
-            border: '1px solid #ddd',
-            borderRadius: '4px',
-            fontSize: '13px'
-          }}
-        />
-      </div>
-
-      {/* Options (exactly 4) */}
-      <div style={{ marginBottom: '10px' }}>
-        <label style={{ display: 'block', fontSize: '12px', color: '#666', marginBottom: '4px' }}>
-          Options (A, B, C, D):
-        </label>
-        {['A', 'B', 'C', 'D'].map((letter, index) => (
+      {/* CSV Upload Section */}
+      <div style={{
+        padding: '12px',
+        backgroundColor: '#e3f2fd',
+        borderRadius: '6px',
+        marginBottom: '15px',
+        border: '1px solid #2196F3'
+      }}>
+        <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#1976D2' }}>
+          📄 Bulk Upload (CSV)
+        </h4>
+        
+        <div style={{ marginBottom: '10px', display: 'flex', gap: '8px', alignItems: 'center' }}>
           <input
-            key={index}
-            type="text"
-            value={newQuestion.options[index]}
-            onChange={(e) => {
-              const newOptions = [...newQuestion.options];
-              newOptions[index] = e.target.value;
-              setNewQuestion({ ...newQuestion, options: newOptions });
+            id="csv-file-input"
+            type="file"
+            accept=".csv"
+            onChange={handleCSVFileSelect}
+            style={{
+              flex: 1,
+              padding: '6px',
+              border: '1px solid #ddd',
+              borderRadius: '4px',
+              fontSize: '12px'
             }}
-            placeholder={`Option ${letter}`}
+          />
+          <button
+            onClick={handleCSVUpload}
+            disabled={!csvUpload.file || csvUpload.uploading}
+            style={{
+              padding: '6px 12px',
+              backgroundColor: csvUpload.file && !csvUpload.uploading ? '#2196F3' : '#ccc',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: csvUpload.file && !csvUpload.uploading ? 'pointer' : 'not-allowed',
+              fontSize: '12px',
+              fontWeight: 'bold'
+            }}
+          >
+            {csvUpload.uploading ? '⏳ Uploading...' : '📤 Upload'}
+          </button>
+        </div>
+        
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+          <button
+            onClick={handleDownloadTemplate}
+            style={{
+              padding: '4px 8px',
+              backgroundColor: '#4CAF50',
+              color: 'white',
+              border: 'none',
+              borderRadius: '3px',
+              cursor: 'pointer',
+              fontSize: '11px'
+            }}
+          >
+            📥 Download Template
+          </button>
+          <span style={{ fontSize: '11px', color: '#666', alignSelf: 'center' }}>
+            Format: question, option_a, option_b, option_c, option_d, guest_answer
+          </span>
+        </div>
+        
+        {/* Status Messages */}
+        {csvUpload.error && (
+          <div style={{
+            padding: '6px',
+            backgroundColor: '#ffebee',
+            color: '#d32f2f',
+            borderRadius: '3px',
+            fontSize: '11px',
+            border: '1px solid #f44336'
+          }}>
+            ❌ {csvUpload.error}
+          </div>
+        )}
+        
+        {csvUpload.success && (
+          <div style={{
+            padding: '6px',
+            backgroundColor: '#e8f5e8',
+            color: '#2e7d32',
+            borderRadius: '3px',
+            fontSize: '11px',
+            border: '1px solid #4caf50'
+          }}>
+            ✅ {csvUpload.success}
+          </div>
+        )}
+      </div>
+      
+      {/* Manual Entry Section */}
+      <div style={{
+        padding: '12px',
+        backgroundColor: '#fff3e0',
+        borderRadius: '6px',
+        border: '1px solid #ff9800'
+      }}>
+        <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#f57c00' }}>
+          ✍️ Manual Entry
+        </h4>
+        
+        {/* Question Text */}
+        <div style={{ marginBottom: '10px' }}>
+          <label style={{ display: 'block', fontSize: '12px', color: '#666', marginBottom: '4px' }}>
+            Question:
+          </label>
+          <input
+            type="text"
+            value={newQuestion.text}
+            onChange={(e) => setNewQuestion({ ...newQuestion, text: e.target.value })}
+            placeholder="Enter your question here..."
+            style={{
+              width: '100%',
+              padding: '8px',
+              border: '1px solid #ddd',
+              borderRadius: '4px',
+              fontSize: '13px'
+            }}
+          />
+        </div>
+
+        {/* Options (exactly 4) */}
+        <div style={{ marginBottom: '10px' }}>
+          <label style={{ display: 'block', fontSize: '12px', color: '#666', marginBottom: '4px' }}>
+            Options (A, B, C, D):
+          </label>
+          {['A', 'B', 'C', 'D'].map((letter, index) => (
+            <input
+              key={index}
+              type="text"
+              value={newQuestion.options[index]}
+              onChange={(e) => {
+                const newOptions = [...newQuestion.options];
+                newOptions[index] = e.target.value;
+                setNewQuestion({ ...newQuestion, options: newOptions });
+              }}
+              placeholder={`Option ${letter}`}
+              style={{
+                width: '100%',
+                padding: '6px',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                fontSize: '12px',
+                marginBottom: '4px'
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Guest Answer */}
+        <div style={{ marginBottom: '12px' }}>
+          <label style={{ display: 'block', fontSize: '12px', color: '#666', marginBottom: '4px' }}>
+            Guest Answer:
+          </label>
+          <select
+            value={newQuestion.guestAnswer}
+            onChange={(e) => setNewQuestion({ ...newQuestion, guestAnswer: e.target.value })}
             style={{
               width: '100%',
               padding: '6px',
               border: '1px solid #ddd',
               borderRadius: '4px',
-              fontSize: '12px',
-              marginBottom: '4px'
+              fontSize: '12px'
             }}
-          />
-        ))}
-      </div>
+          >
+            <option value="">Select guest answer...</option>
+            {newQuestion.options.map((option, index) => (
+              option.trim() && (
+                <option key={index} value={option}>
+                  {['A', 'B', 'C', 'D'][index]}: {option}
+                </option>
+              )
+            ))}
+          </select>
+        </div>
 
-      {/* Guest Answer */}
-      <div style={{ marginBottom: '12px' }}>
-        <label style={{ display: 'block', fontSize: '12px', color: '#666', marginBottom: '4px' }}>
-          Guest Answer:
-        </label>
-        <select
-          value={newQuestion.guestAnswer}
-          onChange={(e) => setNewQuestion({ ...newQuestion, guestAnswer: e.target.value })}
+        <button
+          onClick={handleAddQuestionToPool}
+          disabled={!newQuestion.text || !newQuestion.options.every(opt => opt.trim()) || !newQuestion.guestAnswer}
           style={{
-            width: '100%',
-            padding: '6px',
-            border: '1px solid #ddd',
+            padding: '8px 16px',
+            backgroundColor: newQuestion.text && newQuestion.options.every(opt => opt.trim()) && newQuestion.guestAnswer ? '#4CAF50' : '#ccc',
+            color: 'white',
+            border: 'none',
             borderRadius: '4px',
-            fontSize: '12px'
+            cursor: newQuestion.text && newQuestion.options.every(opt => opt.trim()) && newQuestion.guestAnswer ? 'pointer' : 'not-allowed',
+            fontSize: '13px',
+            fontWeight: 'bold'
           }}
         >
-          <option value="">Select guest answer...</option>
-          {newQuestion.options.map((option, index) => (
-            option.trim() && (
-              <option key={index} value={option}>
-                {['A', 'B', 'C', 'D'][index]}: {option}
-              </option>
-            )
-          ))}
-        </select>
+          ➕ Add Question
+        </button>
       </div>
-
-      <button
-        onClick={handleAddQuestionToPool}
-        disabled={!newQuestion.text || !newQuestion.options.every(opt => opt.trim()) || !newQuestion.guestAnswer}
-        style={{
-          padding: '8px 16px',
-          backgroundColor: newQuestion.text && newQuestion.options.every(opt => opt.trim()) && newQuestion.guestAnswer ? '#4CAF50' : '#ccc',
-          color: 'white',
-          border: 'none',
-          borderRadius: '4px',
-          cursor: newQuestion.text && newQuestion.options.every(opt => opt.trim()) && newQuestion.guestAnswer ? 'pointer' : 'not-allowed',
-          fontSize: '13px',
-          fontWeight: 'bold'
-        }}
-      >
-        ➕ Add Question
-      </button>
     </div>
   );
 

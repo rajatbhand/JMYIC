@@ -3,6 +3,10 @@ const express = require('express');
 const http = require('http');
 const cors = require('cors');
 const { Server } = require('socket.io');
+const multer = require('multer');
+const csv = require('csv-parser');
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
 app.use(cors({
@@ -33,6 +37,147 @@ const io = new Server(server, {
     methods: ['GET', 'POST'],
     credentials: true
   }
+});
+
+// Configure multer for file upload
+const upload = multer({
+  dest: 'uploads/',
+  limits: {
+    fileSize: 1024 * 1024 // 1MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'text/csv' || file.originalname.endsWith('.csv')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only CSV files are allowed'), false);
+    }
+  }
+});
+
+// Create uploads directory if it doesn't exist
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir);
+}
+
+// CSV validation function
+function validateCSVRow(row, rowIndex) {
+  const errors = [];
+
+  // Check required fields
+  const requiredFields = ['question', 'option_a', 'option_b', 'option_c', 'option_d', 'guest_answer'];
+  for (const field of requiredFields) {
+    if (!row[field] || !row[field].trim()) {
+      errors.push(`Row ${rowIndex}: Missing ${field}`);
+    }
+  }
+
+  // Check if guest_answer matches one of the options
+  if (row.guest_answer) {
+    const options = [row.option_a, row.option_b, row.option_c, row.option_d].filter(opt => opt && opt.trim());
+    if (!options.includes(row.guest_answer.trim())) {
+      errors.push(`Row ${rowIndex}: Guest answer "${row.guest_answer}" must match one of the options`);
+    }
+  }
+
+  return errors;
+}
+
+// CSV upload endpoint
+app.post('/upload-questions', upload.single('csvFile'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No file uploaded' });
+  }
+
+  const questions = [];
+  const errors = [];
+  let rowIndex = 0;
+
+  fs.createReadStream(req.file.path)
+    .pipe(csv())
+    .on('data', (row) => {
+      rowIndex++;
+
+      // Validate row
+      const rowErrors = validateCSVRow(row, rowIndex);
+      if (rowErrors.length > 0) {
+        errors.push(...rowErrors);
+        return;
+      }
+
+      // Create question object
+      const question = {
+        id: Date.now() + Math.random() + rowIndex,
+        text: row.question.trim(),
+        options: [
+          row.option_a.trim(),
+          row.option_b.trim(),
+          row.option_c.trim(),
+          row.option_d.trim()
+        ],
+        guestAnswer: row.guest_answer.trim()
+      };
+
+      questions.push(question);
+    })
+    .on('end', () => {
+      // Clean up uploaded file
+      fs.unlinkSync(req.file.path);
+
+      // Check for errors
+      if (errors.length > 0) {
+        return res.status(400).json({
+          error: 'CSV validation failed',
+          details: errors
+        });
+      }
+
+      // Check question limits
+      const totalQuestions = (gameState.questionPool?.length || 0) + questions.length;
+      if (totalQuestions > 25) {
+        return res.status(400).json({
+          error: `Too many questions. Current: ${gameState.questionPool?.length || 0}, Uploading: ${questions.length}, Max: 25`
+        });
+      }
+
+      // Add questions to game state
+      if (!gameState.questionPool) gameState.questionPool = [];
+      gameState.questionPool.push(...questions);
+
+      console.log(`CSV upload successful: ${questions.length} questions added`);
+
+      // Broadcast updated state
+      broadcastState();
+
+      res.json({
+        success: true,
+        message: `Successfully uploaded ${questions.length} questions`,
+        questionsAdded: questions.length,
+        totalQuestions: gameState.questionPool.length
+      });
+    })
+    .on('error', (error) => {
+      // Clean up uploaded file
+      if (fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
+      console.error('CSV parsing error:', error);
+      res.status(500).json({ error: 'Failed to parse CSV file' });
+    });
+});
+
+// CSV template download endpoint
+app.get('/download-template', (req, res) => {
+  const templateCSV = `question,option_a,option_b,option_c,option_d,guest_answer
+"What is your favorite color?","Red","Blue","Green","Yellow","Blue"
+"Which season do you prefer?","Spring","Summer","Fall","Winter","Fall"
+"What's your ideal vacation?","Beach","Mountains","City","Countryside","Beach"
+"Which movie genre do you like?","Comedy","Horror","Drama","Action","Comedy"
+"What's your biggest fear?","Heights","Spiders","Darkness","Public Speaking","Heights"`;
+
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', 'attachment; filename="question-template.csv"');
+  res.send(templateCSV);
 });
 
 // Function to generate random questions (now returns empty array)
@@ -102,12 +247,12 @@ io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
   // Send current state on connect
   socket.emit('game_state', gameState);
-  
+
   // Add connection event logging
   socket.on('disconnect', () => {
     console.log('Client disconnected:', socket.id);
   });
-  
+
   // Test event to verify backend is working
   socket.on('test_event', () => {
     console.log('test_event: Received from client:', socket.id);
@@ -121,33 +266,33 @@ io.on('connection', (socket) => {
       console.error('add_question_to_pool: Invalid data', questionData);
       return;
     }
-    
+
     if (questionData.options.length !== 4) {
       socket.emit('error', { message: 'Question must have exactly 4 options.' });
       console.error('add_question_to_pool: Invalid options count', questionData.options.length);
       return;
     }
-    
+
     if (gameState.questionPool.length >= 25) {
       socket.emit('error', { message: 'Maximum 25 questions allowed in pool.' });
       console.error('add_question_to_pool: Too many questions');
       return;
     }
-    
+
     // Validate that guestAnswer is one of the options
     if (!questionData.options.includes(questionData.guestAnswer)) {
       socket.emit('error', { message: 'Guest answer must be one of the provided options.' });
       console.error('add_question_to_pool: Invalid guest answer');
       return;
     }
-    
+
     const newQuestion = {
       id: Date.now() + Math.random(), // Unique ID
       text: questionData.text,
       options: questionData.options,
       guestAnswer: questionData.guestAnswer
     };
-    
+
     gameState.questionPool.push(newQuestion);
     console.log(`Question added to pool: ${questionData.text}`);
     broadcastState();
@@ -160,7 +305,7 @@ io.on('connection', (socket) => {
       console.error('remove_question_from_pool: Question not found', questionId);
       return;
     }
-    
+
     const removedQuestion = gameState.questionPool.splice(index, 1)[0];
     console.log(`Question removed from pool: ${removedQuestion.text}`);
     broadcastState();
@@ -173,31 +318,31 @@ io.on('connection', (socket) => {
       console.error('select_question_from_pool: Question not found', questionId);
       return;
     }
-    
+
     // Check if question has already been used
     if (gameState.usedQuestions.includes(questionId)) {
       socket.emit('error', { message: 'Question has already been used.' });
       console.error('select_question_from_pool: Question already used', questionId);
       return;
     }
-    
+
     // NEW: Track the order of selected questions for progression
     if (!gameState.selectedQuestions.includes(questionId)) {
       gameState.selectedQuestions.push(questionId);
     }
-    
+
     // NEW: Set current question number (1-7) based on selection order
     gameState.currentQuestionNumber = gameState.selectedQuestions.length;
-    
+
     gameState.currentQuestion = question;
     gameState.usedQuestions.push(questionId);
     gameState.questionsAnswered += 1;
-    
+
     // Reset current question state
     gameState.panelGuesses[gameState.questionsAnswered - 1] = null;
     gameState.guestAnswers[gameState.questionsAnswered - 1] = null;
     gameState.guestAnswerRevealed[gameState.questionsAnswered - 1] = false;
-    
+
     console.log(`Question ${gameState.currentQuestionNumber} selected from pool: ${question.text}`);
     broadcastState();
   });
@@ -208,7 +353,7 @@ io.on('connection', (socket) => {
       console.error('start_game: No questions in pool');
       return;
     }
-    
+
     gameState.round = 'main_game';
     gameState.questionIndex = 0;
     gameState.correctCount = 0;
@@ -240,7 +385,7 @@ io.on('connection', (socket) => {
     gameState.lives = 1;
     gameState.gameOver = false;
     gameState.lifeUsed = false; // Reset life usage
-    
+
     console.log('Game started with question pool');
     broadcastState();
   });
@@ -324,46 +469,46 @@ io.on('connection', (socket) => {
     if (!gameState.panelGuesses) gameState.panelGuesses = [];
     gameState.panelGuesses[gameState.questionsAnswered - 1] = guess;
     console.log(`Panel guessed: ${guess} for current question`);
-    
+
     broadcastState();
   });
 
   socket.on('check_panel_guess', () => {
     console.log('check_panel_guess: Event received from client:', socket.id);
-    
+
     if (gameState.round !== 'main_game') {
       socket.emit('error', { message: 'Cannot check panel guess outside main game.' });
       console.error('check_panel_guess: Not in main_game round');
       return;
     }
-    
+
     if (!gameState.currentQuestion) {
       socket.emit('error', { message: 'No question selected. Please select a question first.' });
       console.error('check_panel_guess: No question selected');
       return;
     }
-    
+
     console.log('check_panel_guess: Starting check...');
-    
+
     const currentQuestion = getCurrentQuestion();
     console.log('check_panel_guess: Current question:', currentQuestion);
-    
+
     const guestAnswer = currentQuestion ? currentQuestion.guestAnswer : null;
     console.log('check_panel_guess: Guest answer:', guestAnswer);
-    
+
     if (!guestAnswer) {
       socket.emit('error', { message: 'No guest answer available to check against.' });
       console.error('check_panel_guess: No guest answer available');
       return;
     }
-    
+
     if (!gameState.guestAnswers) gameState.guestAnswers = [];
     gameState.guestAnswers[gameState.questionsAnswered - 1] = guestAnswer;
-    
+
     // Add a flag to track that guest answer is loaded but not revealed
     if (!gameState.guestAnswerRevealed) gameState.guestAnswerRevealed = [];
     gameState.guestAnswerRevealed[gameState.questionsAnswered - 1] = false;
-    
+
     console.log('check_panel_guess: Guest answer loaded successfully');
     console.log('check_panel_guess: Updated guestAnswers array:', gameState.guestAnswers);
     console.log('check_panel_guess: Updated guestAnswerRevealed array:', gameState.guestAnswerRevealed);
@@ -378,37 +523,37 @@ io.on('connection', (socket) => {
       console.error('reveal_guest_answer: Not in main_game round');
       return;
     }
-    
+
     if (!gameState.currentQuestion) {
       socket.emit('error', { message: 'No question selected. Please select a question first.' });
       console.error('reveal_guest_answer: No question selected');
       return;
     }
-    
+
     // Check if game is already over
     if (gameState.gameOver) {
       socket.emit('error', { message: 'Game is already over due to lives lost.' });
       console.error('reveal_guest_answer: Game already over');
       return;
     }
-    
+
     // Mark guest answer as revealed
     if (!gameState.guestAnswerRevealed) gameState.guestAnswerRevealed = [];
     gameState.guestAnswerRevealed[gameState.questionsAnswered - 1] = true;
-    
+
     console.log('reveal_guest_answer: Marked guest answer as revealed');
     console.log('reveal_guest_answer: Updated guestAnswerRevealed array:', gameState.guestAnswerRevealed);
-    
+
     // Check if panel's guess matches guest's answer
     const idx = gameState.questionsAnswered - 1;
     const panelAnswer = gameState.panelGuesses && gameState.panelGuesses[idx];
     const guestAnswer = gameState.guestAnswers && gameState.guestAnswers[idx];
-    
+
     console.log(`Comparing answers: Panel: "${panelAnswer}", Guest: "${guestAnswer}"`);
-    
+
     // Update total questions count
     gameState.score.totalQuestions += 1;
-    
+
     if (panelAnswer === guestAnswer) {
       // MATCH: Panel and guest agree
       if (!gameState.lifeUsed) {
@@ -417,38 +562,38 @@ io.on('connection', (socket) => {
         gameState.lifeUsed = true;
         gameState.correctCount += 1;
         gameState.score.correctAnswers += 1;
-        
+
         console.log(`🔴 FIRST MATCH! Panel and guest both answered "${panelAnswer}". Life lost! Game continues...`);
-        
+
         // Give opportunity to place lock on remaining questions
         // (Lock placement logic remains the same)
-        
+
       } else {
         // Second match after life is already used - GAME OVER
         gameState.gameOver = true;
         gameState.round = 'game_over';
         console.log(`💀 SECOND MATCH! Game Over! Panel and guest both answered "${panelAnswer}".`);
       }
-      
+
       // NO prize increase on match - prize stays the same
       console.log(`Prize remains: ₹${gameState.prize} (no increase for matches)`);
-      
+
     } else {
       // MISMATCH: Normal flow continues...
       gameState.mismatchCount = (gameState.mismatchCount || 0) + 1;
-      
+
       // NEW PRIZE BRACKETS: 2000, 4000, 8000, 12000, 20000, 30000, 50000
       const prizeBrackets = [2000, 4000, 8000, 12000, 20000, 30000, 50000];
       const prizeIndex = Math.min(gameState.mismatchCount - 1, prizeBrackets.length - 1);
       gameState.prize = prizeIndex >= 0 ? prizeBrackets[prizeIndex] : 0;
       gameState.score.currentPrize = gameState.prize;
-      
+
       // Lock the money when guest wins a prize (mismatch occurs)
       gameState.lockedMoney = gameState.prize;
-      
+
       console.log(`✅ MISMATCH! Panel: "${panelAnswer}", Guest: "${guestAnswer}". Prize increased to: ₹${gameState.prize} (LOCKED)`);
     }
-    
+
     // Check game end conditions (only if game not already over from lives)
     if (!gameState.gameOver) {
       // Game ends when panel gets 2 correct answers
@@ -467,7 +612,7 @@ io.on('connection', (socket) => {
         }
       }
     }
-    
+
     broadcastState();
   });
 
@@ -477,19 +622,19 @@ io.on('connection', (socket) => {
       socket.emit('error', { message: 'Lock can only be placed after losing a life.' });
       return;
     }
-    
+
     if (gameState.lock.placed) {
       socket.emit('error', { message: 'Lock already placed.' });
       return;
     }
-    
+
     // Validate lock placement on remaining questions
     const remainingQuestions = 7 - gameState.questionsAnswered;
     if (questionIndex < gameState.questionsAnswered + 1 || questionIndex > 7) {
       socket.emit('error', { message: `Lock can only be placed on questions ${gameState.questionsAnswered + 1} to 7.` });
       return;
     }
-    
+
     gameState.lock.placed = true;
     gameState.lock.question = questionIndex;
     console.log(`Lock placed on question ${questionIndex} after life lost`);
@@ -578,26 +723,26 @@ io.on('connection', (socket) => {
       console.error('add_custom_question: Invalid data', questionData);
       return;
     }
-    
+
     if (gameState.customQuestions.length >= 25) {
       socket.emit('error', { message: 'Maximum 25 custom questions allowed.' });
       console.error('add_custom_question: Too many questions');
       return;
     }
-    
+
     // Validate that guestAnswer is one of the options
     if (!questionData.options.includes(questionData.guestAnswer)) {
       socket.emit('error', { message: 'Guest answer must be one of the provided options.' });
       console.error('add_custom_question: Invalid guest answer');
       return;
     }
-    
+
     const newQuestion = {
       text: questionData.text,
       options: questionData.options,
       guestAnswer: questionData.guestAnswer
     };
-    
+
     gameState.customQuestions.push(newQuestion);
     console.log(`Custom question added: ${questionData.text}`);
     broadcastState();
@@ -609,7 +754,7 @@ io.on('connection', (socket) => {
       console.error('remove_custom_question: Invalid index', questionIndex);
       return;
     }
-    
+
     const removedQuestion = gameState.customQuestions.splice(questionIndex, 1)[0];
     console.log(`Custom question removed: ${removedQuestion.text}`);
     broadcastState();
@@ -621,29 +766,29 @@ io.on('connection', (socket) => {
       console.error('set_question_sequence: Invalid data', sequenceData);
       return;
     }
-    
+
     // Validate indices
     const maxCustomIndex = gameState.customQuestions.length - 1;
     const maxDefaultIndex = gameState.questions.length - 1;
-    
+
     for (let i = 0; i < sequenceData.questionIndices.length; i++) {
       const item = sequenceData.questionIndices[i];
       if (!item || typeof item.type !== 'string' || typeof item.index !== 'number') {
         socket.emit('error', { message: `Invalid question item at index ${i}. Must include type and index.` });
         return;
       }
-      
+
       if (item.type === 'custom' && (item.index < 0 || item.index > maxCustomIndex)) {
         socket.emit('error', { message: `Invalid custom question index: ${item.index}` });
         return;
       }
-      
+
       if (item.type === 'default' && (item.index < 0 || item.index > maxDefaultIndex)) {
         socket.emit('error', { message: `Invalid default question index: ${item.index}` });
         return;
       }
     }
-    
+
     gameState.currentQuestionSequence = sequenceData.questionIndices;
     console.log('Question sequence updated:', sequenceData.questionIndices);
     broadcastState();
@@ -665,10 +810,10 @@ io.on('connection', (socket) => {
 
   socket.on('reset_game', () => {
     console.log('Game reset to initial state (keeping questions).');
-    
+
     // Preserve the current question pool (user's manually added questions)
     const preservedQuestionPool = gameState.questionPool || [];
-    
+
     // Reset the game to initial state BUT keep the questions
     gameState = {
       round: 'setup',
@@ -712,7 +857,7 @@ io.on('connection', (socket) => {
 
   socket.on('reset_everything', () => {
     console.log('Complete reset - clearing everything including questions.');
-    
+
     // Complete reset including questions
     gameState = {
       round: 'setup',
@@ -766,8 +911,8 @@ server.listen(PORT, () => {
 
 // Add a simple health check endpoint
 app.get('/', (req, res) => {
-  res.json({ 
-    status: 'ok', 
+  res.json({
+    status: 'ok',
     message: 'Judge Me If You Can Backend is running',
     timestamp: new Date().toISOString()
   });

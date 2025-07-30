@@ -19823,7 +19823,428 @@ Exapmple user lost life at q3 then he is given opportunity to place a lock on q5
 
 _**Assistant**_
 
+Excellent! I understand the new life system. Let me break it down:
 
+## 🎯 **New Life System Rules:**
+
+### **Single Life System:**
+1. **Start**: Guest has 1 life (❤️)
+2. **First Match**: Life lost (🖤) but game continues
+3. **Lock Opportunity**: Guest can place lock on remaining questions
+4. **Second Match**: Game over (if another match occurs)
+5. **No Second Match**: Play until last question
+
+### **Example Flow:**
+- **Q1-Q2**: Mismatches → Prize increases, life intact ❤️
+- **Q3**: Match → Life lost 🖤, but game continues
+- **Lock Placement**: Guest places lock on Q5 (secures money up to Q5)
+- **Q4**: Mismatch → Game continues, money increases
+- **Q5**: Match → **GAME OVER** (second match after life lost)
+- **OR Q5-Q7**: All mismatches → Play until Q7, guest keeps all money
+
+## 🔧 **Implementation Changes Needed:**
+
+### **Backend Updates (`backend/server.js`):**
+
+```javascript
+// Update initial gameState (around line 85):
+lives: 1, // Change from 2 to 1 life
+gameOver: false,
+lifeUsed: false, // NEW: Track if the single life has been used
+
+// Update start_game and reset_game handlers:
+gameState.lives = 1; // Change from 2 to 1
+gameState.lifeUsed = false; // Reset life usage
+
+// Update reveal_guest_answer handler:
+if (panelAnswer === guestAnswer) {
+  // MATCH: Panel and guest agree
+  if (!gameState.lifeUsed) {
+    // First match - lose life but continue playing
+    gameState.lives = 0;
+    gameState.lifeUsed = true;
+    gameState.correctCount += 1;
+    gameState.score.correctAnswers += 1;
+    
+    console.log(`🔴 FIRST MATCH! Panel and guest both answered "${panelAnswer}". Life lost! Game continues...`);
+    
+    // Give opportunity to place lock on remaining questions
+    // (Lock placement logic remains the same)
+    
+  } else {
+    // Second match after life is already used - GAME OVER
+    gameState.gameOver = true;
+    gameState.round = 'game_over';
+    console.log(`💀 SECOND MATCH! Game Over! Panel and guest both answered "${panelAnswer}".`);
+  }
+  
+  // NO prize increase on match - prize stays the same
+  console.log(`Prize remains: ₹${gameState.prize} (no increase for matches)`);
+  
+} else {
+  // MISMATCH: Normal flow continues...
+}
+```
+
+### **Frontend Updates (`frontend/src/AudienceDisplay.js`):**
+
+```javascript
+// Update renderLives to show single life:
+const renderLives = () => {
+  const lives = gameState.lives !== undefined ? gameState.lives : 1;
+  const lifeUsed = gameState.lifeUsed || false;
+  
+  return (
+    <div style={{
+      position: 'absolute',
+      top: '20px',
+      left: '20px',
+      display: 'flex',
+      gap: '15px',
+      alignItems: 'center',
+      zIndex: 1000
+    }}>
+      <span style={{
+        color: '#ffffff',
+        fontSize: '24px',
+        fontWeight: 'bold',
+        marginRight: '10px',
+        textShadow: '2px 2px 4px rgba(0,0,0,0.8)'
+      }}>
+        Mystery Guest Life:
+      </span>
+      
+      {/* Single Life Heart */}
+      <div style={{
+        fontSize: '50px',
+        color: lives >= 1 ? '#ff4757' : '#2f3542',
+        textShadow: lives >= 1 ? '0 0 15px rgba(255,71,87,0.8), 0 0 30px rgba(255,71,87,0.4)' : 'none',
+        transition: 'all 0.5s ease',
+        transform: lives >= 1 ? 'scale(1)' : 'scale(0.8)',
+        filter: lives >= 1 ? 'brightness(1)' : 'brightness(0.3)'
+      }}>
+        {lives >= 1 ? '❤️' : '🖤'}
+      </div>
+      
+      {/* Life Status */}
+      {lifeUsed && (
+        <div style={{
+          fontSize: '18px',
+          color: lives >= 1 ? '#ff4757' : '#f44336',
+          fontWeight: 'bold',
+          marginLeft: '10px'
+        }}>
+          {lives >= 1 ? 'LIFE USED' : 'NO LIVES LEFT'}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Update game over logic:
+const renderGameOver = () => {
+  const lives = gameState.lives || 0;
+  const lifeUsed = gameState.lifeUsed || false;
+  const isSecondMatch = lifeUsed && lives === 0;
+  const finalPrize = gameState.lockedMoney || gameState.prize || 0;
+  
+  return (
+    <div style={{
+      textAlign: 'center',
+      color: '#ffffff',
+      padding: '60px 20px'
+    }}>
+      <div style={{
+        fontSize: '72px',
+        fontWeight: 'bold',
+        color: '#ff4757',
+        textShadow: '4px 4px 8px rgba(0,0,0,0.8), 0 0 30px rgba(255,71,87,0.5)',
+        marginBottom: '30px'
+      }}>
+        💀 GAME OVER 💀
+      </div>
+      
+      <div style={{
+        fontSize: '36px',
+        marginBottom: '40px',
+        color: '#ffffff',
+        textShadow: '2px 2px 4px rgba(0,0,0,0.8)'
+      }}>
+        {isSecondMatch ? 
+          'Second Match After Life Lost!' : 
+          'Mystery Guest Eliminated!'}
+      </div>
+      
+      <div style={{
+        fontSize: '48px',
+        fontWeight: 'bold',
+        color: '#4CAF50',
+        textShadow: '3px 3px 6px rgba(0,0,0,0.8), 0 0 20px rgba(76,175,80,0.5)',
+        marginBottom: '20px'
+      }}>
+        🔒 Final Prize: ₹{finalPrize.toLocaleString()}
+      </div>
+      
+      {/* Single Dead Heart */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        marginTop: '40px'
+      }}>
+        <div style={{ fontSize: '80px', filter: 'brightness(0.3)' }}>🖤</div>
+      </div>
+    </div>
+  );
+};
+```
+
+### **Lock Placement Logic Update:**
+
+```javascript
+// Update lock placement to be available after life is used:
+socket.on('place_lock', (questionIndex) => {
+  // Allow lock placement after life is used (more strategic)
+  if (!gameState.lifeUsed) {
+    socket.emit('error', { message: 'Lock can only be placed after losing a life.' });
+    return;
+  }
+  
+  if (gameState.lock.placed) {
+    socket.emit('error', { message: 'Lock already placed.' });
+    return;
+  }
+  
+  // Validate lock placement on remaining questions
+  const remainingQuestions = 7 - gameState.questionsAnswered;
+  if (questionIndex < gameState.questionsAnswered + 1 || questionIndex > 7) {
+    socket.emit('error', { message: `Lock can only be placed on questions ${gameState.questionsAnswered + 1} to 7.` });
+    return;
+  }
+  
+  gameState.lock.placed = true;
+  gameState.lock.question = questionIndex;
+  console.log(`Lock placed on question ${questionIndex} after life lost`);
+  broadcastState();
+});
+```
+
+## 🎮 **New Game Flow Examples:**
+
+### **Example 1: Life Lost Early, Lock Saves Guest**
+```
+Q1: Mismatch → ₹2K, Life: ❤️
+Q2: Mismatch → ₹4K, Life: ❤️  
+Q3: MATCH → ₹4K (no increase), Life: 🖤 (used but game continues)
+→ Lock Opportunity: Guest places lock on Q5
+Q4: Mismatch → ₹8K, Life: 🖤
+Q5: MATCH → GAME OVER (second match)
+Final Prize: ₹8K (locked at Q5)
+```
+
+### **Example 2: Life Lost, No Second Match**
+```
+Q1: Mismatch → ₹2K, Life: ❤️
+Q2: MATCH → ₹2K, Life: 🖤 (game continues)
+→ Lock Opportunity: Guest places lock on Q6
+Q3-Q7: All mismatches → ₹50K
+Final Prize: ₹50K (completed all questions)
+```
+
+### **Example 3: No Life Lost**
+```
+Q1-Q7: All mismatches → ₹50K, Life: ❤️
+Final Prize: ₹50K (perfect game)
+```
+
+## 🎯 **Strategic Elements:**
+
+1. **Risk Management**: After losing life, when to place lock?
+2. **Lock Timing**: Early lock (security) vs late lock (more money)
+3. **Psychological Pressure**: Knowing second match = game over
+4. **Audience Tension**: Single life creates more drama
+
+This creates a much more strategic and suspenseful game! Should I implement these changes?
+
+---
+
+_**User**_
+
+now lets build the csv upload fucntion and also provide me the format in which the csv should be we will go with the approach to add csv and add questions manually as well
+
+---
+
+_**Assistant**_
+
+Perfect! Let's implement the CSV upload functionality alongside the manual question entry. I'll create a comprehensive solution.
+
+## 📋 **CSV Format Specification**
+
+### **Required CSV Format:**
+```csv
+question,option_a,option_b,option_c,option_d,guest_answer
+"What is the guest's favorite color?","Red","Blue","Green","Yellow","Blue"
+"Which food does the guest hate most?","Pizza","Broccoli","Chocolate","Fish","Broccoli"
+"What's their dream vacation destination?","Paris","Tokyo","New York","Bali","Tokyo"
+```
+
+### **CSV Rules:**
+- **6 columns required**: question, option_a, option_b, option_c, option_d, guest_answer
+- **Headers mandatory**: First row must have exact column names
+- **Guest answer validation**: Must match one of the 4 options exactly
+- **Maximum 25 questions** per upload
+- **No empty cells** allowed
+- **UTF-8 encoding** recommended
+
+## 🔧 **Backend Implementation**
+
+### **1. Install Dependencies:**
+```bash
+cd backend
+npm install multer csv-parser
+```
+
+### **2. Backend Code (`backend/server.js`):**
+
+```javascript
+// Add these imports at the top of the file:
+const multer = require('multer');
+const csv = require('csv-parser');
+const fs = require('fs');
+const path = require('path');
+
+// Configure multer for file upload (add after existing imports):
+const upload = multer({ 
+  dest: 'uploads/',
+  limits: {
+    fileSize: 1024 * 1024 // 1MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'text/csv' || file.originalname.endsWith('.csv')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only CSV files are allowed'), false);
+    }
+  }
+});
+
+// Create uploads directory if it doesn't exist:
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir);
+}
+
+// CSV validation function:
+function validateCSVRow(row, rowIndex) {
+  const errors = [];
+  
+  // Check required fields
+  const requiredFields = ['question', 'option_a', 'option_b', 'option_c', 'option_d', 'guest_answer'];
+  for (const field of requiredFields) {
+    if (!row[field] || !row[field].trim()) {
+      errors.push(`Row ${rowIndex}: Missing ${field}`);
+    }
+  }
+  
+  // Check if guest_answer matches one of the options
+  if (row.guest_answer) {
+    const options = [row.option_a, row.option_b, row.option_c, row.option_d].filter(opt => opt && opt.trim());
+    if (!options.includes(row.guest_answer.trim())) {
+      errors.push(`Row ${rowIndex}: Guest answer "${row.guest_answer}" must match one of the options`);
+    }
+  }
+  
+  return errors;
+}
+
+// CSV upload endpoint (add this route before socket.io connection):
+app.post('/upload-questions', upload.single('csvFile'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No file uploaded' });
+  }
+  
+  const questions = [];
+  const errors = [];
+  let rowIndex = 0;
+  
+  fs.createReadStream(req.file.path)
+    .pipe(csv())
+    .on('data', (row) => {
+      rowIndex++;
+      
+      // Validate row
+      const rowErrors = validateCSVRow(row, rowIndex);
+      if (rowErrors.length > 0) {
+        errors.push(...rowErrors);
+        return;
+      }
+      
+      // Create question object
+      const question = {
+        id: Date.now() + Math.random() + rowIndex,
+        text: row.question.trim(),
+        options: [
+          row.option_a.trim(),
+          row.option_b.trim(), 
+          row.option_c.trim(),
+          row.option_d.trim()
+        ],
+        guestAnswer: row.guest_answer.trim()
+      };
+      
+      questions.push(question);
+    })
+    .on('end', () => {
+      // Clean up uploaded file
+      fs.unlinkSync(req.file.path);
+      
+      // Check for errors
+      if (errors.length > 0) {
+        return res.status(400).json({ 
+          error: 'CSV validation failed', 
+          details: errors 
+        });
+      }
+      
+      // Check question limits
+      const totalQuestions = (gameState.questionPool?.length || 0) + questions.length;
+      if (totalQuestions > 25) {
+        return res.status(400).json({ 
+          error: `Too many questions. Current: ${gameState.questionPool?.length || 0}, Uploading: ${questions.length}, Max: 25` 
+        });
+      }
+      
+      // Add questions to game state
+      if (!gameState.questionPool) gameState.questionPool = [];
+      gameState.questionPool.push(...questions);
+      
+      console.log(`CSV upload successful: ${questions.length} questions added`);
+      
+      // Broadcast updated state
+      broadcastState();
+      
+      res.json({ 
+        success: true, 
+        message: `Successfully uploaded ${questions.length} questions`,
+        questionsAdded: questions.length,
+        totalQuestions: gameState.questionPool.length
+      });
+    })
+    .on('error', (error) => {
+      // Clean up uploaded file
+      if (fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
+      console.error('CSV parsing error:', error);
+      res.status(500).json({ error: 'Failed to parse CSV file' });
+    });
+});
+
+// CSV template download endpoint:
+app.get('/download-template', (req, res) => {
+  const templateCSV = `question,option_a,option_b,option_c,option_d,guest_answer
+"What is your favorite color?","Red","Blue","Green","Yellow","Blue"
+"Which season do you prefer?","Spring","Summer","Fall","Winter","Fall"
+"What's
 
 ---
 
