@@ -21711,6 +21711,126 @@ the lock can be placed on current level as well as future level please update th
 
 _**Assistant**_
 
+**Update the `place_lock` handler in `backend/server.js`:**
+
+```javascript
+socket.on('place_lock', (lockLevel) => {
+  // Allow lock placement after life is used (more strategic)
+  if (!gameState.lifeUsed) {
+    socket.emit('error', { message: 'Lock can only be placed after losing a life.' });
+    return;
+  }
+
+  if (gameState.lock.placed) {
+    socket.emit('error', { message: 'Lock already placed.' });
+    return;
+  }
+
+  // Validate lock placement on current or future progression levels
+  const currentLevel = gameState.currentQuestionNumber || 1;
+  const maxLevel = 7; // Maximum prize levels (₹2K to ₹50K)
+  
+  if (lockLevel < currentLevel) {
+    socket.emit('error', { message: `Lock can only be placed on current level (${currentLevel}) or future levels.` });
+    return;
+  }
+  
+  if (lockLevel < 1 || lockLevel > maxLevel) {
+    socket.emit('error', { message: `Lock must be placed between levels ${currentLevel} and ${maxLevel}.` });
+    return;
+  }
+
+  gameState.lock.placed = true;
+  gameState.lock.level = lockLevel; // Change from 'question' to 'level'
+  gameState.lock.question = lockLevel; // Keep for compatibility
+  
+  console.log(`Lock placed on prize level ${lockLevel} after life lost. Current level: ${currentLevel}`);
+  broadcastState();
+});
+```
+
+**Update the frontend operator panel lock controls in `frontend/src/App.js`:**
+
+```javascript
+{/* Lock Controls */}
+{gameState?.lifeUsed && !gameState?.lock?.placed && (
+  <div style={{
+    padding: '15px',
+    backgroundColor: '#fff3e0',
+    borderRadius: '8px',
+    border: '1px solid #ff9800',
+    marginBottom: '20px'
+  }}>
+    <h4 style={{ margin: '0 0 10px 0', color: '#f57c00' }}>
+      🔒 Place Lock on Prize Ladder (After Life Lost)
+    </h4>
+    <p style={{ fontSize: '12px', color: '#666', marginBottom: '10px' }}>
+      Current Level: {gameState.currentQuestionNumber || 1} | 
+      Choose current or future level to secure prize
+    </p>
+    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+      <select
+        value={lockInput}
+        onChange={handleLockInput}
+        style={{
+          padding: '8px',
+          border: '1px solid #ddd',
+          borderRadius: '4px',
+          width: '200px'
+        }}
+      >
+        <option value="">Select level to lock...</option>
+        {[1, 2, 3, 4, 5, 6, 7].map(level => {
+          const currentLevel = gameState.currentQuestionNumber || 1;
+          const prizes = ['₹2K', '₹4K', '₹8K', '₹12K', '₹20K', '₹30K', '₹50K'];
+          if (level >= currentLevel) { // Allow current level and future levels
+            return (
+              <option key={level} value={level}>
+                Level {level} - {prizes[level - 1]} {level === currentLevel ? '(Current)' : ''}
+              </option>
+            );
+          }
+          return null;
+        })}
+      </select>
+      <button
+        onClick={handlePlaceLock}
+        disabled={!lockInput}
+        style={{
+          padding: '8px 16px',
+          backgroundColor: lockInput ? '#ff9800' : '#ccc',
+          color: 'white',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: lockInput ? 'pointer' : 'not-allowed',
+          fontWeight: 'bold'
+        }}
+      >
+        🔒 Place Lock
+      </button>
+    </div>
+  </div>
+)}
+```
+
+**Key changes:**
+1. **Backend**: Changed `lockLevel < currentLevel` to `lockLevel >= currentLevel` (allows current level)
+2. **Frontend**: Added current level to the dropdown options with "(Current)" label
+3. **Validation**: Now accepts current level or any future level
+4. **Error message**: Updated to reflect that current level is allowed
+
+Now the guest can lock their current prize level to secure what they've already won, or choose a future level for more risk/reward.
+
+---
+
+_**User**_
+
+for the mvp i dont want the game to end even if 2 answers are matched so what we can do is just show the next selected question on the audience display and keep the progression stopped and no chnages happen to progression ladder
+
+---
+
+_**Assistant**_
+
 
 
 ---
