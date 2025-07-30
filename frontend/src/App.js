@@ -85,7 +85,7 @@ function App() {
   // New Flow: Question Setup and Selection
   const [newQuestion, setNewQuestion] = useState({
     text: '',
-    options: ['', ''],
+    options: ['', '', '', ''],
     guestAnswer: ''
   });
   const [questionPool, setQuestionPool] = useState({
@@ -175,45 +175,8 @@ function App() {
                   fontSize: '12px'
                 }}
               />
-              <button
-                onClick={() => {
-                  const newOptions = [...newQuestion.options];
-                  newOptions.splice(index, 1);
-                  setNewQuestion({...newQuestion, options: newOptions});
-                }}
-                disabled={newQuestion.options.length <= 2}
-                style={{ 
-                  padding: '6px 8px', 
-                  backgroundColor: '#f44336', 
-                  color: 'white', 
-                  border: 'none', 
-                  borderRadius: 3,
-                  cursor: 'pointer',
-                  fontSize: '11px'
-                }}
-              >
-                ×
-              </button>
             </div>
           ))}
-          <button
-            onClick={() => {
-              const newOptions = [...newQuestion.options, ''];
-              setNewQuestion({...newQuestion, options: newOptions});
-            }}
-            disabled={newQuestion.options.length >= 10}
-            style={{ 
-              padding: '4px 8px', 
-              backgroundColor: '#2196F3', 
-              color: 'white', 
-              border: 'none', 
-              borderRadius: 3,
-              cursor: 'pointer',
-              fontSize: '11px'
-            }}
-          >
-            + Add Option
-          </button>
         </div>
         <div style={{ marginBottom: '8px' }}>
           <input
@@ -232,7 +195,7 @@ function App() {
         </div>
         <button 
           onClick={handleAddQuestionToPool}
-          disabled={!newQuestion.text || !newQuestion.options.every(opt => opt.trim()) || !newQuestion.guestAnswer}
+          disabled={!newQuestion.text || !newQuestion.options.every(opt => opt.trim()) || !newQuestion.guestAnswer || newQuestion.options.length !== 4}
           style={{ 
             padding: '6px 12px', 
             backgroundColor: '#4CAF50', 
