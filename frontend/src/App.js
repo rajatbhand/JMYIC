@@ -278,20 +278,7 @@ function App() {
         {!currentQuestion.text || currentQuestion.text === 'No question selected' ? (
           <div style={{ marginBottom: 16, padding: 12, backgroundColor: '#fff3cd', borderRadius: 4, border: '1px solid #ffeaa7' }}>
             <strong>⚠️ No Question Selected</strong>
-            <p>Please select a question from the pool to continue the game.</p>
-            <button 
-              onClick={() => setShowQuestionSetup(true)}
-              style={{ 
-                padding: '8px 16px', 
-                backgroundColor: '#2196F3', 
-                color: 'white', 
-                border: 'none', 
-                borderRadius: 4,
-                cursor: 'pointer'
-              }}
-            >
-              Select Question
-            </button>
+            <p>Please select a question from the pool on the left to continue the game.</p>
           </div>
         ) : (
           <>
