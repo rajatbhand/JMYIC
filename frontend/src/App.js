@@ -478,7 +478,7 @@ function App() {
           Panel Guess: {lastPanelGuess || 'None'}<br/>
           Guest Answer: {lastGuestAnswer || 'None'}<br/>
           Is Answered: {isAnswered ? 'Yes' : 'No'}<br/>
-          Question Index: {qIdx}
+          Questions Answered: {gameState.questionsAnswered || 0}
         </div>
         <div style={{ marginBottom: 16 }}>
           <strong>Lock Status:</strong>{' '}

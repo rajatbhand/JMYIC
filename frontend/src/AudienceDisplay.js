@@ -225,7 +225,7 @@ function AudienceDisplay() {
       lastPanelGuess: lastPanelGuess,
       lastGuestAnswer: lastGuestAnswer,
       isAnswered: isAnswered,
-      questionIndex: qIdx
+      questionsAnswered: gameState.questionsAnswered || 0
     });
 
     return (
