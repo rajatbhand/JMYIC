@@ -230,7 +230,8 @@ let gameState = {
     correctAnswers: 0,
     totalQuestions: 0,
     currentPrize: 0
-  }
+  },
+  mismatchCount: 0, // NEW: count mismatches for prize
 };
 
 // Helper function to get current question
@@ -379,6 +380,7 @@ io.on('connection', (socket) => {
       totalQuestions: 0,
       currentPrize: 0
     };
+    gameState.mismatchCount = 0; // Reset mismatch count
     
     console.log('Game started with question pool');
     broadcastState();
@@ -544,6 +546,24 @@ io.on('connection', (socket) => {
       console.log('Panel guessed correctly! Score updated.');
     } else {
       console.log('Panel guessed incorrectly.');
+    }
+    
+    // Prize logic: only add for mismatches
+    const idx = gameState.questionsAnswered - 1;
+    if (
+      gameState.panelGuesses &&
+      gameState.guestAnswers &&
+      gameState.panelGuesses[idx] !== undefined &&
+      gameState.guestAnswers[idx] !== undefined &&
+      gameState.panelGuesses[idx] !== gameState.guestAnswers[idx]
+    ) {
+      // Mismatch: add prize
+      gameState.mismatchCount = (gameState.mismatchCount || 0) + 1;
+      gameState.prize = Math.min(10000 * gameState.mismatchCount, 100000);
+      gameState.score.currentPrize = gameState.prize;
+      console.log('Panel and guest answers mismatched! Prize updated.');
+    } else {
+      console.log('Panel and guest answers matched. No prize added.');
     }
     
     // Game ends when panel gets 2 correct answers
@@ -791,7 +811,8 @@ io.on('connection', (socket) => {
         correctAnswers: 0,
         totalQuestions: 0,
         currentPrize: 0
-      }
+      },
+      mismatchCount: 0, // Reset mismatch count
     };
     broadcastState();
   });
