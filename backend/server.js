@@ -212,8 +212,8 @@ let gameState = {
   questionsAnswered: 0,
   // NEW: Track selected questions in order (for progression highlighting)
   selectedQuestions: [],
-  // NEW: Current question number (1-7) for progression tracking
-  currentQuestionNumber: 0,
+  // NEW: Current question number (1-7) for progression tracking - starts at 1
+  currentQuestionNumber: 1,
   // NEW: Scoring system
   score: {
     correctAnswers: 0,
@@ -341,13 +341,6 @@ io.on('connection', (socket) => {
     if (!gameState.selectedQuestions.includes(questionId)) {
       gameState.selectedQuestions.push(questionId);
     }
-
-    // NEW: Set current question number (1-7) based on selection order
-    // BUT only if game is not over from previous question
-    if (!gameState.gameOver) {
-      gameState.currentQuestionNumber = gameState.selectedQuestions.length;
-    }
-    // If game is over, keep the same currentQuestionNumber (don't progress ladder)
 
     gameState.currentQuestion = question;
     gameState.usedQuestions.push(questionId);
@@ -594,7 +587,7 @@ io.on('connection', (socket) => {
       console.log(`Prize remains: ₹${gameState.prize} (no increase for matches)`);
 
     } else {
-      // MISMATCH: Normal flow continues...
+      // MISMATCH: Panel and guest disagree - add prize, continue normal flow
       gameState.mismatchCount = (gameState.mismatchCount || 0) + 1;
 
       // NEW PRIZE BRACKETS: 2000, 4000, 8000, 12000, 20000, 30000, 50000
@@ -606,7 +599,11 @@ io.on('connection', (socket) => {
       // Lock the money when guest wins a prize (mismatch occurs)
       gameState.lockedMoney = gameState.prize;
 
+      // NEW: Progress ladder ONLY on mismatch
+      gameState.currentQuestionNumber = gameState.mismatchCount;
+
       console.log(`✅ MISMATCH! Panel: "${panelAnswer}", Guest: "${guestAnswer}". Prize increased to: ₹${gameState.prize} (LOCKED)`);
+      console.log(`Ladder progressed to level: ${gameState.currentQuestionNumber}`);
     }
 
     // Check game end conditions (only if game not already over from lives)

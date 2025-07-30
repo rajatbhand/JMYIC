@@ -21330,33 +21330,171 @@ Read file: backend/server.js
 
 ---
 
-
-
----
-
-
+Let me find the reveal_guest_answer handler:
 
 ---
 
+<details>
+            <summary>Grep search for "reveal_guest_answer" • **2** files</summary>
+        
+| File | Line | Match |
+|------|------|-------|
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L532 | `socket.on('reveal_guest_answer', () => {` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L535 | `console.error('reveal_guest_answer: Not in main_game round');` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L541 | `console.error('reveal_guest_answer: No question selected');` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L548 | `console.error('reveal_guest_answer: Game already over');` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L556 | `console.log('reveal_guest_answer: Marked guest answer as revealed');` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L557 | `console.log('reveal_guest_answer: Updated guestAnswerRevealed array:', gameState.guestAnswerRevealed);` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L532 | `socket.on('reveal_guest_answer', () => {` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L535 | `console.error('reveal_guest_answer: Not in main_game round');` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L541 | `console.error('reveal_guest_answer: No question selected');` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L548 | `console.error('reveal_guest_answer: Game already over');` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L556 | `console.log('reveal_guest_answer: Marked guest answer as revealed');` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L557 | `console.log('reveal_guest_answer: Updated guestAnswerRevealed array:', gameState.guestAnswerRevealed);` |
 
+</details>
 
 ---
 
-
-
----
-
-
+Read file: backend/server.js
 
 ---
 
+Read file: backend/server.js
 
+---
+
+Now I need to find where the prize ladder progression happens. Let me look for the `currentQuestionNumber` logic:
 
 ---
 
+<details>
+            <summary>Grep search for "currentQuestionNumber" • **2** files</summary>
+        
+| File | Line | Match |
+|------|------|-------|
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L216 | `currentQuestionNumber: 0,` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L347 | `gameState.currentQuestionNumber = gameState.selectedQuestions.length;` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L358 | `console.log(`Question ${gameState.currentQuestionNumber} selected from pool: ${question.text}`);` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L387 | `gameState.currentQuestionNumber = 0;` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L438 | `gameState.currentQuestionNumber = 0;` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L853 | `currentQuestionNumber: 0,` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L897 | `currentQuestionNumber: 0,` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L216 | `currentQuestionNumber: 0,` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L347 | `gameState.currentQuestionNumber = gameState.selectedQuestions.length;` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L358 | `console.log(`Question ${gameState.currentQuestionNumber} selected from pool: ${question.text}`);` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L387 | `gameState.currentQuestionNumber = 0;` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L438 | `gameState.currentQuestionNumber = 0;` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L853 | `currentQuestionNumber: 0,` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L897 | `currentQuestionNumber: 0,` |
 
+</details>
 
 ---
+
+Read file: backend/server.js
+
+---
+
+Perfect! I found the issue. The prize ladder progression (`currentQuestionNumber`) is set when a question is selected, not when it's answered. The problem is that when life is exhausted and there's a second match (game over), the `currentQuestionNumber` should not advance.
+
+**Fix - Update the logic in `backend/server.js`:**
+
+The issue is in the `select_question_from_pool` handler. We need to modify it so that `currentQuestionNumber` only advances when the previous question doesn't result in game over.
+
+Here's the fix around line 346:
+
+```javascript
+socket.on('select_question_from_pool', (questionId) => {
+  const question = gameState.questionPool.find(q => q.id === questionId);
+  if (!question) {
+    socket.emit('error', { message: 'Question not found in pool.' });
+    console.error('select_question_from_pool: Question not found', questionId);
+    return;
+  }
+
+  if (gameState.usedQuestions.includes(questionId)) {
+    socket.emit('error', { message: 'Question already used.' });
+    console.error('select_question_from_pool: Question already used', questionId);
+    return;
+  }
+
+  // NEW: Track the order of selected questions for progression
+  if (!gameState.selectedQuestions.includes(questionId)) {
+    gameState.selectedQuestions.push(questionId);
+  }
+
+  // NEW: Set current question number (1-7) based on selection order
+  // BUT only if game is not over from previous question
+  if (!gameState.gameOver) {
+    gameState.currentQuestionNumber = gameState.selectedQuestions.length;
+  }
+  // If game is over, keep the same currentQuestionNumber (don't progress ladder)
+
+  gameState.currentQuestion = question;
+  gameState.usedQuestions.push(questionId);
+  gameState.questionsAnswered += 1;
+
+  // Reset current question state
+  gameState.panelGuesses[gameState.questionsAnswered - 1] = null;
+  gameState.guestAnswers[gameState.questionsAnswered - 1] = null;
+  gameState.guestAnswerRevealed[gameState.questionsAnswered - 1] = false;
+
+  console.log(`Question ${gameState.currentQuestionNumber} selected from pool: ${question.text}`);
+  broadcastState();
+});
+```
+
+This ensures that when the game is over due to life exhaustion + second match, the prize ladder stays at the same level and doesn't progress to the next tier.
+
+---
+
+_**User**_
+
+update the same on the audinece display as well
+
+---
+
+_**Assistant**_
+
+The audience display already uses `gameState.currentQuestionNumber` from the backend, so when you fix the backend logic (as shown in my previous response), the audience display will automatically reflect the correct behavior.
+
+However, if you want to add an additional check on the frontend side, update the `renderPrizeLadder` function in `frontend/src/AudienceDisplay.js`:
+
+```javascript
+const renderPrizeLadder = (currentQuestionNumber) => {
+  // Don't progress ladder if game is over
+  const effectiveQuestionNumber = gameState.gameOver ? currentQuestionNumber : currentQuestionNumber;
+  
+  return (
+    <div style={{ marginBottom: '30px' }}>
+      {/* ... existing code ... */}
+      
+      {prizeTiers.map((tier, index) => {
+        const isCurrentQuestion = tier.question === effectiveQuestionNumber; // Use effective number
+        const isLocked = lock.placed && lock.question === tier.question - 1;
+        const isMoneyLocked = gameState.lockedMoney >= tier.amount;
+        
+        // ... rest of the rendering logic stays the same ...
+      })}
+    </div>
+  );
+};
+```
+
+But the main fix should be in the **backend** `select_question_from_pool` handler as I showed earlier. Once you update that, the audience display will automatically show the correct ladder position because it receives `currentQuestionNumber` from `gameState`.
+
+The key is: **Fix the backend, and the frontend will automatically work correctly.**
+
+---
+
+_**User**_
+
+only if there is mismacth in the answer then the progression of ladder should happen
+
+---
+
+_**Assistant**_
 
 
 
