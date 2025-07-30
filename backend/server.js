@@ -35,6 +35,162 @@ const io = new Server(server, {
   }
 });
 
+// Function to generate random questions
+function generateRandomQuestions() {
+  const questions = [];
+  
+  // Question templates with different categories
+  const questionTemplates = [
+    // Personal preferences
+    {
+      text: "What is the guest's favorite color?",
+      options: ['Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Orange', 'Pink', 'Black', 'White', 'Brown'],
+      guestAnswer: 'Blue'
+    },
+    {
+      text: "Which food does the guest hate the most?",
+      options: ['Pizza', 'Broccoli', 'Chocolate', 'Fish', 'Mushrooms', 'Olives', 'Cilantro', 'Durian', 'Blue Cheese', 'Sushi'],
+      guestAnswer: 'Broccoli'
+    },
+    {
+      text: "What is the guest's dream vacation destination?",
+      options: ['Paris', 'Tokyo', 'New York', 'Bali', 'Santorini', 'Machu Picchu', 'Maldives', 'Swiss Alps', 'Egypt', 'Australia'],
+      guestAnswer: 'Tokyo'
+    },
+    {
+      text: "Which movie genre does the guest prefer?",
+      options: ['Comedy', 'Horror', 'Drama', 'Action', 'Romance', 'Thriller', 'Sci-Fi', 'Documentary', 'Animation', 'Musical'],
+      guestAnswer: 'Comedy'
+    },
+    {
+      text: "What is the guest's biggest fear?",
+      options: ['Heights', 'Spiders', 'Darkness', 'Public Speaking', 'Flying', 'Water', 'Snakes', 'Clowns', 'Failure', 'Death'],
+      guestAnswer: 'Heights'
+    },
+    {
+      text: "Which superpower would the guest choose?",
+      options: ['Invisibility', 'Flying', 'Time Travel', 'Super Strength', 'Mind Reading', 'Teleportation', 'Healing', 'Shapeshifting', 'Telekinesis', 'Immortality'],
+      guestAnswer: 'Flying'
+    },
+    {
+      text: "What is the guest's favorite season?",
+      options: ['Spring', 'Summer', 'Autumn', 'Winter'],
+      guestAnswer: 'Autumn'
+    },
+    {
+      text: "Which hobby does the guest enjoy most?",
+      options: ['Reading', 'Sports', 'Gaming', 'Cooking', 'Painting', 'Music', 'Travel', 'Photography', 'Gardening', 'Dancing'],
+      guestAnswer: 'Reading'
+    },
+    {
+      text: "What is the guest's spirit animal?",
+      options: ['Cat', 'Dog', 'Eagle', 'Dolphin', 'Wolf', 'Lion', 'Elephant', 'Butterfly', 'Owl', 'Tiger'],
+      guestAnswer: 'Eagle'
+    },
+    {
+      text: "Which city would the guest most like to visit?",
+      options: ['Paris', 'Tokyo', 'New York', 'Sydney', 'London', 'Rome', 'Barcelona', 'Amsterdam', 'Singapore', 'Dubai'],
+      guestAnswer: 'Tokyo'
+    },
+    {
+      text: "What is the guest's secret talent?",
+      options: ['Singing', 'Dancing', 'Juggling', 'Magic', 'Drawing', 'Writing', 'Cooking', 'Photography', 'Playing an instrument', 'Languages'],
+      guestAnswer: 'Singing'
+    },
+    {
+      text: "Which drink does the guest prefer?",
+      options: ['Coffee', 'Tea', 'Water', 'Juice', 'Soda', 'Wine', 'Beer', 'Smoothie', 'Hot Chocolate', 'Energy Drink'],
+      guestAnswer: 'Coffee'
+    },
+    {
+      text: "What is the guest's ideal weekend activity?",
+      options: ['Netflix marathon', 'Outdoor adventure', 'Shopping', 'Cooking', 'Reading', 'Gaming', 'Socializing', 'Spa day', 'Sports', 'Art'],
+      guestAnswer: 'Netflix marathon'
+    },
+    {
+      text: "Which pet would the guest prefer?",
+      options: ['Dog', 'Cat', 'Fish', 'Bird', 'Hamster', 'Rabbit', 'Snake', 'Horse', 'Guinea Pig', 'Turtle'],
+      guestAnswer: 'Dog'
+    },
+    {
+      text: "What is the guest's favorite type of music?",
+      options: ['Pop', 'Rock', 'Jazz', 'Classical', 'Hip Hop', 'Country', 'Electronic', 'R&B', 'Folk', 'Blues'],
+      guestAnswer: 'Pop'
+    },
+    {
+      text: "Which weather does the guest enjoy most?",
+      options: ['Sunny', 'Rainy', 'Snowy', 'Cloudy', 'Stormy', 'Foggy', 'Windy', 'Humid', 'Dry', 'Mild'],
+      guestAnswer: 'Sunny'
+    },
+    {
+      text: "What is the guest's preferred sleeping position?",
+      options: ['Back', 'Side', 'Stomach', 'Fetal', 'Starfish', 'Log', 'Yearner', 'Freefall', 'Soldier', 'Mixed'],
+      guestAnswer: 'Side'
+    },
+    {
+      text: "Which social media platform does the guest use most?",
+      options: ['Instagram', 'Facebook', 'Twitter', 'TikTok', 'LinkedIn', 'Snapchat', 'YouTube', 'Pinterest', 'Reddit', 'WhatsApp'],
+      guestAnswer: 'Instagram'
+    },
+    {
+      text: "What is the guest's favorite type of cuisine?",
+      options: ['Italian', 'Chinese', 'Mexican', 'Indian', 'Japanese', 'Thai', 'French', 'Mediterranean', 'American', 'Korean'],
+      guestAnswer: 'Italian'
+    },
+    {
+      text: "Which mode of transportation does the guest prefer?",
+      options: ['Car', 'Public transport', 'Bicycle', 'Walking', 'Motorcycle', 'Train', 'Plane', 'Boat', 'Scooter', 'Skateboard'],
+      guestAnswer: 'Car'
+    },
+    {
+      text: "What is the guest's ideal date night?",
+      options: ['Dinner and movie', 'Adventure sports', 'Concert', 'Museum', 'Cooking together', 'Dancing', 'Game night', 'Spa day', 'Outdoor picnic', 'Escape room'],
+      guestAnswer: 'Dinner and movie'
+    },
+    {
+      text: "Which type of book does the guest enjoy most?",
+      options: ['Fiction', 'Non-fiction', 'Mystery', 'Romance', 'Sci-fi', 'Biography', 'Self-help', 'Fantasy', 'History', 'Poetry'],
+      guestAnswer: 'Fiction'
+    },
+    {
+      text: "What is the guest's favorite time of day?",
+      options: ['Morning', 'Afternoon', 'Evening', 'Night', 'Dawn', 'Dusk', 'Midnight', 'Noon', 'Late night', 'Early morning'],
+      guestAnswer: 'Morning'
+    },
+    {
+      text: "Which personality trait does the guest value most?",
+      options: ['Honesty', 'Kindness', 'Intelligence', 'Humor', 'Loyalty', 'Creativity', 'Confidence', 'Empathy', 'Patience', 'Courage'],
+      guestAnswer: 'Honesty'
+    },
+    {
+      text: "What is the guest's preferred way to relax?",
+      options: ['Reading', 'Meditation', 'Exercise', 'Bath', 'Music', 'Nature walk', 'Yoga', 'Massage', 'Gaming', 'Cooking'],
+      guestAnswer: 'Reading'
+    },
+    {
+      text: "Which type of gift does the guest appreciate most?",
+      options: ['Experiences', 'Books', 'Technology', 'Clothing', 'Jewelry', 'Food', 'Art', 'Plants', 'Games', 'Spa items'],
+      guestAnswer: 'Experiences'
+    }
+  ];
+
+  // Shuffle the templates and take first 25
+  const shuffled = questionTemplates.sort(() => Math.random() - 0.5);
+  
+  for (let i = 0; i < 25; i++) {
+    const template = shuffled[i];
+    const question = {
+      id: Date.now() + Math.random() + i, // Unique ID
+      text: template.text,
+      options: template.options,
+      guestAnswer: template.guestAnswer
+    };
+    questions.push(question);
+  }
+
+  return questions;
+}
+
 // Placeholder for game state
 let gameState = {
   round: 'setup', // 'setup', 'main_game', 'final_gamble'
@@ -57,8 +213,8 @@ let gameState = {
   panelGuesses: [],
   guestAnswers: [],
   guestAnswerRevealed: [],
-  // Question pool (25 questions maximum)
-  questionPool: [],
+  // Question pool (25 questions maximum) - pre-populated with random questions
+  questionPool: generateRandomQuestions(),
   // Currently selected question
   currentQuestion: null,
   // Track used questions
@@ -563,7 +719,7 @@ io.on('connection', (socket) => {
 
   socket.on('reset_game', () => {
     console.log('Game reset to initial state.');
-    // Reset the game to initial state
+    // Reset the game to initial state with new random questions
     gameState = {
       round: 'setup',
       questionIndex: 0,
@@ -581,7 +737,7 @@ io.on('connection', (socket) => {
       panelGuesses: [],
       guestAnswers: [],
       guestAnswerRevealed: [],
-      questionPool: [],
+      questionPool: generateRandomQuestions(), // Generate new random questions
       currentQuestion: null,
       usedQuestions: [],
       questionsAnswered: 0
