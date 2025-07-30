@@ -331,9 +331,8 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // Check if question has already been used
     if (gameState.usedQuestions.includes(questionId)) {
-      socket.emit('error', { message: 'Question has already been used.' });
+      socket.emit('error', { message: 'Question already used.' });
       console.error('select_question_from_pool: Question already used', questionId);
       return;
     }
@@ -344,7 +343,11 @@ io.on('connection', (socket) => {
     }
 
     // NEW: Set current question number (1-7) based on selection order
-    gameState.currentQuestionNumber = gameState.selectedQuestions.length;
+    // BUT only if game is not over from previous question
+    if (!gameState.gameOver) {
+      gameState.currentQuestionNumber = gameState.selectedQuestions.length;
+    }
+    // If game is over, keep the same currentQuestionNumber (don't progress ladder)
 
     gameState.currentQuestion = question;
     gameState.usedQuestions.push(questionId);

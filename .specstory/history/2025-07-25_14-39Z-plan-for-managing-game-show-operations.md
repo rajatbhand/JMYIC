@@ -21291,6 +21291,73 @@ and the locked amount is still visible under current prize on audience display
 
 _**Assistant**_
 
+You need to find and remove the locked amount display from the `AudienceDisplay.js` file. 
+
+**Look for this section and remove it:**
+
+```javascript
+{gameState.lockedMoney > 0 && (
+  <div style={{
+    fontSize: '18px',
+    color: '#4CAF50',
+    textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
+    textAlign: 'center',
+    marginTop: '8px',
+    fontWeight: 'bold'
+  }}>
+    🔒 LOCKED: ₹{gameState.lockedMoney.toLocaleString()}
+  </div>
+)}
+```
+
+Search for "LOCKED:" or "lockedMoney" in the `AudienceDisplay.js` file and delete that entire block. It's likely in the Current Prize Bar section around the prize display area.
+
+---
+
+_**User**_
+
+once the user lifes are finished and in the next question answer matches with guest answer then the prize ladder should not move to the next ladder can you fix this logic
+
+---
+
+_**Assistant**_
+
+I need to look at the current backend logic to understand how the prize ladder progression works and fix it to stop progression when life is exhausted and a second match occurs.
+
+---
+
+Read file: backend/server.js
+
+---
+
+
+
+---
+
+
+
+---
+
+
+
+---
+
+
+
+---
+
+
+
+---
+
+
+
+---
+
+
+
+---
+
 
 
 ---
