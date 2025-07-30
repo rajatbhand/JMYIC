@@ -442,9 +442,10 @@ function App() {
       borderRadius: '8px',
       backgroundColor: '#fff',
       overflow: 'hidden',
-      height: '400px',
+      // height: '400px', // Remove this fixed height
       display: 'flex',
-      flexDirection: 'column'
+      flexDirection: 'column',
+      minHeight: '300px' // Add minimum height instead
     }}>
       {/* Header */}
       <div style={{
@@ -909,7 +910,10 @@ function App() {
           width: '30%', 
           display: 'flex', 
           flexDirection: 'column',
-          gap: '15px'
+          gap: '15px',
+          overflowY: 'auto', // Enable vertical scroll
+          maxHeight: 'calc(100vh - 120px)', // Limit height to viewport
+          paddingRight: '10px' // Add padding for scrollbar space
         }}>
           {/* Add Question Form */}
           {renderAddQuestionForm()}

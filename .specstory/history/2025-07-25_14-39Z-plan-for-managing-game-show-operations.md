@@ -20998,6 +20998,78 @@ i found the issue please add horizontal scroll to right panel on opeator side, i
 
 _**Assistant**_
 
+**Quick Fix - Add horizontal scroll to the right panel:**
+
+In `frontend/src/App.js`, update the right panel styles around line 942:
+
+```javascript
+{/* Right Panel (70%) - Game Controls */}
+<div style={{ 
+  width: '70%', 
+  backgroundColor: 'white',
+  borderRadius: '8px',
+  border: '1px solid #e0e0e0',
+  overflow: 'auto', // Change this to enable both horizontal and vertical scroll
+  overflowX: 'auto', // Explicitly enable horizontal scroll
+  overflowY: 'auto'  // Explicitly enable vertical scroll
+}}>
+```
+
+Or alternatively, set a minimum width:
+
+```javascript
+{/* Right Panel (70%) - Game Controls */}
+<div style={{ 
+  width: '70%', 
+  minWidth: '600px', // Add minimum width to prevent squashing
+  backgroundColor: 'white',
+  borderRadius: '8px',
+  border: '1px solid #e0e0e0',
+  overflow: 'auto'
+}}>
+```
+
+This will allow the right panel content to scroll horizontally when the content is wider than the available space, preventing the questions from being hidden.
+
+---
+
+_**User**_
+
+combine all the 3 panels on right side and give a long  vertical scroll as questions are not visible on small  screen and are getting clippped
+
+---
+
+_**Assistant**_
+
+**Fix - Combine panels and add vertical scroll:**
+
+In `frontend/src/App.js`, update the right panel section around line 942:
+
+```javascript
+{/* Right Panel (70%) - Game Controls */}
+<div style={{ 
+  width: '70%', 
+  backgroundColor: 'white',
+  borderRadius: '8px',
+  border: '1px solid #e0e0e0',
+  overflowY: 'auto', // Enable vertical scroll
+  maxHeight: 'calc(100vh - 120px)', // Limit height to viewport
+  padding: '20px' // Add padding for better spacing
+}}>
+  {gameState.round === 'setup' ? (
+    <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+      <h2 
+
+---
+
+_**User**_
+
+sorry the scroll is to be added on left panel
+
+---
+
+_**Assistant**_
+
 
 
 ---
