@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import socket from './socket';
 import soundEffects from './soundEffects';
 
@@ -8,7 +8,6 @@ function App() {
   const [panelGuess, setPanelGuess] = useState('');
   const [lockInput, setLockInput] = useState('');
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const timerRef = useRef();
 
   useEffect(() => {
     socket.on('game_state', (state) => {
@@ -84,7 +83,6 @@ function App() {
   };
 
   // New Flow: Question Setup and Selection
-  const [showQuestionSetup, setShowQuestionSetup] = useState(false);
   const [newQuestion, setNewQuestion] = useState({
     text: '',
     options: ['', ''],
