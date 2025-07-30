@@ -745,7 +745,7 @@ function App() {
                 </h4>
                 <p style={{ fontSize: '12px', color: '#666', marginBottom: '10px' }}>
                   Current Level: {gameState.currentQuestionNumber || 1} | 
-                  Choose future level to secure prize up to that point
+                  Choose current or future level to secure prize
                 </p>
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                   <select
@@ -759,13 +759,13 @@ function App() {
                     }}
                   >
                     <option value="">Select level to lock...</option>
-                    {[2, 3, 4, 5, 6, 7].map(level => {
+                    {[1, 2, 3, 4, 5, 6, 7].map(level => {
                       const currentLevel = gameState.currentQuestionNumber || 1;
                       const prizes = ['₹2K', '₹4K', '₹8K', '₹12K', '₹20K', '₹30K', '₹50K'];
-                      if (level > currentLevel) {
+                      if (level >= currentLevel) { // Allow current level and future levels
                         return (
                           <option key={level} value={level}>
-                            Level {level} - {prizes[level - 1]}
+                            Level {level} - {prizes[level - 1]} {level === currentLevel ? '(Current)' : ''}
                           </option>
                         );
                       }

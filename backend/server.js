@@ -640,17 +640,17 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // Validate lock placement on future progression levels only
+    // Validate lock placement on current or future progression levels
     const currentLevel = gameState.currentQuestionNumber || 1;
     const maxLevel = 7; // Maximum prize levels (₹2K to ₹50K)
     
-    if (lockLevel <= currentLevel) {
-      socket.emit('error', { message: `Lock can only be placed on future levels. Current level: ${currentLevel}` });
+    if (lockLevel < currentLevel) {
+      socket.emit('error', { message: `Lock can only be placed on current level (${currentLevel}) or future levels.` });
       return;
     }
     
     if (lockLevel < 1 || lockLevel > maxLevel) {
-      socket.emit('error', { message: `Lock must be placed between levels ${currentLevel + 1} and ${maxLevel}.` });
+      socket.emit('error', { message: `Lock must be placed between levels ${currentLevel} and ${maxLevel}.` });
       return;
     }
 
