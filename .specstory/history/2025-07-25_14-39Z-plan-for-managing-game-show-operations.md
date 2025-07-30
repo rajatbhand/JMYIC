@@ -20926,6 +20926,78 @@ after csv upload it should show the questions in the question pool
 
 _**Assistant**_
 
+The CSV upload should automatically show questions in the pool after upload. The issue might be that the frontend fetch is hitting the backend directly, but the Socket.IO connection might not be getting the updated state.
+
+**Quick Fix - Add socket emission to trigger state refresh:**
+
+Update the `handleCSVUpload` function around line 200:
+
+```javascript
+if (response.ok) {
+  setCsvUpload({
+    file: null,
+    uploading: false,
+    error: null,
+    success: result.message
+  });
+  // Clear file input
+  document.getElementById('csv-file-input').value = '';
+  
+  // Force refresh of game state to show new questions
+  socket.emit('get_question_pool');
+}
+```
+
+This will trigger the backend to send the updated question pool state, ensuring the UI shows the newly uploaded questions immediately.
+
+---
+
+_**User**_
+
+the questions are still not shown on the question pool after the csv upload in the format
+
+---
+
+_**Assistant**_
+
+The issue is that the CSV upload happens via HTTP fetch, but the question pool display relies on the Socket.IO `gameState`. The backend needs to broadcast the updated state after CSV upload.
+
+**Backend Fix - Add to CSV upload endpoint in `backend/server.js`:**
+
+In the CSV upload success section (around where it says `res.json({ success: true, ...})`), add:
+
+```javascript
+// Add questions to game state
+if (!gameState.questionPool) gameState.questionPool = [];
+gameState.questionPool.push(...questions);
+
+console.log(`CSV upload successful: ${questions.length} questions added`);
+
+// Broadcast updated state to all connected clients
+broadcastState();
+
+res.json({ 
+  success: true, 
+  message: `Successfully uploaded ${questions.length} questions`,
+  questionsAdded: questions.length,
+  totalQuestions: gameState.questionPool.length
+});
+```
+
+The key is adding `broadcastState();` after updating the gameState, which will push the updated question pool to all connected frontend clients via Socket.IO.
+
+This ensures the question pool UI updates immediately after CSV upload completes.
+
+---
+
+_**User**_
+
+i found the issue please add horizontal scroll to right panel on opeator side, i inspected and found out questions are getting hidden under scroll
+
+---
+
+_**Assistant**_
+
 
 
 ---

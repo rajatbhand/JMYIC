@@ -924,7 +924,9 @@ function App() {
           backgroundColor: 'white',
           borderRadius: '8px',
           border: '1px solid #e0e0e0',
-          overflow: 'auto'
+          overflow: 'auto', // Change this to enable both horizontal and vertical scroll
+          overflowX: 'auto', // Explicitly enable horizontal scroll
+          overflowY: 'auto'  // Explicitly enable vertical scroll
         }}>
           {gameState.round === 'setup' ? (
             <div style={{ padding: '40px', textAlign: 'center' }}>
