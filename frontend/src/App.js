@@ -131,197 +131,123 @@ function App() {
   }, []);
 
   // Question Setup UI
-  const renderQuestionSetup = () => {
+  // Add Question Form Component
+  const renderAddQuestionForm = () => {
     return (
-      <div style={{ marginBottom: 32, padding: 20, backgroundColor: '#f5f5f5', borderRadius: 8 }}>
-        <h3>Question Setup ({questionPool.questions.length}/25)</h3>
-        
-        {/* Add New Question */}
-        <div style={{ marginBottom: 20 }}>
-          <h4>Add Question to Pool</h4>
-          <div style={{ marginBottom: 10 }}>
-            <input
-              type="text"
-              placeholder="Question text"
-              value={newQuestion.text}
-              onChange={(e) => setNewQuestion({...newQuestion, text: e.target.value})}
-              style={{ width: '100%', padding: 8, marginBottom: 8 }}
-            />
-          </div>
-          <div style={{ marginBottom: 10 }}>
-            {newQuestion.options.map((option, index) => (
-              <div key={index} style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
-                <input
-                  type="text"
-                  placeholder={`Option ${index + 1}`}
-                  value={option}
-                  onChange={(e) => {
-                    const newOptions = [...newQuestion.options];
-                    newOptions[index] = e.target.value;
-                    setNewQuestion({...newQuestion, options: newOptions});
-                  }}
-                  style={{ flex: 1, padding: 8 }}
-                />
-                <button
-                  onClick={() => {
-                    const newOptions = [...newQuestion.options];
-                    newOptions.splice(index, 1);
-                    setNewQuestion({...newQuestion, options: newOptions});
-                  }}
-                  disabled={newQuestion.options.length <= 2}
-                  style={{ 
-                    padding: '8px 12px', 
-                    backgroundColor: '#f44336', 
-                    color: 'white', 
-                    border: 'none', 
-                    borderRadius: 4,
-                    cursor: 'pointer'
-                  }}
-                >
-                  Remove
-                </button>
-              </div>
-            ))}
-            <button
-              onClick={() => {
-                const newOptions = [...newQuestion.options, ''];
-                setNewQuestion({...newQuestion, options: newOptions});
-              }}
-              disabled={newQuestion.options.length >= 10}
-              style={{ 
-                padding: '8px 16px', 
-                backgroundColor: '#2196F3', 
-                color: 'white', 
-                border: 'none', 
-                borderRadius: 4,
-                cursor: 'pointer',
-                marginTop: 8
-              }}
-            >
-              Add Option
-            </button>
-          </div>
-          <div style={{ marginBottom: 10 }}>
-            <input
-              type="text"
-              placeholder="Guest's answer (must be one of the options)"
-              value={newQuestion.guestAnswer}
-              onChange={(e) => setNewQuestion({...newQuestion, guestAnswer: e.target.value})}
-              style={{ width: '100%', padding: 8 }}
-            />
-          </div>
-          <button 
-            onClick={handleAddQuestionToPool}
-            disabled={!newQuestion.text || !newQuestion.options.every(opt => opt.trim()) || !newQuestion.guestAnswer}
+      <div style={{ 
+        padding: '16px', 
+        backgroundColor: '#fff',
+        borderBottom: '1px solid #e0e0e0'
+      }}>
+        <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', color: '#333' }}>
+          ➕ Add New Question
+        </h4>
+        <div style={{ marginBottom: '8px' }}>
+          <input
+            type="text"
+            placeholder="Question text"
+            value={newQuestion.text}
+            onChange={(e) => setNewQuestion({...newQuestion, text: e.target.value})}
             style={{ 
-              padding: '8px 16px', 
-              backgroundColor: '#4CAF50', 
-              color: 'white', 
-              border: 'none', 
-              borderRadius: 4,
-              cursor: 'pointer'
+              width: '100%', 
+              padding: '6px 8px', 
+              border: '1px solid #ddd',
+              borderRadius: 3,
+              fontSize: '12px'
             }}
-          >
-            Add to Pool
-          </button>
+          />
         </div>
-
-        {/* Question Pool */}
-        <div style={{ marginBottom: 20 }}>
-          <h4>Question Pool</h4>
-          <button 
-            onClick={handleGetQuestionPool}
+        <div style={{ marginBottom: '8px' }}>
+          {newQuestion.options.map((option, index) => (
+            <div key={index} style={{ display: 'flex', gap: '4px', marginBottom: '4px' }}>
+              <input
+                type="text"
+                placeholder={`Option ${index + 1}`}
+                value={option}
+                onChange={(e) => {
+                  const newOptions = [...newQuestion.options];
+                  newOptions[index] = e.target.value;
+                  setNewQuestion({...newQuestion, options: newOptions});
+                }}
+                style={{ 
+                  flex: 1, 
+                  padding: '6px 8px',
+                  border: '1px solid #ddd',
+                  borderRadius: 3,
+                  fontSize: '12px'
+                }}
+              />
+              <button
+                onClick={() => {
+                  const newOptions = [...newQuestion.options];
+                  newOptions.splice(index, 1);
+                  setNewQuestion({...newQuestion, options: newOptions});
+                }}
+                disabled={newQuestion.options.length <= 2}
+                style={{ 
+                  padding: '6px 8px', 
+                  backgroundColor: '#f44336', 
+                  color: 'white', 
+                  border: 'none', 
+                  borderRadius: 3,
+                  cursor: 'pointer',
+                  fontSize: '11px'
+                }}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+          <button
+            onClick={() => {
+              const newOptions = [...newQuestion.options, ''];
+              setNewQuestion({...newQuestion, options: newOptions});
+            }}
+            disabled={newQuestion.options.length >= 10}
             style={{ 
-              padding: '8px 16px', 
+              padding: '4px 8px', 
               backgroundColor: '#2196F3', 
               color: 'white', 
               border: 'none', 
-              borderRadius: 4,
+              borderRadius: 3,
               cursor: 'pointer',
-              marginBottom: 10
+              fontSize: '11px'
             }}
           >
-            Refresh Pool
+            + Add Option
           </button>
-          
-          {questionPool.questions.length > 0 && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 10 }}>
-              {questionPool.questions.map((question) => (
-                <div key={question.id} style={{ 
-                  padding: 10, 
-                  backgroundColor: 'white', 
-                  borderRadius: 4,
-                  border: '1px solid #ddd',
-                  opacity: questionPool.usedQuestions.includes(question.id) ? 0.6 : 1
-                }}>
-                  <div><strong>{question.text}</strong></div>
-                  <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>
-                    Options: {question.options.join(', ')}
-                  </div>
-                  <div style={{ fontSize: 12, color: '#666' }}>
-                    Guest Answer: {question.guestAnswer}
-                  </div>
-                  <div style={{ marginTop: 8 }}>
-                    {!questionPool.usedQuestions.includes(question.id) ? (
-                      <button 
-                        onClick={() => handleSelectQuestionFromPool(question.id)}
-                        style={{ 
-                          padding: '4px 8px', 
-                          backgroundColor: '#4CAF50', 
-                          color: 'white', 
-                          border: 'none', 
-                          borderRadius: 4,
-                          cursor: 'pointer',
-                          fontSize: 12,
-                          marginRight: 8
-                        }}
-                      >
-                        Select
-                      </button>
-                    ) : (
-                      <span style={{ color: '#f44336', fontSize: 12 }}>Used</span>
-                    )}
-                    <button 
-                      onClick={() => handleRemoveQuestionFromPool(question.id)}
-                      style={{ 
-                        padding: '4px 8px', 
-                        backgroundColor: '#f44336', 
-                        color: 'white', 
-                        border: 'none', 
-                        borderRadius: 4,
-                        cursor: 'pointer',
-                        fontSize: 12
-                      }}
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
-
-        {/* Start Game Button */}
-        {questionPool.questions.length > 0 && (
-          <div style={{ marginTop: 20 }}>
-            <button 
-              onClick={handleStartGame}
-              style={{ 
-                padding: '12px 24px', 
-                backgroundColor: '#FF9800', 
-                color: 'white', 
-                border: 'none', 
-                borderRadius: 4,
-                cursor: 'pointer',
-                fontSize: 16,
-                fontWeight: 'bold'
-              }}
-            >
-              🎮 Start Game
-            </button>
-          </div>
-        )}
+        <div style={{ marginBottom: '8px' }}>
+          <input
+            type="text"
+            placeholder="Guest's answer (must be one of the options)"
+            value={newQuestion.guestAnswer}
+            onChange={(e) => setNewQuestion({...newQuestion, guestAnswer: e.target.value})}
+            style={{ 
+              width: '100%', 
+              padding: '6px 8px',
+              border: '1px solid #ddd',
+              borderRadius: 3,
+              fontSize: '12px'
+            }}
+          />
+        </div>
+        <button 
+          onClick={handleAddQuestionToPool}
+          disabled={!newQuestion.text || !newQuestion.options.every(opt => opt.trim()) || !newQuestion.guestAnswer}
+          style={{ 
+            padding: '6px 12px', 
+            backgroundColor: '#4CAF50', 
+            color: 'white', 
+            border: 'none', 
+            borderRadius: 3,
+            cursor: 'pointer',
+            fontSize: '12px',
+            width: '100%'
+          }}
+        >
+          Add to Pool
+        </button>
       </div>
     );
   };
@@ -542,87 +468,275 @@ function App() {
   };
 
   return (
-    <div style={{ padding: 32 }}>
-      <h1>Judge Me If You Can - Control Panel</h1>
-      
-      {/* Sound Toggle Button */}
-      <div style={{ marginBottom: 16 }}>
-        <button 
-          onClick={handleToggleSound}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: soundEnabled ? '#4CAF50' : '#f44336',
-            color: 'white',
-            border: 'none',
-            borderRadius: 4,
-            cursor: 'pointer',
-            fontSize: 14
-          }}
-        >
-          🔊 {soundEnabled ? 'Sound ON' : 'Sound OFF'}
-        </button>
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+      {/* Header */}
+      <div style={{ 
+        padding: '16px 24px', 
+        backgroundColor: '#1a1a2e', 
+        color: 'white',
+        borderBottom: '2px solid #c0c0c0'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h1 style={{ margin: 0, fontSize: '24px' }}>🎮 Judge Me If You Can - Operator Panel</h1>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <button 
+              onClick={handleToggleSound}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: soundEnabled ? '#4CAF50' : '#f44336',
+                color: 'white',
+                border: 'none',
+                borderRadius: 4,
+                cursor: 'pointer',
+                fontSize: 14
+              }}
+            >
+              🔊 {soundEnabled ? 'Sound ON' : 'Sound OFF'}
+            </button>
+            <button 
+              onClick={() => socket.emit('reset_game')}
+              style={{ 
+                padding: '8px 16px', 
+                fontSize: 14, 
+                backgroundColor: '#FF5722', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: 4,
+                cursor: 'pointer'
+              }}
+            >
+              🔄 Reset
+            </button>
+            <button 
+              onClick={handleTestBackend}
+              style={{ 
+                padding: '8px 16px', 
+                fontSize: 14, 
+                backgroundColor: '#9C27B0', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: 4,
+                cursor: 'pointer'
+              }}
+            >
+              🧪 Test
+            </button>
+          </div>
+        </div>
       </div>
-      
-      {error && <div style={{ color: 'red' }}>Error: {error}</div>}
-      
-      {/* Control Buttons */}
-      <div style={{ marginBottom: 24 }}>
-        <button 
-          onClick={() => socket.emit('reset_game')}
-          style={{ 
-            padding: '12px 24px', 
-            fontSize: 16, 
-            backgroundColor: '#FF5722', 
-            color: 'white', 
-            border: 'none', 
-            borderRadius: 4,
-            cursor: 'pointer',
-            fontWeight: 'bold',
-            marginRight: '10px'
-          }}
-        >
-          🔄 Restart Game (New Guest)
-        </button>
-        <button 
-          onClick={() => setShowQuestionSetup(!showQuestionSetup)}
-          style={{ 
-            padding: '12px 24px', 
-            fontSize: 16, 
-            backgroundColor: '#607D8B', 
-            color: 'white', 
-            border: 'none', 
-            borderRadius: 4,
-            cursor: 'pointer',
-            fontWeight: 'bold',
-            marginRight: '10px'
-          }}
-        >
-          📝 {showQuestionSetup ? 'Hide' : 'Show'} Question Setup
-        </button>
-        <button 
-          onClick={handleTestBackend}
-          style={{ 
-            padding: '8px 16px', 
-            fontSize: 14, 
-            backgroundColor: '#9C27B0', 
-            color: 'white', 
-            border: 'none', 
-            borderRadius: 4,
-            cursor: 'pointer'
-          }}
-        >
-          🧪 Test Backend
-        </button>
-      </div>
-      
+
+      {error && (
+        <div style={{ 
+          padding: '12px 24px', 
+          backgroundColor: '#ffebee', 
+          color: '#c62828',
+          borderBottom: '1px solid #ffcdd2'
+        }}>
+          Error: {error}
+        </div>
+      )}
+
+      {/* Main Content Area */}
       {gameState ? (
-        <div>
-          <h2>Current Round: {gameState.round}</h2>
-          {showQuestionSetup && renderQuestionSetup()}
-          {gameState.round === 'main_game' && renderMainGame()}
+        <div style={{ display: 'flex', flex: 1, height: 'calc(100vh - 80px)' }}>
+          {/* Left Panel - Question List (30%) */}
+          <div style={{ 
+            width: '30%', 
+            backgroundColor: '#f8f9fa', 
+            borderRight: '2px solid #e0e0e0',
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            {/* Add Question Form */}
+            {renderAddQuestionForm()}
+            
+            {/* Question Pool Header */}
+            <div style={{ 
+              padding: '12px 16px', 
+              borderBottom: '1px solid #e0e0e0',
+              backgroundColor: '#fff'
+            }}>
+              <h3 style={{ margin: 0, fontSize: '16px', color: '#333' }}>
+                📝 Question Pool ({questionPool.questions.length}/25)
+              </h3>
+              <button 
+                onClick={handleGetQuestionPool}
+                style={{ 
+                  padding: '4px 8px', 
+                  backgroundColor: '#2196F3', 
+                  color: 'white', 
+                  border: 'none', 
+                  borderRadius: 3,
+                  cursor: 'pointer',
+                  fontSize: 11,
+                  marginTop: 6
+                }}
+              >
+                🔄 Refresh
+              </button>
+            </div>
+            
+            {/* Question List */}
+            <div style={{ flex: 1, overflow: 'auto', padding: '8px' }}>
+              {questionPool.questions.length === 0 ? (
+                <div style={{ 
+                  textAlign: 'center', 
+                  color: '#666', 
+                  padding: '20px',
+                  fontSize: '13px'
+                }}>
+                  No questions in pool. Add questions above to get started.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {questionPool.questions.map((question) => (
+                    <div key={question.id} style={{ 
+                      padding: '10px', 
+                      backgroundColor: questionPool.usedQuestions.includes(question.id) ? '#f5f5f5' : 'white', 
+                      borderRadius: 5,
+                      border: '1px solid #e0e0e0',
+                      opacity: questionPool.usedQuestions.includes(question.id) ? 0.6 : 1,
+                      cursor: questionPool.usedQuestions.includes(question.id) ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.2s ease'
+                    }}>
+                      <div style={{ 
+                        fontSize: '12px', 
+                        fontWeight: 'bold',
+                        color: '#333',
+                        marginBottom: '3px',
+                        lineHeight: '1.3'
+                      }}>
+                        {question.text}
+                      </div>
+                      <div style={{ 
+                        fontSize: '10px', 
+                        color: '#666', 
+                        marginBottom: '3px',
+                        lineHeight: '1.2'
+                      }}>
+                        <strong>Options:</strong> {question.options.join(', ')}
+                      </div>
+                      <div style={{ 
+                        fontSize: '10px', 
+                        color: '#666',
+                        marginBottom: '6px'
+                      }}>
+                        <strong>Guest Answer:</strong> {question.guestAnswer}
+                      </div>
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        {!questionPool.usedQuestions.includes(question.id) ? (
+                          <button 
+                            onClick={() => handleSelectQuestionFromPool(question.id)}
+                            style={{ 
+                              padding: '3px 6px', 
+                              backgroundColor: '#4CAF50', 
+                              color: 'white', 
+                              border: 'none', 
+                              borderRadius: 2,
+                              cursor: 'pointer',
+                              fontSize: '10px',
+                              flex: 1
+                            }}
+                          >
+                            Select
+                          </button>
+                        ) : (
+                          <span style={{ 
+                            color: '#f44336', 
+                            fontSize: '10px',
+                            padding: '3px 6px',
+                            backgroundColor: '#ffebee',
+                            borderRadius: 2,
+                            flex: 1,
+                            textAlign: 'center'
+                          }}>
+                            Used
+                          </span>
+                        )}
+                        <button 
+                          onClick={() => handleRemoveQuestionFromPool(question.id)}
+                          style={{ 
+                            padding: '3px 6px', 
+                            backgroundColor: '#f44336', 
+                            color: 'white', 
+                            border: 'none', 
+                            borderRadius: 2,
+                            cursor: 'pointer',
+                            fontSize: '10px'
+                          }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right Panel - Game Controls (70%) */}
+          <div style={{ 
+            width: '70%', 
+            backgroundColor: '#fff',
+            overflow: 'auto',
+            padding: '24px'
+          }}>
+            <div style={{ marginBottom: '24px' }}>
+              <h2 style={{ margin: 0, color: '#333', fontSize: '20px' }}>
+                Current Round: {gameState.round}
+              </h2>
+              {gameState.round === 'setup' && (
+                <div style={{ 
+                  marginTop: '16px',
+                  padding: '16px',
+                  backgroundColor: '#e3f2fd',
+                  borderRadius: 6,
+                  border: '1px solid #bbdefb'
+                }}>
+                  <h3 style={{ margin: '0 0 12px 0', color: '#1976d2' }}>
+                    🎯 Game Setup
+                  </h3>
+                  <p style={{ margin: 0, color: '#1976d2', fontSize: '14px' }}>
+                    Select questions from the pool on the left to start the game.
+                  </p>
+                  {questionPool.questions.length > 0 && (
+                    <button 
+                      onClick={handleStartGame}
+                      style={{ 
+                        padding: '12px 24px', 
+                        backgroundColor: '#FF9800', 
+                        color: 'white', 
+                        border: 'none', 
+                        borderRadius: 4,
+                        cursor: 'pointer',
+                        fontSize: 16,
+                        fontWeight: 'bold',
+                        marginTop: '12px'
+                      }}
+                    >
+                      🎮 Start Game
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+            
+            {gameState.round === 'main_game' && renderMainGame()}
+          </div>
         </div>
       ) : (
-        <div>Connecting to game server...</div>
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          height: 'calc(100vh - 80px)',
+          fontSize: '18px',
+          color: '#666'
+        }}>
+          Connecting to game server...
+        </div>
       )}
     </div>
   );
