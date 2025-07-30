@@ -220,7 +220,17 @@ let gameState = {
   // Track used questions
   usedQuestions: [],
   // Game progress
-  questionsAnswered: 0
+  questionsAnswered: 0,
+  // NEW: Track selected questions in order (for progression highlighting)
+  selectedQuestions: [],
+  // NEW: Current question number (1-7) for progression tracking
+  currentQuestionNumber: 0,
+  // NEW: Scoring system
+  score: {
+    correctAnswers: 0,
+    totalQuestions: 0,
+    currentPrize: 0
+  }
 };
 
 // Helper function to get current question
@@ -316,6 +326,14 @@ io.on('connection', (socket) => {
       return;
     }
     
+    // NEW: Track the order of selected questions for progression
+    if (!gameState.selectedQuestions.includes(questionId)) {
+      gameState.selectedQuestions.push(questionId);
+    }
+    
+    // NEW: Set current question number (1-7) based on selection order
+    gameState.currentQuestionNumber = gameState.selectedQuestions.length;
+    
     gameState.currentQuestion = question;
     gameState.usedQuestions.push(questionId);
     gameState.questionsAnswered += 1;
@@ -325,7 +343,7 @@ io.on('connection', (socket) => {
     gameState.guestAnswers[gameState.questionsAnswered - 1] = null;
     gameState.guestAnswerRevealed[gameState.questionsAnswered - 1] = false;
     
-    console.log(`Question selected from pool: ${question.text}`);
+    console.log(`Question ${gameState.currentQuestionNumber} selected from pool: ${question.text}`);
     broadcastState();
   });
 
@@ -352,6 +370,15 @@ io.on('connection', (socket) => {
     gameState.currentQuestion = null;
     gameState.usedQuestions = [];
     gameState.questionsAnswered = 0;
+    // NEW: Reset progression tracking
+    gameState.selectedQuestions = [];
+    gameState.currentQuestionNumber = 0;
+    // NEW: Reset scoring
+    gameState.score = {
+      correctAnswers: 0,
+      totalQuestions: 0,
+      currentPrize: 0
+    };
     
     console.log('Game started with question pool');
     broadcastState();
@@ -387,6 +414,15 @@ io.on('connection', (socket) => {
         answer: '',
         attempts: [],
         result: null
+      };
+      // NEW: Reset progression tracking when starting main game
+      gameState.selectedQuestions = [];
+      gameState.currentQuestionNumber = 0;
+      // NEW: Reset scoring
+      gameState.score = {
+        correctAnswers: 0,
+        totalQuestions: 0,
+        currentPrize: 0
       };
     }
     broadcastState();
@@ -495,12 +531,17 @@ io.on('connection', (socket) => {
     console.log('reveal_guest_answer: Marked guest answer as revealed');
     console.log('reveal_guest_answer: Updated guestAnswerRevealed array:', gameState.guestAnswerRevealed);
     
+    // NEW: Update scoring system
+    gameState.score.totalQuestions += 1;
+    
     // Check if panel's guess matches guest's answer
     if (gameState.panelGuesses && gameState.guestAnswers && 
         gameState.panelGuesses[gameState.questionsAnswered - 1] === gameState.guestAnswers[gameState.questionsAnswered - 1]) {
       gameState.correctCount += 1;
       gameState.prize = Math.min(10000 * gameState.correctCount, 100000);
-      console.log('Panel guessed correctly!');
+      gameState.score.correctAnswers += 1;
+      gameState.score.currentPrize = gameState.prize;
+      console.log('Panel guessed correctly! Score updated.');
     } else {
       console.log('Panel guessed incorrectly.');
     }
@@ -516,6 +557,7 @@ io.on('connection', (socket) => {
         // Game ends without Final Gamble - guest wins 0
         gameState.round = 'game_over';
         gameState.prize = 0;
+        gameState.score.currentPrize = 0;
         console.log('Game over: 2 correct answers without lock placed. Guest wins 0.');
       }
     }
@@ -740,7 +782,16 @@ io.on('connection', (socket) => {
       questionPool: generateRandomQuestions(), // Generate new random questions
       currentQuestion: null,
       usedQuestions: [],
-      questionsAnswered: 0
+      questionsAnswered: 0,
+      // NEW: Reset progression tracking
+      selectedQuestions: [],
+      currentQuestionNumber: 0,
+      // NEW: Reset scoring
+      score: {
+        correctAnswers: 0,
+        totalQuestions: 0,
+        currentPrize: 0
+      }
     };
     broadcastState();
   });
