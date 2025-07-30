@@ -22,22 +22,8 @@ app.use(cors({
   credentials: true
 }));
 
-const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: [
-      'http://localhost:3000',
-      'https://frontend-jnga101ir-rajatbhands-projects.vercel.app',
-      'https://frontend-pied-six-96.vercel.app',
-      'https://*.vercel.app',
-      'https://*.onrender.com',
-      /^https:\/\/.*\.vercel\.app$/,
-      /^https:\/\/.*\.onrender\.com$/
-    ],
-    methods: ['GET', 'POST'],
-    credentials: true
-  }
-});
+// Add express.json middleware for JSON parsing
+app.use(express.json());
 
 // Configure multer for file upload
 const upload = multer({
@@ -83,8 +69,31 @@ function validateCSVRow(row, rowIndex) {
   return errors;
 }
 
+// CSV template download endpoint - THIS IS THE FIX
+app.get('/download-template', (req, res) => {
+  console.log('Template download requested');
+
+  const templateCSV = `question,option_a,option_b,option_c,option_d,guest_answer
+"What is your favorite color?","Red","Blue","Green","Yellow","Blue"
+"Which season do you prefer?","Spring","Summer","Fall","Winter","Fall"
+"What's your ideal vacation?","Beach","Mountains","City","Countryside","Beach"
+"Which movie genre do you like?","Comedy","Horror","Drama","Action","Comedy"
+"What's your biggest fear?","Heights","Spiders","Darkness","Public Speaking","Heights"
+"Which superpower would you choose?","Invisibility","Flying","Time Travel","Super Strength","Flying"
+"What's your favorite time of day?","Morning","Afternoon","Evening","Night","Morning"
+"Which pet would you prefer?","Dog","Cat","Fish","Bird","Dog"
+"What's your ideal date night?","Dinner & Movie","Adventure Sports","Concert","Museum","Dinner & Movie"
+"Which drink do you prefer?","Coffee","Tea","Water","Juice","Coffee"`;
+
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', 'attachment; filename="question-template.csv"');
+  res.send(templateCSV);
+});
+
 // CSV upload endpoint
 app.post('/upload-questions', upload.single('csvFile'), (req, res) => {
+  console.log('CSV upload requested');
+
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded' });
   }
@@ -166,20 +175,6 @@ app.post('/upload-questions', upload.single('csvFile'), (req, res) => {
     });
 });
 
-// CSV template download endpoint
-app.get('/download-template', (req, res) => {
-  const templateCSV = `question,option_a,option_b,option_c,option_d,guest_answer
-"What is your favorite color?","Red","Blue","Green","Yellow","Blue"
-"Which season do you prefer?","Spring","Summer","Fall","Winter","Fall"
-"What's your ideal vacation?","Beach","Mountains","City","Countryside","Beach"
-"Which movie genre do you like?","Comedy","Horror","Drama","Action","Comedy"
-"What's your biggest fear?","Heights","Spiders","Darkness","Public Speaking","Heights"`;
-
-  res.setHeader('Content-Type', 'text/csv');
-  res.setHeader('Content-Disposition', 'attachment; filename="question-template.csv"');
-  res.send(templateCSV);
-});
-
 // Function to generate random questions (now returns empty array)
 function generateRandomQuestions() {
   return []; // No prefilled questions - operators must add their own
@@ -242,6 +237,23 @@ function getCurrentQuestion() {
 function broadcastState() {
   io.emit('game_state', gameState);
 }
+
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: [
+      'http://localhost:3000',
+      'https://frontend-jnga101ir-rajatbhands-projects.vercel.app',
+      'https://frontend-pied-six-96.vercel.app',
+      'https://*.vercel.app',
+      'https://*.onrender.com',
+      /^https:\/\/.*\.vercel\.app$/,
+      /^https:\/\/.*\.onrender\.com$/
+    ],
+    methods: ['GET', 'POST'],
+    credentials: true
+  }
+});
 
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);

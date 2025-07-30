@@ -151,6 +151,32 @@ function App() {
     }
   };
 
+  // Download the template CSV file from the backend using async/await.
+  // Only declare handleDownloadTemplate once.
+  const handleDownloadTemplate = async () => {
+    try {
+      const backendUrl = 'https://jmyic.onrender.com'; // or your actual backend URL
+      const response = await fetch(`${backendUrl}/download-template`);
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'question-template.csv';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } else {
+        setCsvUpload(prev => ({ ...prev, error: 'Failed to download template' }));
+      }
+    } catch (error) {
+      setCsvUpload(prev => ({ ...prev, error: 'Download failed: ' + error.message }));
+    }
+  };
+
+
+  // Also update the CSV upload to use the correct backend URL:
   const handleCSVUpload = async () => {
     if (!csvUpload.file) {
       setCsvUpload(prev => ({ ...prev, error: 'Please select a CSV file first' }));
@@ -163,7 +189,8 @@ function App() {
     formData.append('csvFile', csvUpload.file);
     
     try {
-      const response = await fetch('/upload-questions', {
+      const backendUrl = 'https://jmyic.onrender.com'; // or your actual backend URL
+      const response = await fetch(`${backendUrl}/upload-questions`, {
         method: 'POST',
         body: formData
       });
@@ -193,10 +220,6 @@ function App() {
         error: 'Upload failed: ' + error.message
       }));
     }
-  };
-
-  const handleDownloadTemplate = () => {
-    window.open('/download-template', '_blank');
   };
 
   // Update the renderAddQuestionForm function to include CSV upload:
