@@ -21058,13 +21058,234 @@ In `frontend/src/App.js`, update the right panel section around line 942:
 }}>
   {gameState.round === 'setup' ? (
     <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-      <h2 
+      <h2 style={{ color: '#666', marginBottom: '20px' }}>🎬 Game Setup</h2>
+      <p style={{ color: '#999', fontSize: '16px', marginBottom: '30px' }}>
+        Add questions to the pool and start the game when ready.
+      </p>
+      {(gameState?.questionPool?.length || 0) > 0 && (
+        <button 
+          onClick={handleStartGame}
+          style={{ 
+            padding: '15px 30px', 
+            backgroundColor: '#4CAF50', 
+            color: 'white', 
+            border: 'none', 
+            borderRadius: 6,
+            cursor: 'pointer',
+            fontSize: 18,
+            fontWeight: 'bold'
+          }}
+        >
+          🚀 Start Game
+        </button>
+      )}
+    </div>
+  ) : gameState.round === 'main_game' ? (
+    renderMainGame()
+  ) : (
+    <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+      <h2 style={{ color: '#666' }}>Round: {gameState.round}</h2>
+      <p style={{ color: '#999' }}>Game controls will appear here based on the current round.</p>
+    </div>
+  )}
+</div>
+```
+
+Also remove the `padding: '20px'` from inside `renderMainGame()` function around line 607:
+
+```javascript
+const renderMainGame = () => {
+  // ... existing code ...
+  return (
+    <div> {/* Remove padding: '20px' from here */}
+      <h2 style={{ color: '#333', marginBottom: '20px' }}>🎮 Main Game Controls</h2>
+      {/* ... rest of the content ... */}
+    </div>
+  );
+};
+```
+
+This creates one unified scrollable panel that works well on small screens.
 
 ---
 
 _**User**_
 
 sorry the scroll is to be added on left panel
+
+---
+
+_**Assistant**_
+
+**Fix - Add vertical scroll to the left panel:**
+
+In `frontend/src/App.js`, update the left panel styles around line 928:
+
+```javascript
+{/* Left Panel (30%) - Question Management */}
+<div style={{ 
+  width: '30%', 
+  display: 'flex', 
+  flexDirection: 'column',
+  gap: '15px',
+  overflowY: 'auto', // Enable vertical scroll
+  maxHeight: 'calc(100vh - 120px)', // Limit height to viewport
+  paddingRight: '10px' // Add padding for scrollbar space
+}}>
+  {/* Add Question Form */}
+  {renderAddQuestionForm()}
+  
+  {/* Question Pool */}
+  {renderQuestionPool()}
+</div>
+```
+
+Also, you might want to remove the fixed height from the question pool component in `renderQuestionPool()` around line 465:
+
+```javascript
+const renderQuestionPool = () => (
+  <div style={{
+    border: '1px solid #e0e0e0',
+    borderRadius: '8px',
+    backgroundColor: '#fff',
+    overflow: 'hidden',
+    // height: '400px', // Remove this fixed height
+    display: 'flex',
+    flexDirection: 'column',
+    minHeight: '300px' // Add minimum height instead
+  }}>
+```
+
+This will make the left panel scrollable vertically so all questions are accessible on small screens.
+
+---
+
+_**User**_
+
+remove the locked x amount under current prize
+
+---
+
+_**Assistant**_
+
+**Fix - Remove the locked amount display:**
+
+In `frontend/src/AudienceDisplay.js`, update the Current Prize Bar section around line 240:
+
+```javascript
+{/* Current Prize Bar */}
+<div style={{
+  background: 'linear-gradient(90deg, #1976D2 0%, #42A5F5 50%, #1976D2 100%)',
+  borderRadius: '20px',
+  padding: '15px 30px',
+  margin: '0 auto 20px',
+  maxWidth: '600px',
+  border: '2px solid #2196F3',
+  boxShadow: '0 0 20px rgba(33,150,243,0.6)',
+  position: 'relative'
+}}>
+  <div style={{
+    fontSize: '32px',
+    fontWeight: 'bold',
+    color: '#ffffff',
+    textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
+    textAlign: 'center'
+  }}>
+    Current Prize: ₹{prize.toLocaleString()}
+  </div>
+  {/* Remove this entire section:
+  {gameState.lockedMoney > 0 && (
+    <div style={{
+      fontSize: '18px',
+      color: '#4CAF50',
+      textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
+      textAlign: 'center',
+      marginTop: '8px',
+      fontWeight: 'bold'
+    }}>
+      🔒 LOCKED: ₹{gameState.lockedMoney.toLocaleString()}
+    </div>
+  )}
+  */}
+</div>
+```
+
+Simply remove/comment out the entire locked money display section while keeping the main "Current Prize" display.
+
+---
+
+_**User**_
+
+remove the text no lives left from audience view and there should be only only one heart for life on audience display
+
+---
+
+_**Assistant**_
+
+**Fix - Update lives display in `frontend/src/AudienceDisplay.js`:**
+
+In the `renderLives` function around line 89, update it to:
+
+```javascript
+const renderLives = () => {
+  const lives = gameState.lives !== undefined ? gameState.lives : 1;
+  
+  return (
+    <div style={{
+      position: 'absolute',
+      top: '20px',
+      left: '20px',
+      display: 'flex',
+      gap: '15px',
+      alignItems: 'center',
+      zIndex: 1000
+    }}>
+      <span style={{
+        color: '#ffffff',
+        fontSize: '24px',
+        fontWeight: 'bold',
+        marginRight: '10px',
+        textShadow: '2px 2px 4px rgba(0,0,0,0.8)'
+      }}>
+        Mystery Guest Life:
+      </span>
+      
+      {/* Single Life Heart */}
+      <div style={{
+        fontSize: '50px',
+        color: lives >= 1 ? '#ff4757' : '#2f3542',
+        textShadow: lives >= 1 ? '0 0 15px rgba(255,71,87,0.8), 0 0 30px rgba(255,71,87,0.4)' : 'none',
+        transition: 'all 0.5s ease',
+        transform: lives >= 1 ? 'scale(1)' : 'scale(0.8)',
+        filter: lives >= 1 ? 'brightness(1)' : 'brightness(0.3)'
+      }}>
+        {lives >= 1 ? '❤️' : '🖤'}
+      </div>
+      
+      {/* Remove this entire section:
+      {lifeUsed && (
+        <div style={{
+          fontSize: '18px',
+          color: lives >= 1 ? '#ff4757' : '#f44336',
+          fontWeight: 'bold',
+          marginLeft: '10px'
+        }}>
+          {lives >= 1 ? 'LIFE USED' : 'NO LIVES LEFT'}
+        </div>
+      )}
+      */}
+    </div>
+  );
+};
+```
+
+This removes the "NO LIVES LEFT" text and keeps only a single heart that changes from ❤️ to 🖤 when the life is lost.
+
+---
+
+_**User**_
+
+and the locked amount is still visible under current prize on audience display 
 
 ---
 

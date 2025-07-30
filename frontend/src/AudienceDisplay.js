@@ -84,7 +84,6 @@ function AudienceDisplay() {
   // Lives display component
   const renderLives = () => {
     const lives = gameState.lives !== undefined ? gameState.lives : 1;
-    const lifeUsed = gameState.lifeUsed || false;
     
     return (
       <div style={{
@@ -118,17 +117,6 @@ function AudienceDisplay() {
           {lives >= 1 ? '❤️' : '🖤'}
         </div>
         
-        {/* Life Status */}
-        {lifeUsed && (
-          <div style={{
-            fontSize: '18px',
-            color: lives >= 1 ? '#ff4757' : '#f44336',
-            fontWeight: 'bold',
-            marginLeft: '10px'
-          }}>
-            {lives >= 1 ? 'LIFE USED' : 'NO LIVES LEFT'}
-          </div>
-        )}
       </div>
     );
   };
@@ -249,18 +237,6 @@ function AudienceDisplay() {
           }}>
             Current Prize: ₹{prize.toLocaleString()}
           </div>
-          {gameState.lockedMoney > 0 && (
-            <div style={{
-              fontSize: '18px',
-              color: '#4CAF50',
-              textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
-              textAlign: 'center',
-              marginTop: '8px',
-              fontWeight: 'bold'
-            }}>
-              🔒 LOCKED: ₹{gameState.lockedMoney.toLocaleString()}
-            </div>
-          )}
         </div>
 
         {/* Prize Tiers */}
