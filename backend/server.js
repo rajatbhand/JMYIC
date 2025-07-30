@@ -81,6 +81,9 @@ let gameState = {
     currentPrize: 0
   },
   mismatchCount: 0, // NEW: count mismatches for prize
+  // NEW: Lives system
+  lives: 2, // Mystery guest starts with 2 lives
+  gameOver: false, // Track if game ended due to lives lost
 };
 
 // Helper function to get current question
@@ -230,6 +233,9 @@ io.on('connection', (socket) => {
       currentPrize: 0
     };
     gameState.mismatchCount = 0; // Reset mismatch count
+    // NEW: Reset lives and gameOver
+    gameState.lives = 2;
+    gameState.gameOver = false;
     
     console.log('Game started with question pool');
     broadcastState();
@@ -375,6 +381,13 @@ io.on('connection', (socket) => {
       return;
     }
     
+    // Check if game is already over
+    if (gameState.gameOver) {
+      socket.emit('error', { message: 'Game is already over due to lives lost.' });
+      console.error('reveal_guest_answer: Game already over');
+      return;
+    }
+    
     // Mark guest answer as revealed
     if (!gameState.guestAnswerRevealed) gameState.guestAnswerRevealed = [];
     gameState.guestAnswerRevealed[gameState.questionsAnswered - 1] = true;
@@ -382,54 +395,62 @@ io.on('connection', (socket) => {
     console.log('reveal_guest_answer: Marked guest answer as revealed');
     console.log('reveal_guest_answer: Updated guestAnswerRevealed array:', gameState.guestAnswerRevealed);
     
-    // NEW: Update scoring system
+    // Check if panel's guess matches guest's answer
+    const idx = gameState.questionsAnswered - 1;
+    const panelAnswer = gameState.panelGuesses && gameState.panelGuesses[idx];
+    const guestAnswer = gameState.guestAnswers && gameState.guestAnswers[idx];
+    
+    console.log(`Comparing answers: Panel: "${panelAnswer}", Guest: "${guestAnswer}"`);
+    
+    // Update total questions count
     gameState.score.totalQuestions += 1;
     
-    // Check if panel's guess matches guest's answer
-    if (gameState.panelGuesses && gameState.guestAnswers && 
-        gameState.panelGuesses[gameState.questionsAnswered - 1] === gameState.guestAnswers[gameState.questionsAnswered - 1]) {
+    if (panelAnswer === guestAnswer) {
+      // MATCH: Panel and guest agree - lose a life, no prize increase
+      gameState.lives = Math.max(0, gameState.lives - 1);
       gameState.correctCount += 1;
-      gameState.prize = Math.min(10000 * gameState.correctCount, 100000);
       gameState.score.correctAnswers += 1;
-      gameState.score.currentPrize = gameState.prize;
-      console.log('Panel guessed correctly! Score updated.');
+      
+      console.log(`🔴 MATCH! Panel and guest both answered "${panelAnswer}". Life lost! Lives remaining: ${gameState.lives}`);
+      
+      // Check if all lives are lost
+      if (gameState.lives === 0) {
+        gameState.gameOver = true;
+        gameState.round = 'game_over';
+        console.log('💀 GAME OVER: All lives lost!');
+      }
+      
+      // NO prize increase on match - prize stays the same
+      console.log(`Prize remains: ₹${gameState.prize} (no increase for matches)`);
+      
     } else {
-      console.log('Panel guessed incorrectly.');
-    }
-    
-    // Prize logic: only add for mismatches
-    const idx = gameState.questionsAnswered - 1;
-    if (
-      gameState.panelGuesses &&
-      gameState.guestAnswers &&
-      gameState.panelGuesses[idx] !== undefined &&
-      gameState.guestAnswers[idx] !== undefined &&
-      gameState.panelGuesses[idx] !== gameState.guestAnswers[idx]
-    ) {
-      // Mismatch: add prize
+      // MISMATCH: Panel and guest disagree - add prize, continue normal flow
       gameState.mismatchCount = (gameState.mismatchCount || 0) + 1;
       gameState.prize = Math.min(10000 * gameState.mismatchCount, 100000);
       gameState.score.currentPrize = gameState.prize;
-      console.log('Panel and guest answers mismatched! Prize updated.');
-    } else {
-      console.log('Panel and guest answers matched. No prize added.');
+      
+      console.log(`✅ MISMATCH! Panel: "${panelAnswer}", Guest: "${guestAnswer}". Prize increased to: ₹${gameState.prize}`);
     }
     
-    // Game ends when panel gets 2 correct answers
-    if (gameState.correctCount >= 2) {
-      // Only offer Final Gamble if guest has placed a lock
-      if (gameState.lock.placed) {
-        gameState.round = 'final_gamble_offer';
-        gameState.finalGamble.eligible = gameState.prize >= 40000;
-        console.log('Game over: 2 correct answers with lock placed. Final Gamble eligibility:', gameState.finalGamble.eligible);
-      } else {
-        // Game ends without Final Gamble - guest wins 0
-        gameState.round = 'game_over';
-        gameState.prize = 0;
-        gameState.score.currentPrize = 0;
-        console.log('Game over: 2 correct answers without lock placed. Guest wins 0.');
+    // Check game end conditions (only if game not already over from lives)
+    if (!gameState.gameOver) {
+      // Game ends when panel gets 2 correct answers
+      if (gameState.correctCount >= 2) {
+        // Only offer Final Gamble if guest has placed a lock
+        if (gameState.lock.placed) {
+          gameState.round = 'final_gamble_offer';
+          gameState.finalGamble.eligible = gameState.prize >= 40000;
+          console.log('🎯 Game over: 2 correct answers with lock placed. Final Gamble eligibility:', gameState.finalGamble.eligible);
+        } else {
+          // Game ends without Final Gamble - guest wins 0
+          gameState.round = 'game_over';
+          gameState.prize = 0;
+          gameState.score.currentPrize = 0;
+          console.log('🚫 Game over: 2 correct answers without lock placed. Guest wins 0.');
+        }
       }
     }
+    
     broadcastState();
   });
 
@@ -662,6 +683,9 @@ io.on('connection', (socket) => {
         currentPrize: 0
       },
       mismatchCount: 0, // Reset mismatch count
+      // NEW: Reset lives and gameOver
+      lives: 2,
+      gameOver: false,
     };
     broadcastState();
   });

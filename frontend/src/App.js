@@ -33,8 +33,6 @@ function App() {
     };
   }, []);
 
-
-
   // Handlers for Main Game
   const handlePanelGuess = (guess) => setPanelGuess(guess);
   const handleSubmitPanelGuess = () => {
@@ -47,25 +45,13 @@ function App() {
     console.log('Checking panel guess...');
     soundEffects.playSound('checkGuess');
     socket.emit('check_panel_guess');
-    
-    // Add a timeout to see if we get a response
-    setTimeout(() => {
-      console.log('Timeout: No response from check_panel_guess after 3 seconds');
-    }, 3000);
   };
-  
   const handleRevealGuestAnswer = () => {
     console.log('Revealing guest answer...');
     soundEffects.playSound('revealAnswer');
     socket.emit('reveal_guest_answer');
   };
-  
-  const handleTestBackend = () => {
-    console.log('Testing backend connection...');
-    socket.emit('test_event');
-  };
-  const handleAdvanceQuestion = () => {
-    setPanelGuess('');
+  const handleNextQuestion = () => {
     socket.emit('advance_question');
   };
   const handlePlaceLock = () => {
@@ -88,17 +74,12 @@ function App() {
     options: ['', '', '', ''],
     guestAnswer: ''
   });
-  const [questionPool, setQuestionPool] = useState({
-    questions: [],
-    usedQuestions: [],
-    currentQuestion: null
-  });
 
   // Question Setup Handlers
   const handleAddQuestionToPool = () => {
     if (newQuestion.text && newQuestion.options.every(opt => opt.trim()) && newQuestion.guestAnswer) {
       socket.emit('add_question_to_pool', newQuestion);
-      setNewQuestion({ text: '', options: ['', ''], guestAnswer: '' });
+      setNewQuestion({ text: '', options: ['', '', '', ''], guestAnswer: '' });
     }
   };
 
@@ -114,578 +95,649 @@ function App() {
     socket.emit('start_game');
   };
 
-  const handleGetQuestionPool = () => {
-    socket.emit('get_question_pool');
+  const handleResetGame = () => {
+    if (window.confirm('Are you sure you want to reset the entire game? This will clear all progress and questions.')) {
+      socket.emit('reset_game');
+    }
   };
 
-  // Listen for question pool response
-  useEffect(() => {
-    socket.on('question_pool', (data) => {
-      setQuestionPool(data);
-    });
-    return () => {
-      socket.off('question_pool');
-    };
-  }, []);
+  const handleTestBackend = () => {
+    console.log('Testing backend connection...');
+    socket.emit('test_event');
+  };
 
-  // Question Setup UI
-  // Add Question Form Component
-  const renderAddQuestionForm = () => {
-    return (
-      <div style={{ 
-        padding: '16px', 
-        backgroundColor: '#fff',
-        borderBottom: '1px solid #e0e0e0'
-      }}>
-        <h4 style={{ margin: '0 0 12px 0', fontSize: '16px', color: '#333' }}>
-          ➕ Add New Question
-        </h4>
-        <div style={{ marginBottom: '8px' }}>
+  // Helper function to check if a question has been fully played (both panel and guest answered)
+  const isQuestionFullyPlayed = (questionId) => {
+    if (!gameState?.selectedQuestions || !gameState?.panelGuesses || !gameState?.guestAnswers) {
+      return false;
+    }
+    
+    // Find the index of this question in the selectedQuestions array
+    const questionIndex = gameState.selectedQuestions.indexOf(questionId);
+    if (questionIndex === -1) return false;
+    
+    // Check if both panel and guest have answered this question
+    const hasPanelAnswer = gameState.panelGuesses[questionIndex] !== undefined;
+    const hasGuestAnswer = gameState.guestAnswers[questionIndex] !== undefined;
+    const isRevealed = gameState.guestAnswerRevealed && gameState.guestAnswerRevealed[questionIndex];
+    
+    return hasPanelAnswer && hasGuestAnswer && isRevealed;
+  };
+
+  const renderAddQuestionForm = () => (
+    <div style={{
+      padding: '15px',
+      backgroundColor: '#f9f9f9',
+      borderRadius: '8px',
+      marginBottom: '15px',
+      border: '1px solid #e0e0e0'
+    }}>
+      <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', color: '#333' }}>
+        ➕ Add New Question
+      </h3>
+      
+      {/* Question Text */}
+      <div style={{ marginBottom: '10px' }}>
+        <label style={{ display: 'block', fontSize: '12px', color: '#666', marginBottom: '4px' }}>
+          Question:
+        </label>
+        <input
+          type="text"
+          value={newQuestion.text}
+          onChange={(e) => setNewQuestion({ ...newQuestion, text: e.target.value })}
+          placeholder="Enter your question here..."
+          style={{
+            width: '100%',
+            padding: '8px',
+            border: '1px solid #ddd',
+            borderRadius: '4px',
+            fontSize: '13px'
+          }}
+        />
+      </div>
+
+      {/* Options (exactly 4) */}
+      <div style={{ marginBottom: '10px' }}>
+        <label style={{ display: 'block', fontSize: '12px', color: '#666', marginBottom: '4px' }}>
+          Options (A, B, C, D):
+        </label>
+        {['A', 'B', 'C', 'D'].map((letter, index) => (
           <input
+            key={index}
             type="text"
-            placeholder="Question text"
-            value={newQuestion.text}
-            onChange={(e) => setNewQuestion({...newQuestion, text: e.target.value})}
-            style={{ 
-              width: '100%', 
-              padding: '6px 8px', 
+            value={newQuestion.options[index]}
+            onChange={(e) => {
+              const newOptions = [...newQuestion.options];
+              newOptions[index] = e.target.value;
+              setNewQuestion({ ...newQuestion, options: newOptions });
+            }}
+            placeholder={`Option ${letter}`}
+            style={{
+              width: '100%',
+              padding: '6px',
               border: '1px solid #ddd',
-              borderRadius: 3,
-              fontSize: '12px'
+              borderRadius: '4px',
+              fontSize: '12px',
+              marginBottom: '4px'
             }}
           />
-        </div>
-        <div style={{ marginBottom: '8px' }}>
-          {newQuestion.options.map((option, index) => (
-            <div key={index} style={{ display: 'flex', gap: '4px', marginBottom: '4px' }}>
-              <input
-                type="text"
-                placeholder={`Option ${index + 1}`}
-                value={option}
-                onChange={(e) => {
-                  const newOptions = [...newQuestion.options];
-                  newOptions[index] = e.target.value;
-                  setNewQuestion({...newQuestion, options: newOptions});
-                }}
-                style={{ 
-                  flex: 1, 
-                  padding: '6px 8px',
-                  border: '1px solid #ddd',
-                  borderRadius: 3,
-                  fontSize: '12px'
-                }}
-              />
-            </div>
-          ))}
-        </div>
-        <div style={{ marginBottom: '8px' }}>
-          <input
-            type="text"
-            placeholder="Guest's answer (must be one of the options)"
-            value={newQuestion.guestAnswer}
-            onChange={(e) => setNewQuestion({...newQuestion, guestAnswer: e.target.value})}
-            style={{ 
-              width: '100%', 
-              padding: '6px 8px',
-              border: '1px solid #ddd',
-              borderRadius: 3,
-              fontSize: '12px'
-            }}
-          />
-        </div>
-        <button 
-          onClick={handleAddQuestionToPool}
-          disabled={!newQuestion.text || !newQuestion.options.every(opt => opt.trim()) || !newQuestion.guestAnswer || newQuestion.options.length !== 4}
-          style={{ 
-            padding: '6px 12px', 
-            backgroundColor: '#4CAF50', 
-            color: 'white', 
-            border: 'none', 
-            borderRadius: 3,
-            cursor: 'pointer',
-            fontSize: '12px',
-            width: '100%'
+        ))}
+      </div>
+
+      {/* Guest Answer */}
+      <div style={{ marginBottom: '12px' }}>
+        <label style={{ display: 'block', fontSize: '12px', color: '#666', marginBottom: '4px' }}>
+          Guest Answer:
+        </label>
+        <select
+          value={newQuestion.guestAnswer}
+          onChange={(e) => setNewQuestion({ ...newQuestion, guestAnswer: e.target.value })}
+          style={{
+            width: '100%',
+            padding: '6px',
+            border: '1px solid #ddd',
+            borderRadius: '4px',
+            fontSize: '12px'
           }}
         >
-          Add to Pool
-        </button>
+          <option value="">Select guest answer...</option>
+          {newQuestion.options.map((option, index) => (
+            option.trim() && (
+              <option key={index} value={option}>
+                {['A', 'B', 'C', 'D'][index]}: {option}
+              </option>
+            )
+          ))}
+        </select>
       </div>
-    );
-  };
 
-  // Main Game UI
-  const renderMainGame = () => {
-    const currentQuestion = gameState.currentQuestion || { text: 'No question selected', options: [] };
-    const lock = gameState.lock || {};
-    const canLock = gameState.questionsAnswered >= 3 && gameState.questionsAnswered <= 9;
-    const lockPlaced = lock.placed;
-    const lockShifted = lock.shifted;
-    const lockQuestion = lock.question;
-    const correctCount = gameState.correctCount || 0;
-    const prize = gameState.prize || 0;
-    const panelGuesses = gameState.panelGuesses || [];
-    const guestAnswers = gameState.guestAnswers || [];
-    const guestAnswerRevealed = gameState.guestAnswerRevealed && gameState.guestAnswerRevealed[gameState.questionsAnswered - 1];
-    const lastPanelGuess = panelGuesses[gameState.questionsAnswered - 1];
-    const lastGuestAnswer = guestAnswers[gameState.questionsAnswered - 1];
-    const isGuestAnswerRevealed = guestAnswerRevealed;
-    const isAnswered = Boolean(lastPanelGuess && lastGuestAnswer && isGuestAnswerRevealed);
-    const gameOver = correctCount >= 2;
-    const gameOverWithoutLock = gameOver && !lockPlaced;
-    const gameOverWithLock = gameOver && lockPlaced;
+      <button
+        onClick={handleAddQuestionToPool}
+        disabled={!newQuestion.text || !newQuestion.options.every(opt => opt.trim()) || !newQuestion.guestAnswer}
+        style={{
+          padding: '8px 16px',
+          backgroundColor: newQuestion.text && newQuestion.options.every(opt => opt.trim()) && newQuestion.guestAnswer ? '#4CAF50' : '#ccc',
+          color: 'white',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: newQuestion.text && newQuestion.options.every(opt => opt.trim()) && newQuestion.guestAnswer ? 'pointer' : 'not-allowed',
+          fontSize: '13px',
+          fontWeight: 'bold'
+        }}
+      >
+        ➕ Add Question
+      </button>
+    </div>
+  );
 
-    return (
-      <div style={{ marginTop: 24 }}>
-        <h3>Main Game - Question {gameState.questionsAnswered} of Pool</h3>
-        
-        {!currentQuestion.text || currentQuestion.text === 'No question selected' ? (
-          <div style={{ marginBottom: 16, padding: 12, backgroundColor: '#fff3cd', borderRadius: 4, border: '1px solid #ffeaa7' }}>
-            <strong>⚠️ No Question Selected</strong>
-            <p>Please select a question from the pool on the left to continue the game.</p>
+  const renderQuestionPool = () => (
+    <div style={{
+      border: '1px solid #e0e0e0',
+      borderRadius: '8px',
+      backgroundColor: '#fff',
+      overflow: 'hidden',
+      height: '400px',
+      display: 'flex',
+      flexDirection: 'column'
+    }}>
+      {/* Header */}
+      <div style={{
+        padding: '12px',
+        borderBottom: '1px solid #e0e0e0',
+        backgroundColor: '#fff'
+      }}>
+        <h3 style={{ margin: 0, fontSize: '16px', color: '#333' }}>
+          📝 Question Pool ({(gameState?.questionPool?.length || 0)}/25)
+        </h3>
+      </div>
+      
+      {/* Question List */}
+      <div style={{ flex: 1, overflow: 'auto', padding: '8px' }}>
+        {!(gameState?.questionPool?.length) ? (
+          <div style={{ 
+            textAlign: 'center', 
+            color: '#666', 
+            padding: '20px',
+            fontSize: '13px'
+          }}>
+            No questions in pool. Add questions above to get started.
           </div>
         ) : (
-          <>
-            <div style={{ marginBottom: 16 }}>
-              <strong>Q: {currentQuestion.text}</strong>
-            </div>
-            <div style={{ marginBottom: 16 }}>
-              {currentQuestion.options.map((opt, i) => (
-                <label key={i} style={{ marginRight: 16 }}>
-                  <input
-                    type="radio"
-                    name="panelGuess"
-                    value={opt}
-                    checked={panelGuess === opt}
-                    onChange={() => handlePanelGuess(opt)}
-                    disabled={!!lastPanelGuess}
-                  />{' '}
-                  {opt}
-                </label>
-              ))}
-              <button onClick={handleSubmitPanelGuess} disabled={panelGuess === '' || !!lastPanelGuess}>Submit Panel Guess</button>
-            </div>
-          </>
-        )}
-        
-        {/* Show Panel Guess */}
-        {lastPanelGuess && (
-          <div style={{ marginBottom: 16, padding: 12, backgroundColor: '#e3f2fd', borderRadius: 4 }}>
-            <strong>Panel's Guess:</strong> {lastPanelGuess}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {(gameState?.questionPool || []).map((question) => {
+              const isUsed = (gameState?.usedQuestions || []).includes(question.id);
+              const isFullyPlayed = isQuestionFullyPlayed(question.id);
+              
+              return (
+                <div key={question.id} style={{ 
+                  padding: '10px', 
+                  backgroundColor: isUsed ? '#f5f5f5' : 'white', 
+                  borderRadius: 5,
+                  border: isFullyPlayed ? '2px solid #4CAF50' : '1px solid #e0e0e0',
+                  opacity: isUsed ? 0.6 : 1,
+                  cursor: isUsed ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s ease'
+                }}>
+                  <div style={{ 
+                    fontSize: '12px', 
+                    fontWeight: 'bold',
+                    color: '#333',
+                    marginBottom: '3px',
+                    lineHeight: '1.3'
+                  }}>
+                    {question.text}
+                    {isFullyPlayed && (
+                      <span style={{
+                        marginLeft: '8px',
+                        fontSize: '10px',
+                        color: '#4CAF50',
+                        fontWeight: 'normal'
+                      }}>
+                        ✅ Completed
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ 
+                    fontSize: '10px', 
+                    color: '#666', 
+                    marginBottom: '3px',
+                    lineHeight: '1.2'
+                  }}>
+                    <strong>Options:</strong> {question.options.join(', ')}
+                  </div>
+                  <div style={{ 
+                    fontSize: '10px', 
+                    color: '#666',
+                    marginBottom: '6px'
+                  }}>
+                    <strong>Guest Answer:</strong> {question.guestAnswer}
+                  </div>
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    {!isUsed ? (
+                      <button 
+                        onClick={() => handleSelectQuestionFromPool(question.id)}
+                        style={{ 
+                          padding: '3px 6px', 
+                          backgroundColor: '#4CAF50', 
+                          color: 'white', 
+                          border: 'none', 
+                          borderRadius: 2,
+                          cursor: 'pointer',
+                          fontSize: '10px',
+                          flex: 1
+                        }}
+                      >
+                        Select
+                      </button>
+                    ) : (
+                      <span style={{ 
+                        color: '#f44336', 
+                        fontSize: '10px',
+                        padding: '3px 6px',
+                        backgroundColor: '#ffebee',
+                        borderRadius: 2,
+                        flex: 1,
+                        textAlign: 'center'
+                      }}>
+                        Used
+                      </span>
+                    )}
+                    <button 
+                      onClick={() => handleRemoveQuestionFromPool(question.id)}
+                      style={{ 
+                        padding: '3px 6px', 
+                        backgroundColor: isFullyPlayed ? '#FF9800' : '#f44336', 
+                        color: 'white', 
+                        border: 'none', 
+                        borderRadius: 2,
+                        cursor: 'pointer',
+                        fontSize: '10px'
+                      }}
+                      title={isFullyPlayed ? 'Delete completed question' : 'Delete question'}
+                    >
+                      {isFullyPlayed ? '🗑️' : '×'}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
+      </div>
+    </div>
+  );
+
+  const renderMainGame = () => {
+    const currentQuestion = gameState?.currentQuestion;
+    const panelGuesses = gameState?.panelGuesses || [];
+    const guestAnswers = gameState?.guestAnswers || [];
+    const currentQuestionIndex = gameState?.questionsAnswered - 1;
+    const lastPanelGuess = panelGuesses[currentQuestionIndex];
+    const lastGuestAnswer = guestAnswers[currentQuestionIndex];
+    const guestAnswerRevealed = gameState?.guestAnswerRevealed && gameState.guestAnswerRevealed[currentQuestionIndex];
+    const isAnswered = Boolean(lastPanelGuess && lastGuestAnswer && guestAnswerRevealed);
+
+    return (
+      <div style={{ padding: '20px' }}>
+        <h2 style={{ color: '#333', marginBottom: '20px' }}>🎮 Main Game Controls</h2>
         
-        {/* Step 2: Check Panel Guess Button */}
-        {lastPanelGuess && !lastGuestAnswer && (
-          <div style={{ marginBottom: 16 }}>
-            <button 
-              onClick={handleCheckPanelGuess}
-              style={{ 
-                padding: '8px 16px', 
-                fontSize: 14, 
-                backgroundColor: '#FF9800', 
-                color: 'white', 
-                border: 'none', 
-                borderRadius: 4,
-                cursor: 'pointer',
-                marginRight: '10px'
-              }}
-            >
-              Step 2: Check Panel Guess
-            </button>
-            <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-              Debug: Panel guess submitted, waiting to check against guest answer
-            </div>
-          </div>
-        )}
-        
-        {/* Step 3: Reveal Guest Answer Button */}
-        {lastPanelGuess && lastGuestAnswer && (
-          <div style={{ marginBottom: 16 }}>
-            <button 
-              onClick={handleRevealGuestAnswer}
-              style={{ 
-                padding: '8px 16px', 
-                fontSize: 14, 
-                backgroundColor: '#2196F3', 
-                color: 'white', 
-                border: 'none', 
-                borderRadius: 4,
-                cursor: 'pointer'
-              }}
-            >
-              Step 3: Reveal Guest Answer
-            </button>
-            <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-              Debug: Guest answer loaded, ready to reveal to audience
-            </div>
-          </div>
-        )}
-        
-        {/* Show Guest Answer */}
-        {lastGuestAnswer && (
-          <div style={{ marginBottom: 16, padding: 12, backgroundColor: '#f3e5f5', borderRadius: 4 }}>
-            <strong>Guest's Answer:</strong> {lastGuestAnswer}
-          </div>
-        )}
-        
-        {/* Show Result */}
-        {isAnswered && (
-          <div style={{ 
-            marginBottom: 16, 
-            padding: 12,
-            color: lastPanelGuess === lastGuestAnswer ? 'green' : 'red',
-            backgroundColor: lastPanelGuess === lastGuestAnswer ? '#e8f5e8' : '#ffebee',
-            borderRadius: 4,
-            fontWeight: 'bold'
+        {!currentQuestion ? (
+          <div style={{
+            textAlign: 'center',
+            padding: '40px',
+            backgroundColor: '#f9f9f9',
+            borderRadius: '8px',
+            border: '1px solid #e0e0e0'
           }}>
-            {lastPanelGuess === lastGuestAnswer ? '✓ CORRECT! Panel matched the guest.' : '✗ INCORRECT. Panel did not match.'}
+            <h3 style={{ color: '#666', marginBottom: '12px' }}>No Question Selected</h3>
+            <p style={{ color: '#999', margin: 0 }}>
+              Select questions from the pool on the left to start the game.
+            </p>
+            {(gameState?.questionPool?.length || 0) > 0 && (
+              <button 
+                onClick={handleStartGame}
+                style={{ 
+                  padding: '12px 24px', 
+                  backgroundColor: '#FF9800', 
+                  color: 'white', 
+                  border: 'none', 
+                  borderRadius: 4,
+                  cursor: 'pointer',
+                  fontSize: 16,
+                  fontWeight: 'bold',
+                  marginTop: '12px'
+                }}
+              >
+                🎮 Start Game
+              </button>
+            )}
           </div>
-        )}
-        
-        <div style={{ marginBottom: 16 }}>
-          <strong>Correct Answers: {correctCount} / 2</strong> | <strong>Prize: ₹{prize.toLocaleString()}</strong>
-        </div>
-        
-        {/* Debug Info */}
-        <div style={{ marginBottom: 16, padding: 12, backgroundColor: '#f5f5f5', borderRadius: 4, fontSize: '12px' }}>
-          <strong>Debug Info:</strong><br/>
-          Panel Guess: {lastPanelGuess || 'None'}<br/>
-          Guest Answer: {lastGuestAnswer || 'None'}<br/>
-          Is Answered: {isAnswered ? 'Yes' : 'No'}<br/>
-          Questions Answered: {gameState.questionsAnswered || 0}
-        </div>
-        <div style={{ marginBottom: 16 }}>
-          <strong>Lock Status:</strong>{' '}
-          {lockPlaced ? (
-            <span>
-              Placed on Q{(lockQuestion || 0) + 1} {lockShifted ? '(shifted)' : ''}
-            </span>
-          ) : (
-            <span>Not placed</span>
-          )}
-        </div>
-        {canLock && (!lockPlaced || (lockPlaced && !lockShifted)) && (
-          <div style={{ marginBottom: 16 }}>
-            <input
-              type="number"
-              min={4}
-              max={10}
-              placeholder="Lock Q# (4-10)"
-              value={lockInput}
-              onChange={handleLockInput}
-            />{' '}
-            <button onClick={handlePlaceLock}>Place/Shift Lock</button>
-          </div>
-        )}
-        
-        {/* Next Question Button - only show after both answers are revealed and game not over */}
-        {isAnswered && !gameOver && (
-          <button 
-            onClick={handleAdvanceQuestion} 
-            style={{ 
-              marginTop: 16, 
-              padding: '12px 24px', 
-              fontSize: 16, 
-              backgroundColor: '#4CAF50', 
-              color: 'white', 
-              border: 'none', 
-              borderRadius: 4,
-              cursor: 'pointer'
-            }}
-          >
-            Next Question
-          </button>
-        )}
-        
-        {/* Game Over Messages */}
-        {gameOverWithoutLock && (
-          <div style={{ marginTop: 24, color: 'red', padding: 16, backgroundColor: '#ffebee', borderRadius: 4 }}>
-            <h3>Game Over! Panel got 2 correct answers before lock was placed.</h3>
-            <p><strong>Guest wins: ₹0</strong></p>
-          </div>
-        )}
-        
-        {gameOverWithLock && (
-          <div style={{ marginTop: 24, color: 'blue', padding: 16, backgroundColor: '#e3f2fd', borderRadius: 4 }}>
-            <h3>Game Over! Moving to Final Gamble Offer...</h3>
-            <p><strong>Current Prize: ₹{prize.toLocaleString()}</strong></p>
+        ) : (
+          <div>
+            {/* Current Question Display */}
+            <div style={{
+              padding: '20px',
+              backgroundColor: '#e3f2fd',
+              borderRadius: '8px',
+              marginBottom: '20px',
+              border: '1px solid #2196F3'
+            }}>
+              <h3 style={{ margin: '0 0 15px 0', color: '#1976D2' }}>Current Question:</h3>
+              <p style={{ fontSize: '18px', fontWeight: 'bold', margin: '0 0 15px 0', color: '#333' }}>
+                {currentQuestion.text}
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                {currentQuestion.options?.map((option, index) => (
+                  <div key={index} style={{
+                    padding: '10px',
+                    backgroundColor: panelGuess === option ? '#4CAF50' : 'white',
+                    color: panelGuess === option ? 'white' : '#333',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                    fontWeight: panelGuess === option ? 'bold' : 'normal'
+                  }}
+                  onClick={() => handlePanelGuess(option)}
+                  >
+                    <strong>{String.fromCharCode(65 + index)}:</strong> {option}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Game Controls - 3 Step Flow */}
+            <div style={{ display: 'flex', gap: '15px', marginBottom: '20px', flexWrap: 'wrap' }}>
+              {/* Step 1: Submit Panel Guess */}
+              {!lastPanelGuess && (
+                <button
+                  onClick={handleSubmitPanelGuess}
+                  disabled={!panelGuess}
+                  style={{
+                    padding: '12px 20px',
+                    backgroundColor: panelGuess ? '#4CAF50' : '#ccc',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: panelGuess ? 'pointer' : 'not-allowed',
+                    fontSize: '14px',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  Step 1: Submit Panel Guess
+                </button>
+              )}
+
+              {/* Step 2: Check Panel Guess */}
+              {lastPanelGuess && !lastGuestAnswer && (
+                <button
+                  onClick={handleCheckPanelGuess}
+                  style={{
+                    padding: '12px 20px',
+                    backgroundColor: '#FF9800',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  Step 2: Check Panel Guess
+                </button>
+              )}
+
+              {/* Step 3: Reveal Guest Answer */}
+              {lastPanelGuess && lastGuestAnswer && !guestAnswerRevealed && (
+                <button
+                  onClick={handleRevealGuestAnswer}
+                  style={{
+                    padding: '12px 20px',
+                    backgroundColor: '#2196F3',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  Step 3: Reveal Guest Answer
+                </button>
+              )}
+            </div>
+
+            {/* Debug Info Panel */}
+            <div style={{
+              padding: '15px',
+              backgroundColor: '#f5f5f5',
+              borderRadius: '6px',
+              fontSize: '12px',
+              color: '#666',
+              marginBottom: '20px'
+            }}>
+              <strong>Debug Info:</strong><br/>
+              Last Panel Guess: {lastPanelGuess || 'None'}<br/>
+              Last Guest Answer: {lastGuestAnswer || 'None'}<br/>
+              Guest Answer Revealed: {guestAnswerRevealed ? 'Yes' : 'No'}<br/>
+              Is Answered: {isAnswered ? 'Yes' : 'No'}<br/>
+              Questions Answered: {gameState?.questionsAnswered || 0}
+            </div>
+
+            {/* Lock Controls */}
+            {gameState?.questionsAnswered >= 3 && !gameState?.lock?.placed && (
+              <div style={{
+                padding: '15px',
+                backgroundColor: '#fff3e0',
+                borderRadius: '8px',
+                border: '1px solid #ff9800',
+                marginBottom: '20px'
+              }}>
+                <h4 style={{ margin: '0 0 10px 0', color: '#f57c00' }}>🔒 Place Lock (Q4-Q10)</h4>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  <input
+                    type="number"
+                    value={lockInput}
+                    onChange={handleLockInput}
+                    placeholder="Question number (4-10)"
+                    min="4"
+                    max="10"
+                    style={{
+                      padding: '8px',
+                      border: '1px solid #ddd',
+                      borderRadius: '4px',
+                      width: '150px'
+                    }}
+                  />
+                  <button
+                    onClick={handlePlaceLock}
+                    style={{
+                      padding: '8px 16px',
+                      backgroundColor: '#ff9800',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    🔒 Place Lock
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {gameState?.lock?.placed && (
+              <div style={{
+                padding: '15px',
+                backgroundColor: '#ffebee',
+                borderRadius: '8px',
+                border: '1px solid #f44336',
+                marginBottom: '20px'
+              }}>
+                <strong style={{ color: '#d32f2f' }}>
+                  🔒 Lock placed on Question {gameState.lock.question}
+                </strong>
+              </div>
+            )}
           </div>
         )}
       </div>
     );
   };
 
-  return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-      {/* Header */}
+  if (!gameState) {
+    return (
       <div style={{ 
-        padding: '16px 24px', 
-        backgroundColor: '#1a1a2e', 
-        color: 'white',
-        borderBottom: '2px solid #c0c0c0'
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        fontSize: '18px',
+        color: '#666'
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h1 style={{ margin: 0, fontSize: '24px' }}>🎮 Judge Me If You Can - Operator Panel</h1>
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            <button 
-              onClick={handleToggleSound}
-              style={{
-                padding: '8px 16px',
-                backgroundColor: soundEnabled ? '#4CAF50' : '#f44336',
-                color: 'white',
-                border: 'none',
-                borderRadius: 4,
-                cursor: 'pointer',
-                fontSize: 14
-              }}
-            >
-              🔊 {soundEnabled ? 'Sound ON' : 'Sound OFF'}
-            </button>
-            <button 
-              onClick={() => socket.emit('reset_game')}
-              style={{ 
-                padding: '8px 16px', 
-                fontSize: 14, 
-                backgroundColor: '#FF5722', 
-                color: 'white', 
-                border: 'none', 
-                borderRadius: 4,
-                cursor: 'pointer'
-              }}
-            >
-              🔄 Reset
-            </button>
-            <button 
-              onClick={handleTestBackend}
-              style={{ 
-                padding: '8px 16px', 
-                fontSize: 14, 
-                backgroundColor: '#9C27B0', 
-                color: 'white', 
-                border: 'none', 
-                borderRadius: 4,
-                cursor: 'pointer'
-              }}
-            >
-              🧪 Test
-            </button>
-          </div>
+        Connecting to server...
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ 
+      fontFamily: 'Arial, sans-serif',
+      backgroundColor: '#f5f5f5',
+      minHeight: '100vh'
+    }}>
+      {/* Header */}
+      <div style={{
+        backgroundColor: '#2c3e50',
+        color: 'white',
+        padding: '15px 20px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
+        <h1 style={{ margin: 0, fontSize: '24px' }}>🎬 Judge Me If You Can - Operator Panel</h1>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button 
+            onClick={handleToggleSound}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: soundEnabled ? '#4CAF50' : '#f44336',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+          >
+            🔊 Sound {soundEnabled ? 'ON' : 'OFF'}
+          </button>
+          <button 
+            onClick={handleTestBackend}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#9C27B0',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+          >
+            🧪 Test
+          </button>
+          <button 
+            onClick={handleResetGame}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#f44336',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+          >
+            🔄 Reset
+          </button>
         </div>
       </div>
 
+      {/* Error Display */}
       {error && (
-        <div style={{ 
-          padding: '12px 24px', 
-          backgroundColor: '#ffebee', 
+        <div style={{
+          backgroundColor: '#ffebee',
           color: '#c62828',
-          borderBottom: '1px solid #ffcdd2'
+          padding: '10px 20px',
+          borderLeft: '4px solid #f44336'
         }}>
-          Error: {error}
+          <strong>Error:</strong> {error}
         </div>
       )}
 
-      {/* Main Content Area */}
-      {gameState ? (
-        <div style={{ display: 'flex', flex: 1, height: 'calc(100vh - 80px)' }}>
-          {/* Left Panel - Question List (30%) */}
-          <div style={{ 
-            width: '30%', 
-            backgroundColor: '#f8f9fa', 
-            borderRight: '2px solid #e0e0e0',
-            overflow: 'hidden',
-            display: 'flex',
-            flexDirection: 'column'
-          }}>
-            {/* Add Question Form */}
-            {renderAddQuestionForm()}
-            
-            {/* Question Pool Header */}
-            <div style={{ 
-              padding: '12px 16px', 
-              borderBottom: '1px solid #e0e0e0',
-              backgroundColor: '#fff'
-            }}>
-              <h3 style={{ margin: 0, fontSize: '16px', color: '#333' }}>
-                📝 Question Pool ({questionPool.questions.length}/25)
-              </h3>
-              <button 
-                onClick={handleGetQuestionPool}
-                style={{ 
-                  padding: '4px 8px', 
-                  backgroundColor: '#2196F3', 
-                  color: 'white', 
-                  border: 'none', 
-                  borderRadius: 3,
-                  cursor: 'pointer',
-                  fontSize: 11,
-                  marginTop: 6
-                }}
-              >
-                🔄 Refresh
-              </button>
-            </div>
-            
-            {/* Question List */}
-            <div style={{ flex: 1, overflow: 'auto', padding: '8px' }}>
-              {questionPool.questions.length === 0 ? (
-                <div style={{ 
-                  textAlign: 'center', 
-                  color: '#666', 
-                  padding: '20px',
-                  fontSize: '13px'
-                }}>
-                  No questions in pool. Add questions above to get started.
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {questionPool.questions.map((question) => (
-                    <div key={question.id} style={{ 
-                      padding: '10px', 
-                      backgroundColor: questionPool.usedQuestions.includes(question.id) ? '#f5f5f5' : 'white', 
-                      borderRadius: 5,
-                      border: '1px solid #e0e0e0',
-                      opacity: questionPool.usedQuestions.includes(question.id) ? 0.6 : 1,
-                      cursor: questionPool.usedQuestions.includes(question.id) ? 'not-allowed' : 'pointer',
-                      transition: 'all 0.2s ease'
-                    }}>
-                      <div style={{ 
-                        fontSize: '12px', 
-                        fontWeight: 'bold',
-                        color: '#333',
-                        marginBottom: '3px',
-                        lineHeight: '1.3'
-                      }}>
-                        {question.text}
-                      </div>
-                      <div style={{ 
-                        fontSize: '10px', 
-                        color: '#666', 
-                        marginBottom: '3px',
-                        lineHeight: '1.2'
-                      }}>
-                        <strong>Options:</strong> {question.options.join(', ')}
-                      </div>
-                      <div style={{ 
-                        fontSize: '10px', 
-                        color: '#666',
-                        marginBottom: '6px'
-                      }}>
-                        <strong>Guest Answer:</strong> {question.guestAnswer}
-                      </div>
-                      <div style={{ display: 'flex', gap: '4px' }}>
-                        {!questionPool.usedQuestions.includes(question.id) ? (
-                          <button 
-                            onClick={() => handleSelectQuestionFromPool(question.id)}
-                            style={{ 
-                              padding: '3px 6px', 
-                              backgroundColor: '#4CAF50', 
-                              color: 'white', 
-                              border: 'none', 
-                              borderRadius: 2,
-                              cursor: 'pointer',
-                              fontSize: '10px',
-                              flex: 1
-                            }}
-                          >
-                            Select
-                          </button>
-                        ) : (
-                          <span style={{ 
-                            color: '#f44336', 
-                            fontSize: '10px',
-                            padding: '3px 6px',
-                            backgroundColor: '#ffebee',
-                            borderRadius: 2,
-                            flex: 1,
-                            textAlign: 'center'
-                          }}>
-                            Used
-                          </span>
-                        )}
-                        <button 
-                          onClick={() => handleRemoveQuestionFromPool(question.id)}
-                          style={{ 
-                            padding: '3px 6px', 
-                            backgroundColor: '#f44336', 
-                            color: 'white', 
-                            border: 'none', 
-                            borderRadius: 2,
-                            cursor: 'pointer',
-                            fontSize: '10px'
-                          }}
-                        >
-                          ×
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Right Panel - Game Controls (70%) */}
-          <div style={{ 
-            width: '70%', 
-            backgroundColor: '#fff',
-            overflow: 'auto',
-            padding: '24px'
-          }}>
-            <div style={{ marginBottom: '24px' }}>
-              <h2 style={{ margin: 0, color: '#333', fontSize: '20px' }}>
-                Current Round: {gameState.round}
-              </h2>
-              {gameState.round === 'setup' && (
-                <div style={{ 
-                  marginTop: '16px',
-                  padding: '16px',
-                  backgroundColor: '#e3f2fd',
-                  borderRadius: 6,
-                  border: '1px solid #bbdefb'
-                }}>
-                  <h3 style={{ margin: '0 0 12px 0', color: '#1976d2' }}>
-                    🎯 Game Setup
-                  </h3>
-                  <p style={{ margin: 0, color: '#1976d2', fontSize: '14px' }}>
-                    Select questions from the pool on the left to start the game.
-                  </p>
-                  {questionPool.questions.length > 0 && (
-                    <button 
-                      onClick={handleStartGame}
-                      style={{ 
-                        padding: '12px 24px', 
-                        backgroundColor: '#FF9800', 
-                        color: 'white', 
-                        border: 'none', 
-                        borderRadius: 4,
-                        cursor: 'pointer',
-                        fontSize: 16,
-                        fontWeight: 'bold',
-                        marginTop: '12px'
-                      }}
-                    >
-                      🎮 Start Game
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-            
-            {gameState.round === 'main_game' && renderMainGame()}
-          </div>
-        </div>
-      ) : (
+      {/* Main Content - Split Layout */}
+      <div style={{ 
+        display: 'flex', 
+        height: 'calc(100vh - 80px)',
+        gap: '20px',
+        padding: '20px'
+      }}>
+        {/* Left Panel (30%) - Question Management */}
         <div style={{ 
+          width: '30%', 
           display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center', 
-          height: 'calc(100vh - 80px)',
-          fontSize: '18px',
-          color: '#666'
+          flexDirection: 'column',
+          gap: '15px'
         }}>
-          Connecting to game server...
+          {/* Add Question Form */}
+          {renderAddQuestionForm()}
+          
+          {/* Question Pool */}
+          {renderQuestionPool()}
         </div>
-      )}
+
+        {/* Right Panel (70%) - Game Controls */}
+        <div style={{ 
+          width: '70%', 
+          backgroundColor: 'white',
+          borderRadius: '8px',
+          border: '1px solid #e0e0e0',
+          overflow: 'auto'
+        }}>
+          {gameState.round === 'setup' ? (
+            <div style={{ padding: '40px', textAlign: 'center' }}>
+              <h2 style={{ color: '#666', marginBottom: '20px' }}>🎬 Game Setup</h2>
+              <p style={{ color: '#999', fontSize: '16px', marginBottom: '30px' }}>
+                Add questions to the pool and start the game when ready.
+              </p>
+              {(gameState?.questionPool?.length || 0) > 0 && (
+                <button 
+                  onClick={handleStartGame}
+                  style={{ 
+                    padding: '15px 30px', 
+                    backgroundColor: '#4CAF50', 
+                    color: 'white', 
+                    border: 'none', 
+                    borderRadius: 6,
+                    cursor: 'pointer',
+                    fontSize: 18,
+                    fontWeight: 'bold'
+                  }}
+                >
+                  🚀 Start Game
+                </button>
+              )}
+            </div>
+          ) : gameState.round === 'main_game' ? (
+            renderMainGame()
+          ) : (
+            <div style={{ padding: '40px', textAlign: 'center' }}>
+              <h2 style={{ color: '#666' }}>Round: {gameState.round}</h2>
+              <p style={{ color: '#999' }}>Game controls will appear here based on the current round.</p>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

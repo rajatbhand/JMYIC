@@ -62,6 +62,12 @@ function AudienceDisplay() {
       soundEffects.playSound('lockPlaced');
     }
     
+    // Life lost sound effect
+    const livesChanged = gameState.lives !== prevState.lives;
+    if (livesChanged && gameState.lives < (prevState.lives || 2)) {
+      soundEffects.playSound('wrong'); // Use existing wrong sound for life lost
+    }
+    
     setPrevState(gameState);
   }, [gameState, prevState]);
 
@@ -75,7 +81,124 @@ function AudienceDisplay() {
     return gameState.currentQuestion || null;
   };
 
+  // Lives display component
+  const renderLives = () => {
+    const lives = gameState.lives !== undefined ? gameState.lives : 2;
+    
+    return (
+      <div style={{
+        position: 'absolute',
+        top: '20px',
+        left: '20px',
+        display: 'flex',
+        gap: '15px',
+        alignItems: 'center',
+        zIndex: 1000
+      }}>
+        <span style={{
+          color: '#ffffff',
+          fontSize: '24px',
+          fontWeight: 'bold',
+          marginRight: '10px',
+          textShadow: '2px 2px 4px rgba(0,0,0,0.8)'
+        }}>
+          Mystery Guest Lives:
+        </span>
+        
+        {/* Heart 1 */}
+        <div style={{
+          fontSize: '45px',
+          color: lives >= 1 ? '#ff4757' : '#2f3542',
+          textShadow: lives >= 1 ? '0 0 15px rgba(255,71,87,0.8), 0 0 30px rgba(255,71,87,0.4)' : 'none',
+          transition: 'all 0.5s ease',
+          transform: lives >= 1 ? 'scale(1)' : 'scale(0.8)',
+          filter: lives >= 1 ? 'brightness(1)' : 'brightness(0.3)'
+        }}>
+          {lives >= 1 ? '❤️' : '🖤'}
+        </div>
+        
+        {/* Heart 2 */}
+        <div style={{
+          fontSize: '45px',
+          color: lives >= 2 ? '#ff4757' : '#2f3542',
+          textShadow: lives >= 2 ? '0 0 15px rgba(255,71,87,0.8), 0 0 30px rgba(255,71,87,0.4)' : 'none',
+          transition: 'all 0.5s ease',
+          transform: lives >= 2 ? 'scale(1)' : 'scale(0.8)',
+          filter: lives >= 2 ? 'brightness(1)' : 'brightness(0.3)'
+        }}>
+          {lives >= 2 ? '❤️' : '🖤'}
+        </div>
+      </div>
+    );
+  };
+
+  // Game over screen component
+  const renderGameOver = () => {
+    const lives = gameState.lives || 0;
+    const isLivesGameOver = lives === 0;
+    
+    return (
+      <div style={{
+        textAlign: 'center',
+        color: '#ffffff',
+        padding: '60px 20px'
+      }}>
+        {/* Game Over Title */}
+        <div style={{
+          fontSize: '72px',
+          fontWeight: 'bold',
+          color: isLivesGameOver ? '#ff4757' : '#ff9800',
+          textShadow: '4px 4px 8px rgba(0,0,0,0.8), 0 0 30px rgba(255,71,87,0.5)',
+          marginBottom: '30px'
+        }}>
+          {isLivesGameOver ? '💀 GAME OVER 💀' : '🎯 GAME COMPLETE 🎯'}
+        </div>
+        
+        {/* Game Over Reason */}
+        <div style={{
+          fontSize: '36px',
+          marginBottom: '40px',
+          color: '#ffffff',
+          textShadow: '2px 2px 4px rgba(0,0,0,0.8)'
+        }}>
+          {isLivesGameOver ? 
+            'Mystery Guest Lost All Lives!' : 
+            'Panel Got 2 Correct Answers!'}
+        </div>
+        
+        {/* Final Prize */}
+        <div style={{
+          fontSize: '48px',
+          fontWeight: 'bold',
+          color: '#4CAF50',
+          textShadow: '3px 3px 6px rgba(0,0,0,0.8), 0 0 20px rgba(76,175,80,0.5)',
+          marginBottom: '20px'
+        }}>
+          Final Prize: ₹{(gameState.prize || 0).toLocaleString()}
+        </div>
+        
+        {/* Lives Lost Hearts */}
+        {isLivesGameOver && (
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: '20px',
+            marginTop: '40px'
+          }}>
+            <div style={{ fontSize: '60px', filter: 'brightness(0.3)' }}>🖤</div>
+            <div style={{ fontSize: '60px', filter: 'brightness(0.3)' }}>��</div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderMainGame = () => {
+    // Check for game over first
+    if (gameState.gameOver || gameState.round === 'game_over') {
+      return renderGameOver();
+    }
+    
     const currentQuestion = getCurrentQuestion() || { text: 'No question selected', options: [] };
     const lock = gameState.lock || {};
     const prize = gameState.prize || 0;
@@ -444,6 +567,9 @@ function AudienceDisplay() {
           🔊 {soundEnabled ? 'ON' : 'OFF'}
         </button>
       </div>
+      {/* Lives Display - Positioned in top-left corner */}
+      {gameState && gameState.round === 'main_game' && renderLives()}
+
       {/* Background texture */}
       <div style={{
         position: 'absolute',
