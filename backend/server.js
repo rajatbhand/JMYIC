@@ -39,37 +39,37 @@ const io = new Server(server, {
 function generateRandomQuestions() {
   const questions = [];
   
-  // Question templates with different categories
+  // Question templates with exactly 4 options each
   const questionTemplates = [
     // Personal preferences
     {
       text: "What is the guest's favorite color?",
-      options: ['Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Orange', 'Pink', 'Black', 'White', 'Brown'],
+      options: ['Red', 'Blue', 'Green', 'Yellow'],
       guestAnswer: 'Blue'
     },
     {
       text: "Which food does the guest hate the most?",
-      options: ['Pizza', 'Broccoli', 'Chocolate', 'Fish', 'Mushrooms', 'Olives', 'Cilantro', 'Durian', 'Blue Cheese', 'Sushi'],
+      options: ['Pizza', 'Broccoli', 'Chocolate', 'Fish'],
       guestAnswer: 'Broccoli'
     },
     {
       text: "What is the guest's dream vacation destination?",
-      options: ['Paris', 'Tokyo', 'New York', 'Bali', 'Santorini', 'Machu Picchu', 'Maldives', 'Swiss Alps', 'Egypt', 'Australia'],
+      options: ['Paris', 'Tokyo', 'New York', 'Bali'],
       guestAnswer: 'Tokyo'
     },
     {
       text: "Which movie genre does the guest prefer?",
-      options: ['Comedy', 'Horror', 'Drama', 'Action', 'Romance', 'Thriller', 'Sci-Fi', 'Documentary', 'Animation', 'Musical'],
+      options: ['Comedy', 'Horror', 'Drama', 'Action'],
       guestAnswer: 'Comedy'
     },
     {
       text: "What is the guest's biggest fear?",
-      options: ['Heights', 'Spiders', 'Darkness', 'Public Speaking', 'Flying', 'Water', 'Snakes', 'Clowns', 'Failure', 'Death'],
+      options: ['Heights', 'Spiders', 'Darkness', 'Public Speaking'],
       guestAnswer: 'Heights'
     },
     {
       text: "Which superpower would the guest choose?",
-      options: ['Invisibility', 'Flying', 'Time Travel', 'Super Strength', 'Mind Reading', 'Teleportation', 'Healing', 'Shapeshifting', 'Telekinesis', 'Immortality'],
+      options: ['Invisibility', 'Flying', 'Time Travel', 'Super Strength'],
       guestAnswer: 'Flying'
     },
     {
@@ -79,97 +79,97 @@ function generateRandomQuestions() {
     },
     {
       text: "Which hobby does the guest enjoy most?",
-      options: ['Reading', 'Sports', 'Gaming', 'Cooking', 'Painting', 'Music', 'Travel', 'Photography', 'Gardening', 'Dancing'],
+      options: ['Reading', 'Sports', 'Gaming', 'Cooking'],
       guestAnswer: 'Reading'
     },
     {
       text: "What is the guest's spirit animal?",
-      options: ['Cat', 'Dog', 'Eagle', 'Dolphin', 'Wolf', 'Lion', 'Elephant', 'Butterfly', 'Owl', 'Tiger'],
+      options: ['Cat', 'Dog', 'Eagle', 'Dolphin'],
       guestAnswer: 'Eagle'
     },
     {
       text: "Which city would the guest most like to visit?",
-      options: ['Paris', 'Tokyo', 'New York', 'Sydney', 'London', 'Rome', 'Barcelona', 'Amsterdam', 'Singapore', 'Dubai'],
+      options: ['Paris', 'Tokyo', 'New York', 'Sydney'],
       guestAnswer: 'Tokyo'
     },
     {
       text: "What is the guest's secret talent?",
-      options: ['Singing', 'Dancing', 'Juggling', 'Magic', 'Drawing', 'Writing', 'Cooking', 'Photography', 'Playing an instrument', 'Languages'],
+      options: ['Singing', 'Dancing', 'Juggling', 'Magic'],
       guestAnswer: 'Singing'
     },
     {
       text: "Which drink does the guest prefer?",
-      options: ['Coffee', 'Tea', 'Water', 'Juice', 'Soda', 'Wine', 'Beer', 'Smoothie', 'Hot Chocolate', 'Energy Drink'],
+      options: ['Coffee', 'Tea', 'Water', 'Juice'],
       guestAnswer: 'Coffee'
     },
     {
       text: "What is the guest's ideal weekend activity?",
-      options: ['Netflix marathon', 'Outdoor adventure', 'Shopping', 'Cooking', 'Reading', 'Gaming', 'Socializing', 'Spa day', 'Sports', 'Art'],
+      options: ['Netflix marathon', 'Outdoor adventure', 'Shopping', 'Cooking'],
       guestAnswer: 'Netflix marathon'
     },
     {
       text: "Which pet would the guest prefer?",
-      options: ['Dog', 'Cat', 'Fish', 'Bird', 'Hamster', 'Rabbit', 'Snake', 'Horse', 'Guinea Pig', 'Turtle'],
+      options: ['Dog', 'Cat', 'Fish', 'Bird'],
       guestAnswer: 'Dog'
     },
     {
       text: "What is the guest's favorite type of music?",
-      options: ['Pop', 'Rock', 'Jazz', 'Classical', 'Hip Hop', 'Country', 'Electronic', 'R&B', 'Folk', 'Blues'],
+      options: ['Pop', 'Rock', 'Jazz', 'Classical'],
       guestAnswer: 'Pop'
     },
     {
       text: "Which weather does the guest enjoy most?",
-      options: ['Sunny', 'Rainy', 'Snowy', 'Cloudy', 'Stormy', 'Foggy', 'Windy', 'Humid', 'Dry', 'Mild'],
+      options: ['Sunny', 'Rainy', 'Snowy', 'Cloudy'],
       guestAnswer: 'Sunny'
     },
     {
       text: "What is the guest's preferred sleeping position?",
-      options: ['Back', 'Side', 'Stomach', 'Fetal', 'Starfish', 'Log', 'Yearner', 'Freefall', 'Soldier', 'Mixed'],
+      options: ['Back', 'Side', 'Stomach', 'Fetal'],
       guestAnswer: 'Side'
     },
     {
       text: "Which social media platform does the guest use most?",
-      options: ['Instagram', 'Facebook', 'Twitter', 'TikTok', 'LinkedIn', 'Snapchat', 'YouTube', 'Pinterest', 'Reddit', 'WhatsApp'],
+      options: ['Instagram', 'Facebook', 'Twitter', 'TikTok'],
       guestAnswer: 'Instagram'
     },
     {
       text: "What is the guest's favorite type of cuisine?",
-      options: ['Italian', 'Chinese', 'Mexican', 'Indian', 'Japanese', 'Thai', 'French', 'Mediterranean', 'American', 'Korean'],
+      options: ['Italian', 'Chinese', 'Mexican', 'Indian'],
       guestAnswer: 'Italian'
     },
     {
       text: "Which mode of transportation does the guest prefer?",
-      options: ['Car', 'Public transport', 'Bicycle', 'Walking', 'Motorcycle', 'Train', 'Plane', 'Boat', 'Scooter', 'Skateboard'],
+      options: ['Car', 'Public transport', 'Bicycle', 'Walking'],
       guestAnswer: 'Car'
     },
     {
       text: "What is the guest's ideal date night?",
-      options: ['Dinner and movie', 'Adventure sports', 'Concert', 'Museum', 'Cooking together', 'Dancing', 'Game night', 'Spa day', 'Outdoor picnic', 'Escape room'],
+      options: ['Dinner and movie', 'Adventure sports', 'Concert', 'Museum'],
       guestAnswer: 'Dinner and movie'
     },
     {
       text: "Which type of book does the guest enjoy most?",
-      options: ['Fiction', 'Non-fiction', 'Mystery', 'Romance', 'Sci-fi', 'Biography', 'Self-help', 'Fantasy', 'History', 'Poetry'],
+      options: ['Fiction', 'Non-fiction', 'Mystery', 'Romance'],
       guestAnswer: 'Fiction'
     },
     {
       text: "What is the guest's favorite time of day?",
-      options: ['Morning', 'Afternoon', 'Evening', 'Night', 'Dawn', 'Dusk', 'Midnight', 'Noon', 'Late night', 'Early morning'],
+      options: ['Morning', 'Afternoon', 'Evening', 'Night'],
       guestAnswer: 'Morning'
     },
     {
       text: "Which personality trait does the guest value most?",
-      options: ['Honesty', 'Kindness', 'Intelligence', 'Humor', 'Loyalty', 'Creativity', 'Confidence', 'Empathy', 'Patience', 'Courage'],
+      options: ['Honesty', 'Kindness', 'Intelligence', 'Humor'],
       guestAnswer: 'Honesty'
     },
     {
       text: "What is the guest's preferred way to relax?",
-      options: ['Reading', 'Meditation', 'Exercise', 'Bath', 'Music', 'Nature walk', 'Yoga', 'Massage', 'Gaming', 'Cooking'],
+      options: ['Reading', 'Meditation', 'Exercise', 'Bath'],
       guestAnswer: 'Reading'
     },
     {
       text: "Which type of gift does the guest appreciate most?",
-      options: ['Experiences', 'Books', 'Technology', 'Clothing', 'Jewelry', 'Food', 'Art', 'Plants', 'Games', 'Spa items'],
+      options: ['Experiences', 'Books', 'Technology', 'Clothing'],
       guestAnswer: 'Experiences'
     }
   ];
@@ -257,8 +257,8 @@ io.on('connection', (socket) => {
       return;
     }
     
-    if (questionData.options.length < 2 || questionData.options.length > 10) {
-      socket.emit('error', { message: 'Question must have between 2 and 10 options.' });
+    if (questionData.options.length !== 4) {
+      socket.emit('error', { message: 'Question must have exactly 4 options.' });
       console.error('add_question_to_pool: Invalid options count', questionData.options.length);
       return;
     }
