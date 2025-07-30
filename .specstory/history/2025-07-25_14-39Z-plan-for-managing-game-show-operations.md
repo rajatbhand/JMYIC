@@ -15425,6 +15425,337 @@ proceed with the backend
 
 _**Assistant**_
 
+Perfect! Let's start with the backend changes to implement the question progression tracking and scoring system.
+
+
+---
+
+Read file: backend/server.js
+
+---
+
+Now let me update the game state to include the new tracking fields and modify the question selection logic:
+
+
+---
+
+<details><summary>Edit file: backend/server.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 11, lines removed: 1
+
+```diff
+@@ -221,5 +221,15 @@
+    usedQuestions: [],
+    // Game progress
+-   questionsAnswered: 0
++   questionsAnswered: 0,
++   // NEW: Track selected questions in order (for progression highlighting)
++   selectedQuestions: [],
++   // NEW: Current question number (1-7) for progression tracking
++   currentQuestionNumber: 0,
++   // NEW: Scoring system
++   score: {
++     correctAnswers: 0,
++     totalQuestions: 0,
++     currentPrize: 0
++   }
+  };
+  
+```
+
+</details>
+
+---
+
+Now let me update the `select_question_from_pool` handler to track the order of selected questions:
+
+
+---
+
+Read file: backend/server.js
+
+---
+
+<details><summary>Edit file: backend/server.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 8, lines removed: undefined
+
+```diff
+@@ -326,4 +326,12 @@
+        return;
+      }
++     
++     // NEW: Track the order of selected questions for progression
++     if (!gameState.selectedQuestions.includes(questionId)) {
++       gameState.selectedQuestions.push(questionId);
++     }
++     
++     // NEW: Set current question number (1-7) based on selection order
++     gameState.currentQuestionNumber = gameState.selectedQuestions.length;
+      
+      gameState.currentQuestion = question;
+```
+
+**Chunk 2**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -336,5 +344,5 @@
+      gameState.guestAnswerRevealed[gameState.questionsAnswered - 1] = false;
+      
+-     console.log(`Question selected from pool: ${question.text}`);
++     console.log(`Question ${gameState.currentQuestionNumber} selected from pool: ${question.text}`);
+      broadcastState();
+    });
+```
+
+</details>
+
+---
+
+Now let me update the `start_game` handler to reset the new fields:
+
+
+---
+
+<details><summary>Edit file: backend/server.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 9, lines removed: undefined
+
+```diff
+@@ -371,4 +371,13 @@
+      gameState.usedQuestions = [];
+      gameState.questionsAnswered = 0;
++     // NEW: Reset progression tracking
++     gameState.selectedQuestions = [];
++     gameState.currentQuestionNumber = 0;
++     // NEW: Reset scoring
++     gameState.score = {
++       correctAnswers: 0,
++       totalQuestions: 0,
++       currentPrize: 0
++     };
+      
+      console.log('Game started with question pool');
+```
+
+</details>
+
+---
+
+Now let me find and update the `reveal_guest_answer` handler to implement scoring:
+
+
+---
+
+<details>
+            <summary>Grep search for "reveal_guest_answer" • **3** files</summary>
+        
+| File | Line | Match |
+|------|------|-------|
+| `file:///f%3A/Baneet/Judge%20me/frontend/src/App.js` | L60 | `socket.emit('reveal_guest_answer');` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L505 | `socket.on('reveal_guest_answer', () => {` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L508 | `console.error('reveal_guest_answer: Not in main_game round');` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L514 | `console.error('reveal_guest_answer: No question selected');` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L522 | `console.log('reveal_guest_answer: Marked guest answer as revealed');` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L523 | `console.log('reveal_guest_answer: Updated guestAnswerRevealed array:', gameState.guestAnswerRevealed);` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L505 | `socket.on('reveal_guest_answer', () => {` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L508 | `console.error('reveal_guest_answer: Not in main_game round');` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L514 | `console.error('reveal_guest_answer: No question selected');` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L522 | `console.log('reveal_guest_answer: Marked guest answer as revealed');` |
+| `file:///f%3A/Baneet/Judge%20me/backend/server.js` | L523 | `console.log('reveal_guest_answer: Updated guestAnswerRevealed array:', gameState.guestAnswerRevealed);` |
+
+</details>
+
+---
+
+Read file: backend/server.js
+
+---
+
+<details><summary>Edit file: backend/server.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 3, lines removed: undefined
+
+```diff
+@@ -522,4 +522,7 @@
+      console.log('reveal_guest_answer: Marked guest answer as revealed');
+      console.log('reveal_guest_answer: Updated guestAnswerRevealed array:', gameState.guestAnswerRevealed);
++     
++     // NEW: Update scoring system
++     gameState.score.totalQuestions += 1;
+      
+      // Check if panel's guess matches guest's answer
+```
+
+**Chunk 2**
+Lines added: 3, lines removed: 1
+
+```diff
+@@ -528,5 +531,7 @@
+        gameState.correctCount += 1;
+        gameState.prize = Math.min(10000 * gameState.correctCount, 100000);
+-       console.log('Panel guessed correctly!');
++       gameState.score.correctAnswers += 1;
++       gameState.score.currentPrize = gameState.prize;
++       console.log('Panel guessed correctly! Score updated.');
+      } else {
+        console.log('Panel guessed incorrectly.');
+```
+
+**Chunk 3**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -544,4 +549,5 @@
+          gameState.round = 'game_over';
+          gameState.prize = 0;
++         gameState.score.currentPrize = 0;
+          console.log('Game over: 2 correct answers without lock placed. Guest wins 0.');
+        }
+```
+
+</details>
+
+---
+
+Now let me update the `reset_game` handler to include the new fields:
+
+
+---
+
+Read file: backend/server.js
+
+---
+
+<details><summary>Edit file: backend/server.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 10, lines removed: 1
+
+```diff
+@@ -774,5 +774,14 @@
+        currentQuestion: null,
+        usedQuestions: [],
+-       questionsAnswered: 0
++       questionsAnswered: 0,
++       // NEW: Reset progression tracking
++       selectedQuestions: [],
++       currentQuestionNumber: 0,
++       // NEW: Reset scoring
++       score: {
++         correctAnswers: 0,
++         totalQuestions: 0,
++         currentPrize: 0
++       }
+      };
+      broadcastState();
+```
+
+</details>
+
+---
+
+Now let me also update the `advance_round` handler to reset the new fields when starting main game:
+
+
+---
+
+Read file: backend/server.js
+
+---
+
+<details><summary>Edit file: backend/server.js</summary>
+
+undefined
+
+**Chunk 1**
+Lines added: 9, lines removed: undefined
+
+```diff
+@@ -416,4 +416,13 @@
+          result: null
+        };
++       // NEW: Reset progression tracking when starting main game
++       gameState.selectedQuestions = [];
++       gameState.currentQuestionNumber = 0;
++       // NEW: Reset scoring
++       gameState.score = {
++         correctAnswers: 0,
++         totalQuestions: 0,
++         currentPrize: 0
++       };
+      }
+      broadcastState();
+```
+
+</details>
+
+---
+
+Perfect! Now let's deploy the backend changes and test them:
+
+
+---
+
+```bash
+git add .
+```
+
+```
+PS F:\Baneet\Judge me> git add .
+PS F:\Baneet\Judge me>
+```
+
+---
+
+```bash
+git commit -m "Add question progression tracking and scoring system to backend"
+```
+
+```
+PS F:\Baneet\Judge me> git commit -m "Add question progression tracking and scoring system to backend"
+[master 8a68bdc] Add question progression tracking and scoring system to backend
+ 3 files changed, 916 insertions(+), 5 deletions(-)
+PS F:\Baneet\Judge me>
+```
+
+---
+
+_**User**_
+
+this is updated on git master branch
+
+---
+
+_**Assistant**_
+
+
+
+---
+
+
+
+---
+
+
+
+---
+
 
 
 ---

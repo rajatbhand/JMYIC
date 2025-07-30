@@ -111,7 +111,7 @@ function AudienceDisplay() {
       { amount: 100000, label: '₹1L', question: 10 }
     ];
 
-    const renderPrizeLadder = () => (
+    const renderPrizeLadder = (currentQuestionNumber) => (
       <div style={{ marginBottom: '30px' }}>
         {/* Current Prize Bar */}
         <div style={{
@@ -144,22 +144,24 @@ function AudienceDisplay() {
           margin: '0 auto'
         }}>
           {prizeTiers.map((tier, index) => {
-            const isCurrentPrize = prize >= tier.amount;
+            const isCurrentQuestion = tier.question === currentQuestionNumber;
+            const isAchieved = prize >= tier.amount;
             const isLocked = lock.placed && lock.question === tier.question - 1;
-            const isPast = prize > tier.amount;
             
             let borderColor = '#6c2eb7'; // Purple for unreached
             let backgroundColor = 'rgba(0,0,0,0.7)';
             let glowColor = 'rgba(108,46,183,0.3)';
             
-            if (isCurrentPrize) {
-              borderColor = '#2196F3'; // Blue for current
-              backgroundColor = 'rgba(33,150,243,0.2)';
-              glowColor = 'rgba(33,150,243,0.6)';
-            } else if (isPast) {
+            if (isAchieved) {
               borderColor = '#4CAF50'; // Green for achieved
               backgroundColor = 'rgba(76,175,80,0.2)';
               glowColor = 'rgba(76,175,80,0.4)';
+            }
+            
+            if (isCurrentQuestion) {
+              borderColor = '#ff9800'; // Orange/yellow for current question
+              backgroundColor = 'rgba(255,152,0,0.3)';
+              glowColor = 'rgba(255,152,0,0.8)';
             }
             
             if (isLocked) {
@@ -220,6 +222,46 @@ function AudienceDisplay() {
       </div>
     );
 
+    const renderScorePanel = () => {
+      const score = gameState.score || { correctAnswers: 0, totalQuestions: 0, currentPrize: 0 };
+      const showScore = isAnswered;
+
+      return (
+        <div style={{
+          position: 'absolute',
+          bottom: '20px',
+          left: '20px',
+          background: 'rgba(0, 0, 0, 0.7)',
+          borderRadius: '15px',
+          padding: '15px 25px',
+          border: '2px solid #2196F3',
+          boxShadow: '0 0 20px rgba(33,150,243,0.6)',
+          backdropFilter: 'blur(10px)',
+          transition: 'opacity 0.5s ease',
+          opacity: showScore ? 1 : 0
+        }}>
+          <div style={{
+            fontSize: '24px',
+            fontWeight: 'bold',
+            color: '#ffffff',
+            textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
+            textAlign: 'left'
+          }}>
+            Score: {score.correctAnswers}/{score.totalQuestions}
+          </div>
+          <div style={{
+            fontSize: '18px',
+            color: '#bbdefb',
+            textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
+            textAlign: 'left',
+            marginTop: '5px'
+          }}>
+            Prize: ₹{score.currentPrize.toLocaleString()}
+          </div>
+        </div>
+      );
+    };
+
     // Debug info
     console.log('Audience Display State:', {
       lastPanelGuess: lastPanelGuess,
@@ -229,9 +271,12 @@ function AudienceDisplay() {
     });
 
     return (
-      <div style={{ textAlign: 'center', padding: '20px' }}>
+      <div style={{ textAlign: 'center', padding: '20px', position: 'relative' }}>
         {/* Prize Ladder */}
-        {renderPrizeLadder()}
+        {renderPrizeLadder(gameState.currentQuestionNumber)}
+        
+        {/* Score Panel */}
+        {renderScorePanel()}
         
         {/* Question Container */}
         {currentQuestion.text && currentQuestion.text !== 'No question selected' ? (
