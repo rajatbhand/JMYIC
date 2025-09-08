@@ -224,7 +224,7 @@ function AudienceDisplay() {
           background: 'linear-gradient(90deg, #1976D2 0%, #42A5F5 50%, #1976D2 100%)',
           borderRadius: '20px',
           padding: '15px 30px',
-          margin: '0 auto 20px',
+          margin: '40px auto',
           maxWidth: '600px',
           border: '2px solid #2196F3',
           boxShadow: '0 0 20px rgba(33,150,243,0.6)',
@@ -307,7 +307,7 @@ function AudienceDisplay() {
                 {isLocked && (
                   <div style={{
                     position: 'absolute',
-                    top: '-5px',
+                    top: '42px',
                     right: '0px',
                     transform: 'rotate(-45deg)',
                     fontSize: '32px'
@@ -557,7 +557,8 @@ function AudienceDisplay() {
       <h1 style={{
         fontSize: '48px',
         color: '#ff9800',
-        marginBottom: '40px',
+        marginBottom: '0px',
+        marginTop: '0px',
         textShadow: '3px 3px 6px rgba(0,0,0,0.5), 0 0 20px rgba(255,152,0,0.3)',
         fontWeight: 'bold',
         textTransform: 'uppercase',
