@@ -181,19 +181,19 @@ function AudienceDisplay() {
       <div className="mb-16 lg:mb-20 xl:mb-24 2xl:mb-32 3xl:mb-40 4k:mb-48 5k:mb-56">
         {/* Current Prize Bar */}
         <div className="bg-gradient-to-r from-[#1976D2] via-[#42A5F5] to-[#1976D2] rounded-full
-                    p-8 lg:p-9 xl:p-10 2xl:p-12 3xl:p-14 4k:p-16 5k:p-20
+                    p-8 lg:p-9 xl:p-10 2xl:p-12 3xl:p-14 4k:p-12 5k:p-14
                     mx-auto my-10 lg:my-12 xl:my-14 2xl:my-16 3xl:my-20 4k:my-24 5k:my-32
                     max-w-[1000px] lg:max-w-[1100px] xl:max-w-[1200px] 2xl:max-w-[1400px] 3xl:max-w-[1600px] 4k:max-w-[1800px] 5k:max-w-[2000px]
                     border-2 border-[#2196F3] shadow-blue-500/60 shadow-lg relative">
-          <div className="font-bold text-white text-6xl lg:text-7xl xl:text-8xl 2xl:text-9xl 3xl:text-[10rem] 4k:text-[12rem] 5k:text-[14rem] drop-shadow-md text-center">
+          <div className="font-bold text-white text-6xl lg:text-7xl xl:text-8xl 2xl:text-8xl 3xl:text-8xl 4k:text-7xl 5k:text-8xl drop-shadow-md text-center">
             Current Prize: ₹{prize.toLocaleString()}
           </div>
         </div>
 
         {/* Prize Tiers */}
-        <div className="flex justify-center flex-wrap
-                    gap-5 lg:gap-6 xl:gap-7 2xl:gap-8 3xl:gap-10 4k:gap-12 5k:gap-14
-                    mx-auto max-w-[1400px] lg:max-w-[1600px] xl:max-w-[1800px] 2xl:max-w-[2000px] 3xl:max-w-[2200px] 4k:max-w-[2400px] 5k:max-w-[2600px]">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 3xl:grid-cols-7 place-items-center
+                    gap-5 lg:gap-6 xl:gap-7 2xl:gap-8 3xl:gap-10 4k:gap-10 5k:gap-12
+                    mx-auto max-w-[1400px] lg:max-w-[1600px] xl:max-w-[2000px] 2xl:max-w-[2200px] 3xl:max-w-[2400px] 4k:max-w-[2600px] 5k:max-w-[3000px]">
           {prizeTiers.map((tier, index) => {
             const isCurrentQuestion = tier.question === currentQuestionNumber;
             const isLocked = lock.placed && lock.level === tier.question;
@@ -222,21 +222,21 @@ function AudienceDisplay() {
             }
 
             return (
-              <div key={index} className={`w-40 h-40 lg:w-48 lg:h-48 xl:w-56 xl:h-56 2xl:w-64 2xl:h-64 3xl:w-72 3xl:h-72 4k:w-80 4k:h-80 5k:w-96 5k:h-96
+              <div key={index} className={`w-40 h-40 lg:w-48 lg:h-48 xl:w-56 xl:h-56 2xl:w-64 2xl:h-64 3xl:w-64 3xl:h-64 4k:w-56 4k:h-56 5k:w-64 5k:h-64
                                 ${backgroundColor} ${borderColor} border-4 rounded-xl
                                 flex items-center justify-center
                                 shadow-xl ${glowColor} relative
                                 transform rotate-45
                                 m-3 lg:m-4 xl:m-5 2xl:m-6 3xl:m-8 4k:m-10 5k:m-12`}>
                 <div className="transform -rotate-45
-                            font-bold text-white text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl 3xl:text-7xl 4k:text-8xl 5k:text-9xl text-center leading-none">
+                            font-bold text-white text-3xl lg:text-4xl xl:text-5xl 2xl:text-5xl 3xl:text-5xl 4k:text-5xl 5k:text-6xl text-center leading-none">
                   {tier.label}
                 </div>
                 
                 {/* Lock Icon for Locked Questions */}
                 {isLocked && (
                   <div className="absolute -top-1 -right-1 transform -rotate-45
-                              text-5xl lg:text-6xl xl:text-7xl 2xl:text-8xl 3xl:text-9xl 4k:text-[10rem] 5k:text-[12rem]">
+                              text-5xl lg:text-6xl xl:text-7xl 2xl:text-7xl 3xl:text-7xl 4k:text-7xl 5k:text-8xl">
                     🔒
                   </div>
                 )}
@@ -244,7 +244,7 @@ function AudienceDisplay() {
                 {/* Money Lock Icon for Locked Money */}
                 {isMoneyLocked && !isLocked && (
                   <div className="absolute -bottom-1 -right-1 transform -rotate-45
-                              text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl 3xl:text-8xl 4k:text-9xl 5k:text-[10rem]">
+                              text-4xl lg:text-5xl xl:text-6xl 2xl:text-6xl 3xl:text-6xl 4k:text-6xl 5k:text-7xl">
                     💰
                   </div>
                 )}
@@ -390,13 +390,13 @@ function AudienceDisplay() {
       <div className="absolute inset-0 bg-repeat-linear bg-[length:4px_4px] bg-[repeating-linear-gradient(0deg,transparent,transparent_2px,rgba(255,255,255,0.03)_2px,rgba(255,255,255,0.03)_4px)] pointer-events-none" />
       
       <h1 className="text-orange-500 uppercase font-bold tracking-wider
-                  text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl 3xl:text-8xl 4k:text-9xl 5k:text-[10rem]
+                  text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl 3xl:text-7xl 4k:text-7xl 5k:text-8xl
                   drop-shadow-lg text-center mb-8 lg:mb-10 xl:mb-12 2xl:mb-14 3xl:mb-16 4k:mb-20 5k:mb-24">
         Judge Me If You Can
       </h1>
       
       {gameState ? (
-        <div className="w-full max-w-xl lg:max-w-2xl xl:max-w-3xl 2xl:max-w-4xl 3xl:max-w-5xl 4k:max-w-6xl 5k:max-w-7xl px-4">
+        <div className="w-full px-4">
           {gameState.round === 'main_game' ? (
             renderMainGame()
           ) : (
