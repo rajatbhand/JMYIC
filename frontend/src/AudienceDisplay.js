@@ -554,6 +554,7 @@ function AudienceDisplay() {
         pointerEvents: 'none'
       }} />
       
+      <div className="transform origin-top scale-100 lg:scale-100 xl:scale-[1.05] 2xl:scale-[1.15] 3xl:scale-[1.25] 4k:scale-[1.40] 5k:scale-[1.60] w-full px-4 flex flex-col items-center">
       <h1 style={{
         fontSize: '48px',
         color: '#ff9800',
@@ -592,6 +593,7 @@ function AudienceDisplay() {
           Connecting to game server...
         </div>
       )}
+      </div>
     </div>
   );
 }
