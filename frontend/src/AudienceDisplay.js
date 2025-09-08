@@ -225,7 +225,7 @@ function AudienceDisplay() {
           borderRadius: '20px',
           padding: '15px 30px',
           margin: '0 auto 20px',
-          maxWidth: '60px',
+          maxWidth: '600px',
           border: '2px solid #2196F3',
           boxShadow: '0 0 20px rgba(33,150,243,0.6)',
           position: 'relative'
@@ -247,7 +247,7 @@ function AudienceDisplay() {
           justifyContent: 'center',
           gap: '8px',
           flexWrap: 'wrap',
-          maxWidth: '100px',
+          maxWidth: '1000px',
           margin: '0 auto'
         }}>
           {prizeTiers.map((tier, index) => {
