@@ -185,7 +185,7 @@ function AudienceDisplay() {
                     mx-auto my-10 lg:my-12 xl:my-14 2xl:my-16 3xl:my-20 4k:my-24 5k:my-32
                     max-w-[1000px] lg:max-w-[1100px] xl:max-w-[1200px] 2xl:max-w-[1400px] 3xl:max-w-[1600px] 4k:max-w-[1800px] 5k:max-w-[2000px]
                     border-2 border-[#2196F3] shadow-blue-500/60 shadow-lg relative">
-          <div className="font-bold text-white text-6xl lg:text-7xl xl:text-8xl 2xl:text-8xl 3xl:text-8xl 4k:text-7xl 5k:text-8xl drop-shadow-md text-center">
+          <div className="font-bold text-white text-4xl lg:text-5xl xl:text-6xl 2xl:text-6xl 3xl:text-6xl 4k:text-6xl 5k:text-7xl drop-shadow-md text-center">
             Current Prize: ₹{prize.toLocaleString()}
           </div>
         </div>
@@ -222,21 +222,21 @@ function AudienceDisplay() {
             }
 
             return (
-              <div key={index} className={`w-40 h-40 lg:w-48 lg:h-48 xl:w-56 xl:h-56 2xl:w-64 2xl:h-64 3xl:w-64 3xl:h-64 4k:w-56 4k:h-56 5k:w-64 5k:h-64
+              <div key={index} className={`w-32 h-32 lg:w-40 lg:h-40 xl:w-48 xl:h-48 2xl:w-56 2xl:h-56 3xl:w-56 3xl:h-56 4k:w-48 4k:h-48 5k:w-56 5k:h-56
                                 ${backgroundColor} ${borderColor} border-4 rounded-xl
                                 flex items-center justify-center
                                 shadow-xl ${glowColor} relative
                                 transform rotate-45
                                 m-3 lg:m-4 xl:m-5 2xl:m-6 3xl:m-8 4k:m-10 5k:m-12`}>
                 <div className="transform -rotate-45
-                            font-bold text-white text-3xl lg:text-4xl xl:text-5xl 2xl:text-5xl 3xl:text-5xl 4k:text-5xl 5k:text-6xl text-center leading-none">
+                            font-bold text-white text-2xl lg:text-3xl xl:text-4xl 2xl:text-4xl 3xl:text-4xl 4k:text-4xl 5k:text-5xl text-center leading-none">
                   {tier.label}
                 </div>
                 
                 {/* Lock Icon for Locked Questions */}
                 {isLocked && (
                   <div className="absolute -top-1 -right-1 transform -rotate-45
-                              text-5xl lg:text-6xl xl:text-7xl 2xl:text-7xl 3xl:text-7xl 4k:text-7xl 5k:text-8xl">
+                              text-4xl lg:text-5xl xl:text-6xl 2xl:text-6xl 3xl:text-6xl 4k:text-6xl 5k:text-7xl">
                     🔒
                   </div>
                 )}
@@ -244,7 +244,7 @@ function AudienceDisplay() {
                 {/* Money Lock Icon for Locked Money */}
                 {isMoneyLocked && !isLocked && (
                   <div className="absolute -bottom-1 -right-1 transform -rotate-45
-                              text-4xl lg:text-5xl xl:text-6xl 2xl:text-6xl 3xl:text-6xl 4k:text-6xl 5k:text-7xl">
+                              text-3xl lg:text-4xl xl:text-5xl 2xl:text-5xl 3xl:text-5xl 4k:text-5xl 5k:text-6xl">
                     💰
                   </div>
                 )}
@@ -267,7 +267,7 @@ function AudienceDisplay() {
     });
 
     return (
-      <div className="text-center p-10 lg:p-12 xl:p-14 2xl:p-16 3xl:p-20 4k:p-24 5k:p-32 relative max-w-[1600px] 3xl:max-w-[2000px] 4k:max-w-[2400px] 5k:max-w-[2800px] w-full">
+      <div className="text-center p-8 lg:p-10 xl:p-12 2xl:p-14 3xl:p-16 4k:p-16 5k:p-20 relative max-w-[1600px] 3xl:max-w-[2000px] 4k:max-w-[2200px] 5k:max-w-[2400px] w-full">
         {/* Prize Ladder */}
         {renderPrizeLadder(gameState.currentQuestionNumber)}
         
@@ -301,9 +301,9 @@ function AudienceDisplay() {
         {/* Answer Options Grid */}
         {currentQuestion.text && currentQuestion.text !== 'No question selected' && currentQuestion.options.length > 0 && (
           <div className="grid grid-cols-1 lg:grid-cols-2
-                      gap-8 lg:gap-10 xl:gap-12 2xl:gap-14 3xl:gap-16 4k:gap-20 5k:gap-24
+                      gap-6 lg:gap-8 xl:gap-10 2xl:gap-12 3xl:gap-12 4k:gap-12 5k:gap-14
                       max-w-[1400px] lg:max-w-[1600px] xl:max-w-[1800px] 2xl:max-w-[2000px] 3xl:max-w-[2200px] 4k:max-w-[2400px] 5k:max-w-[2600px]
-                      mx-auto mt-16 lg:mt-20 xl:mt-24 2xl:mt-32 3xl:mt-40 4k:mt-48 5k:mt-56">
+                      mx-auto mt-12 lg:mt-16 xl:mt-20 2xl:mt-24 3xl:mt-28 4k:mt-28 5k:mt-32">
             {currentQuestion.options.map((opt, i) => {
             const letter = String.fromCharCode(65 + i);
             const isPanelGuess = lastPanelGuess === opt;
@@ -347,28 +347,28 @@ function AudienceDisplay() {
             }
 
             return (
-              <div key={i} className={`rounded-full p-8 lg:p-9 xl:p-10 2xl:p-12 3xl:p-14 4k:p-16 5k:p-20
+              <div key={i} className={`rounded-full p-6 lg:p-7 xl:p-8 2xl:p-10 3xl:p-10 4k:p-10 5k:p-12
                                   border-4 relative transition-all duration-300
                                   ${backgroundColor} ${borderColor} ${boxShadow}
                                   ${isAnswered ? 'scale-105' : 'scale-100'}`}>
-                                 <div className="flex items-center gap-5 lg:gap-6 xl:gap-7">
-                   <div className="text-orange-500 font-bold text-6xl lg:text-7xl xl:text-8xl 2xl:text-9xl 3xl:text-[10rem] 4k:text-[12rem] 5k:text-[14rem] drop-shadow-md w-14 lg:w-16 xl:w-20 text-left">
-                     {letter}
-                   </div>
-                   <div className="text-white font-bold text-6xl lg:text-7xl xl:text-8xl 2xl:text-9xl 3xl:text-[10rem] 4k:text-[12rem] 5k:text-[14rem] drop-shadow-md flex-1 text-left">
-                     {opt}
-                   </div>
-                 </div>
-                
-                                 {/* Result indicators */}
-                 {isAnswered && (
-                   <div className="absolute top-1/2 -translate-y-1/2 right-8
-                               font-bold text-7xl lg:text-8xl xl:text-9xl 2xl:text-[10rem] 3xl:text-[12rem] 4k:text-[14rem] 5k:text-[16rem]">
-                     {isCorrect && <span className="text-green-500">✓</span>}
-                     {isPanelWrong && <span className="text-red-500">✗</span>}
-                     {isGuestCorrect && <span className="text-green-500">✓</span>}
-                   </div>
-                 )}
+                                 <div className="flex items-center gap-4 lg:gap-5 xl:gap-6">
+                  <div className="text-orange-500 font-bold text-4xl lg:text-5xl xl:text-6xl 2xl:text-6xl 3xl:text-6xl 4k:text-6xl 5k:text-7xl drop-shadow-md w-12 lg:w-14 xl:w-16 text-left">
+                    {letter}
+                  </div>
+                  <div className="text-white font-bold text-4xl lg:text-5xl xl:text-6xl 2xl:text-6xl 3xl:text-6xl 4k:text-6xl 5k:text-7xl drop-shadow-md flex-1 text-left">
+                    {opt}
+                  </div>
+                </div>
+               
+                                {/* Result indicators */}
+                {isAnswered && (
+                  <div className="absolute top-1/2 -translate-y-1/2 right-8
+                              font-bold text-5xl lg:text-6xl xl:text-7xl 2xl:text-7xl 3xl:text-7xl 4k:text-7xl 5k:text-8xl">
+                    {isCorrect && <span className="text-green-500">✓</span>}
+                    {isPanelWrong && <span className="text-red-500">✗</span>}
+                    {isGuestCorrect && <span className="text-green-500">✓</span>}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -390,7 +390,7 @@ function AudienceDisplay() {
       <div className="absolute inset-0 bg-repeat-linear bg-[length:4px_4px] bg-[repeating-linear-gradient(0deg,transparent,transparent_2px,rgba(255,255,255,0.03)_2px,rgba(255,255,255,0.03)_4px)] pointer-events-none" />
       
       <h1 className="text-orange-500 uppercase font-bold tracking-wider
-                  text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl 3xl:text-7xl 4k:text-7xl 5k:text-8xl
+                  text-3xl lg:text-4xl xl:text-5xl 2xl:text-6xl 3xl:text-6xl 4k:text-6xl 5k:text-7xl
                   drop-shadow-lg text-center mb-8 lg:mb-10 xl:mb-12 2xl:mb-14 3xl:mb-16 4k:mb-20 5k:mb-24">
         Judge Me If You Can
       </h1>
