@@ -5,6 +5,7 @@ import soundEffects from './soundEffects';
 function AudienceDisplay() {
   const [gameState, setGameState] = useState(null);
   const [prevState, setPrevState] = useState(null);
+  const [soundEnabled, setSoundEnabled] = useState(true);
 
   useEffect(() => {
     socket.on('game_state', (state) => {
@@ -70,6 +71,11 @@ function AudienceDisplay() {
     setPrevState(gameState);
   }, [gameState, prevState]);
 
+  const handleToggleSound = () => {
+    const newState = soundEffects.toggleSound();
+    setSoundEnabled(newState);
+  };
+
   // No audience sound toggle; sounds play automatically
 
   // Helper function to get current question
@@ -93,7 +99,7 @@ function AudienceDisplay() {
       }}>
         <span style={{
           color: '#ffffff',
-          fontSize: 'clamp(16px, 2.3vw, 28px)',
+          fontSize: '24px',
           fontWeight: 'bold',
           marginRight: '10px',
           textShadow: '2px 2px 4px rgba(0,0,0,0.8)'
@@ -103,7 +109,7 @@ function AudienceDisplay() {
         
         {/* Single Life Heart */}
         <div style={{
-          fontSize: 'clamp(36px, 6vw, 90px)',
+          fontSize: '50px',
           color: lives >= 1 ? '#ff4757' : '#2f3542',
           textShadow: lives >= 1 ? '0 0 15px rgba(255,71,87,0.8), 0 0 30px rgba(255,71,87,0.4)' : 'none',
           transition: 'all 0.5s ease',
@@ -217,15 +223,15 @@ function AudienceDisplay() {
         <div style={{
           background: 'linear-gradient(90deg, #1976D2 0%, #42A5F5 50%, #1976D2 100%)',
           borderRadius: '20px',
-          padding: 'clamp(10px, 2vw, 20px) clamp(20px, 4vw, 40px)',
-          margin: '20px auto',
-          maxWidth: 'min(90vw, 900px)',
+          padding: '15px 30px',
+          margin: '0 auto 20px',
+          maxWidth: '60px',
           border: '2px solid #2196F3',
           boxShadow: '0 0 20px rgba(33,150,243,0.6)',
           position: 'relative'
         }}>
           <div style={{
-            fontSize: 'clamp(18px, 3.2vw, 40px)',
+            fontSize: '32px',
             fontWeight: 'bold',
             color: '#ffffff',
             textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
@@ -239,9 +245,9 @@ function AudienceDisplay() {
         <div style={{
           display: 'flex',
           justifyContent: 'center',
-          gap: 'clamp(4px, 1vw, 12px)',
+          gap: '8px',
           flexWrap: 'wrap',
-          maxWidth: 'min(95vw, 1200px)',
+          maxWidth: '100px',
           margin: '0 auto'
         }}>
           {prizeTiers.map((tier, index) => {
@@ -273,8 +279,8 @@ function AudienceDisplay() {
 
             return (
               <div key={index} style={{
-                width: 'clamp(64px, 8vw, 120px)',
-                height: 'clamp(64px, 8vw, 120px)',
+                width: '80px',
+                height: '80px',
                 background: backgroundColor,
                 border: `3px solid ${borderColor}`,
                 borderRadius: '12px',
@@ -284,11 +290,11 @@ function AudienceDisplay() {
                 boxShadow: `0 0 15px ${glowColor}`,
                 position: 'relative',
                 transform: 'rotate(45deg)',
-                margin: 'clamp(3px, 0.7vw, 10px)'
+                margin: '5px'
               }}>
                 <div style={{
                   transform: 'rotate(-45deg)',
-                  fontSize: 'clamp(12px, 1.8vw, 22px)',
+                  fontSize: '14px',
                   fontWeight: 'bold',
                   color: '#ffffff',
                   textAlign: 'center',
@@ -304,7 +310,7 @@ function AudienceDisplay() {
                     top: '-5px',
                     right: '-5px',
                     transform: 'rotate(-45deg)',
-                    fontSize: 'clamp(16px, 2vw, 28px)'
+                    fontSize: '20px'
                   }}>
                     🔒
                   </div>
@@ -317,7 +323,7 @@ function AudienceDisplay() {
                     bottom: '-5px',
                     right: '-5px',
                     transform: 'rotate(-45deg)',
-                    fontSize: 'clamp(14px, 1.6vw, 24px)'
+                    fontSize: '16px'
                   }}>
                     💰
                   </div>
@@ -391,9 +397,9 @@ function AudienceDisplay() {
         {currentQuestion.text && currentQuestion.text !== 'No question selected' && currentQuestion.options.length > 0 && (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-            gap: 'clamp(12px, 2vw, 24px)',
-            maxWidth: 'min(95vw, 1100px)',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '20px ',
+            maxWidth: '900px',
             margin: '30px auto'
           }}>
             {currentQuestion.options.map((opt, i) => {
@@ -488,7 +494,7 @@ function AudienceDisplay() {
                    </div>
                    <div style={{
                      color: '#ffffff',
-                     fontSize: 'clamp(16px, 2.2vw, 24px)',
+                     fontSize: '20px',
                      fontWeight: 'bold',
                      textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
                      flex: 1,
@@ -504,7 +510,7 @@ function AudienceDisplay() {
                      position: 'absolute',
                      top: '10px',
                      right: '15px',
-                     fontSize: 'clamp(18px, 2.2vw, 28px)',
+                     fontSize: '24px',
                      fontWeight: 'bold'
                    }}>
                      {isCorrect && <span style={{ color: '#4CAF50' }}>✓</span>}
