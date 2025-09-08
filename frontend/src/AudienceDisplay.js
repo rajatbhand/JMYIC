@@ -563,7 +563,8 @@ function AudienceDisplay() {
         textShadow: '3px 3px 6px rgba(0,0,0,0.5), 0 0 20px rgba(255,152,0,0.3)',
         fontWeight: 'bold',
         textTransform: 'uppercase',
-        letterSpacing: '2px'
+        letterSpacing: '2px',
+        textAlign: 'center',
       }}>
         Judge Me If You Can
       </h1>
