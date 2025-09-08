@@ -294,7 +294,7 @@ function AudienceDisplay() {
               }}>
                 <div style={{
                   transform: 'rotate(-45deg)',
-                  fontSize: '14px',
+                  fontSize: '20px',
                   fontWeight: 'bold',
                   color: '#ffffff',
                   textAlign: 'center',
@@ -308,9 +308,9 @@ function AudienceDisplay() {
                   <div style={{
                     position: 'absolute',
                     top: '-5px',
-                    right: '-5px',
+                    right: '0px',
                     transform: 'rotate(-45deg)',
-                    fontSize: '50px'
+                    fontSize: '32px'
                   }}>
                     🔒
                   </div>
@@ -321,9 +321,9 @@ function AudienceDisplay() {
                   <div style={{
                     position: 'absolute',
                     bottom: '-5px',
-                    right: '-5px',
+                    right: '0px',
                     transform: 'rotate(-45deg)',
-                    fontSize: '50px'
+                    fontSize: '32px'
                   }}>
                     💰
                   </div>
