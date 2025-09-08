@@ -608,8 +608,6 @@ io.on('connection', (socket) => {
 
     // Check game end conditions (only if game not already over from lives)
     if (!gameState.gameOver) {
-      // Comment out the 2-correct-answers game end logic for MVP
-      /*
       // Game ends when panel gets 2 correct answers
       if (gameState.correctCount >= 2) {
         // Only offer Final Gamble if guest has placed a lock
@@ -625,10 +623,6 @@ io.on('connection', (socket) => {
           console.log('🚫 Game over: 2 correct answers without lock placed. Guest wins 0.');
         }
       }
-      */
-      
-      // For MVP: Game continues regardless of match count
-      console.log(`Match count: ${gameState.correctCount}. Game continues...`);
     }
 
     broadcastState();
