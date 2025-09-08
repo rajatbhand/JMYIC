@@ -310,7 +310,7 @@ function AudienceDisplay() {
                     top: '-5px',
                     right: '-5px',
                     transform: 'rotate(-45deg)',
-                    fontSize: '20px'
+                    fontSize: '50px'
                   }}>
                     🔒
                   </div>
@@ -323,7 +323,7 @@ function AudienceDisplay() {
                     bottom: '-5px',
                     right: '-5px',
                     transform: 'rotate(-45deg)',
-                    fontSize: '16px'
+                    fontSize: '50px'
                   }}>
                     💰
                   </div>
