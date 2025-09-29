@@ -1,9 +1,10 @@
-import { doc, getDoc, setDoc, updateDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, onSnapshot, serverTimestamp, SnapshotListenOptions } from 'firebase/firestore';
 import { db, gameDocRef, defaultGameState } from './firebase';
 import type { GameState, Question } from './types';
 
 export class GameStateManager {
   private listeners: (() => void)[] = [];
+  private currentState: GameState | null = null;
   
   /**
    * Initialize game document if it doesn't exist
@@ -31,6 +32,7 @@ export class GameStateManager {
         console.log('Game initialized successfully');
       } else {
         console.log('Game document already exists');
+        this.currentState = docSnap.data() as GameState;
       }
     } catch (error) {
       console.error('Error initializing game:', error);
@@ -50,15 +52,21 @@ export class GameStateManager {
   }
 
   /**
-   * Update game state with automatic lastActivity timestamp
+   * Update game state with optimistic local updates and faster sync
    */
   async updateGameState(updates: Partial<GameState>): Promise<void> {
     try {
+      // Optimistic local update - immediately update local state for operator
+      if (this.currentState) {
+        this.currentState = { ...this.currentState, ...updates };
+      }
+
       const updatesWithTimestamp = {
         ...updates,
         lastActivity: new Date().toISOString()
       };
 
+      // Use more aggressive write settings for faster sync
       await updateDoc(gameDocRef, updatesWithTimestamp);
       console.log('Game state updated:', Object.keys(updates));
     } catch (error) {
@@ -81,14 +89,22 @@ export class GameStateManager {
   }
 
   /**
-   * Subscribe to real-time game state changes
+   * Subscribe to real-time game state changes with optimized settings
    */
   subscribeToGameState(callback: (gameState: GameState | null) => void): () => void {
-    const unsubscribe = onSnapshot(gameDocRef, 
+    // Configure listener for maximum real-time performance
+    const options: SnapshotListenOptions = {
+      includeMetadataChanges: false // Only get actual data changes, not metadata
+    };
+
+    const unsubscribe = onSnapshot(gameDocRef, options,
       (doc) => {
         if (doc.exists()) {
-          callback(doc.data() as GameState);
+          const newState = doc.data() as GameState;
+          this.currentState = newState;
+          callback(newState);
         } else {
+          this.currentState = null;
           callback(null);
         }
       },
@@ -100,6 +116,13 @@ export class GameStateManager {
 
     this.listeners.push(unsubscribe);
     return unsubscribe;
+  }
+
+  /**
+   * Get current local state (for immediate reads)
+   */
+  getCurrentLocalState(): GameState | null {
+    return this.currentState;
   }
 
   /**

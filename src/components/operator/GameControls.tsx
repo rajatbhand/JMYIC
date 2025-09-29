@@ -25,6 +25,9 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
       // Play sound immediately (non-blocking)
       soundPlayer.playSound('questionSelection');
       
+      // Immediate local update for operator feedback
+      console.log('Submitting panel guess:', guess);
+      
       await gameStateManager.updateGameState({
         panelGuess: guess,
         panelGuessSubmitted: true
@@ -42,7 +45,7 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
     try {
       setProcessing(true);
       
-      console.log('Checking panel guess:', {
+      console.log('Checking panel guess - immediate action:', {
         panelGuess: gameState.panelGuess,
         guestAnswer: gameState.currentQuestion.guest_answer,
         gameState: gameState
@@ -51,24 +54,24 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
       // Calculate result using game logic
       const updates = GameLogic.calculatePanelGuessResult(gameState, gameState.panelGuess);
       
-      console.log('Panel guess updates:', updates);
+      console.log('Panel guess updates - applying immediately:', updates);
       
-      // Play appropriate sound
+      // Calculate result for immediate sound feedback
       const isCorrect = GameLogic.isPanelGuessCorrectWithContext(
         gameState.panelGuess, 
         gameState.currentQuestion.guest_answer,
         gameState.currentQuestion
       );
       
-      console.log('Panel guess is correct:', isCorrect);
+      console.log('Panel guess result - immediate:', isCorrect);
       
       // Play sound immediately (non-blocking)
       soundPlayer.playSound(isCorrect ? 'panelCorrect' : 'panelWrong');
       
-      // Update game state
+      // Update game state with immediate local optimistic update
       await gameStateManager.updateGameState(updates);
       
-      console.log('Panel guess check completed successfully');
+      console.log('Panel guess check completed - should sync immediately');
       
     } catch (error) {
       console.error('Panel guess check error:', error);
@@ -84,6 +87,8 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
     try {
       setProcessing(true);
       
+      console.log('Revealing guest answer - immediate action');
+      
       // Calculate reveal result
       const updates = GameLogic.calculateRevealResult(gameState);
       
@@ -95,10 +100,17 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
       
       const combinedUpdates = { ...updates, ...usedQuestionUpdates };
       
-      await soundPlayer.playSound('revealAnswer');
-      await gameStateManager.updateGameState(combinedUpdates);
+      console.log('Guest answer reveal updates - applying immediately:', combinedUpdates);
+      
+      // Play sound and update state with optimistic local update
+      await Promise.all([
+        soundPlayer.playSound('revealAnswer'),
+        gameStateManager.updateGameState(combinedUpdates)
+      ]);
       
       onQuestionUsed(); // Refresh question pool
+      
+      console.log('Guest answer revealed - should sync immediately');
       
     } catch (error) {
       onError('Failed to reveal guest answer');

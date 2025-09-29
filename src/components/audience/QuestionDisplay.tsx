@@ -46,9 +46,29 @@ export default function QuestionDisplay({ gameState }: QuestionDisplayProps) {
           { key: 'D', text: question.option_d }
         ].map((option) => {
           const isPanelGuess = gameState.panelGuess === option.key;
-          const isGuestAnswer = question.guest_answer === option.key;
+          
+          // Handle guest answer comparison - check both letter format and text format
+          const guestAnswerText = question.guest_answer?.toString().toUpperCase().trim();
+          const optionText = option.text?.toUpperCase().trim();
+          
+          const isGuestAnswer = 
+            guestAnswerText === option.key || // Letter format (A, B, C, D)
+            guestAnswerText === optionText;   // Text format (actual answer text)
+          
           const guestAnswerRevealed = gameState.currentQuestionAnswerRevealed;
           const panelGuessChecked = gameState.panelGuessChecked;
+          
+          // Debug logging for guest answer highlighting
+          if (guestAnswerRevealed && option.key === 'A') {
+            console.log('Guest answer debug (updated):', {
+              guestAnswerRaw: question.guest_answer,
+              guestAnswerText,
+              optionKey: option.key,
+              optionText,
+              isGuestAnswer,
+              guestAnswerRevealed
+            });
+          }
           
           // Determine styling based on game state
           let optionStyle = '';

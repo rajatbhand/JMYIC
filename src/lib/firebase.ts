@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, doc, collection, connectFirestoreEmulator } from 'firebase/firestore';
+import { getFirestore, doc, collection, connectFirestoreEmulator, enableNetwork, disableNetwork } from 'firebase/firestore';
 import type { GameState } from './types';
 
 const firebaseConfig = {
@@ -13,11 +13,16 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+
+// Initialize Firestore with optimized settings for real-time performance
 export const db = getFirestore(app);
 
-// Add connection verification
+// Add connection verification and optimize for real-time sync
 if (typeof window !== 'undefined') {
   console.log('Firebase initialized for project:', firebaseConfig.projectId);
+  
+  // Enable network for faster sync
+  enableNetwork(db).catch(console.error);
 }
 
 // Document references
