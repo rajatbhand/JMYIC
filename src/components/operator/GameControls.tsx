@@ -342,7 +342,7 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
             >
               <option value="" disabled>Choose level to lock...</option>
               {PRIZE_TIERS
-                .filter(tier => tier.level >= gameState.currentQuestionNumber)
+                .filter(tier => tier.level <= gameState.currentQuestionNumber)
                 .map(tier => (
                   <option key={tier.level} value={tier.level}>
                     Level {tier.level} - ₹{tier.amount.toLocaleString()}
@@ -351,7 +351,7 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
               }
             </select>
             <p className="text-xs text-gray-400">
-              Lock is permanent once placed and secures minimum prize amount
+              Lock can only secure amounts already won (current level or below)
             </p>
           </div>
         ) : (

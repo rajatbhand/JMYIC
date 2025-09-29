@@ -141,9 +141,15 @@ export class GameLogic {
 
     // If Panel = Guest (panel correct), complete the round immediately
     if (isPanelCorrect) {
-      // Panel wins - guest stays at current level, increment panel correct count
+      // Panel wins - guest stays at current level, loses a life, increment panel correct count
       updates.currentQuestionAnswerRevealed = true; // Mark as complete
       updates.panelCorrectAnswers = (gameState.panelCorrectAnswers || 0) + 1;
+      
+      // Guest loses a life when panel guesses correctly
+      if (gameState.lives > 0 && !gameState.lifeUsed) {
+        updates.lifeUsed = true;
+        updates.lives = 0; // Set lives to 0 when life is used
+      }
       
       // Check if game should end (2 panel correct answers)
       if (updates.panelCorrectAnswers >= 2) {
@@ -156,8 +162,9 @@ export class GameLogic {
         [gameState.currentQuestion.id]: true
       };
       
-      // Clear current question since round is complete
-      updates.currentQuestion = null;
+      // Keep current question visible until new one is selected
+      // Don't clear currentQuestion here - let the operator choose the next question
+      // Reset only the panel guess state for next round
       updates.panelGuess = '';
       updates.panelGuessSubmitted = false;
       updates.panelGuessChecked = false;
@@ -199,10 +206,16 @@ export class GameLogic {
       console.log(`Guest wins! Moving from level ${gameState.currentQuestionNumber} to ${nextLevel}, prize: ₹${newPrize}`);
     } else {
       // Panel CORRECT = Panel wins
-      // Guest stays at current level - no advancement
+      // Guest stays at current level - no advancement, loses a life
       const newPanelCorrectCount = gameState.panelCorrectAnswers + 1;
       
       updates.panelCorrectAnswers = newPanelCorrectCount;
+      
+      // Guest loses a life when panel guesses correctly
+      if (gameState.lives > 0 && !gameState.lifeUsed) {
+        updates.lifeUsed = true;
+        updates.lives = 0; // Set lives to 0 when life is used
+      }
       
       // Check if game should end (panel got 2 correct answers)
       if (newPanelCorrectCount >= 2) {
@@ -210,7 +223,7 @@ export class GameLogic {
         console.log(`Panel got 2 correct answers! Game ends. Moving to Final Gamble.`);
       }
       
-      console.log(`Panel guessed correctly! (${newPanelCorrectCount}/2) Guest stays at level ${gameState.currentQuestionNumber}, prize: ₹${gameState.prize}`);
+      console.log(`Panel guessed correctly! (${newPanelCorrectCount}/2) Guest stays at level ${gameState.currentQuestionNumber}, prize: ₹${gameState.prize}, life used: ${updates.lifeUsed}`);
     }
 
     return updates;

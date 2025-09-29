@@ -46,38 +46,69 @@ export default function QuestionDisplay({ gameState }: QuestionDisplayProps) {
           { key: 'D', text: question.option_d }
         ].map((option) => {
           const isPanelGuess = gameState.panelGuess === option.key;
-          const isGuestAnswer = gameState.currentQuestionAnswerRevealed && question.guest_answer === option.key;
-          const showResult = gameState.panelGuessChecked;
+          const isGuestAnswer = question.guest_answer === option.key;
+          const guestAnswerRevealed = gameState.currentQuestionAnswerRevealed;
+          const panelGuessChecked = gameState.panelGuessChecked;
+          
+          // Determine styling based on game state
+          let optionStyle = '';
+          let iconStyle = '';
+          let statusIcon = '';
+
+          if (guestAnswerRevealed) {
+            // Step 3: Guest answer revealed - show final colors
+            if (isGuestAnswer) {
+              // Guest answer is always green when revealed
+              optionStyle = 'bg-gradient-to-r from-green-600 to-green-500 text-white shadow-xl shadow-green-500/50 scale-105';
+              iconStyle = 'bg-green-800 text-green-100';
+              statusIcon = '✅';
+            } else if (isPanelGuess && gameState.panelGuess !== question.guest_answer) {
+              // Panel guess that is wrong (not the guest answer) stays red
+              optionStyle = 'bg-gradient-to-r from-red-600 to-red-500 text-white shadow-xl shadow-red-500/50';
+              iconStyle = 'bg-red-800 text-red-100';
+              statusIcon = '❌';
+            } else {
+              // Other options remain neutral
+              optionStyle = 'bg-gray-700 text-gray-300';
+              iconStyle = 'bg-gray-600 text-gray-300';
+            }
+          } else if (panelGuessChecked && isPanelGuess) {
+            // Step 2: Panel guess checked - show green if correct, red if wrong
+            if (gameState.panelGuess === question.guest_answer) {
+              // Panel = Guest (2-step flow) - green
+              optionStyle = 'bg-gradient-to-r from-green-600 to-green-500 text-white shadow-xl shadow-green-500/50 scale-105';
+              iconStyle = 'bg-green-800 text-green-100';
+              statusIcon = '✅';
+            } else {
+              // Panel ≠ Guest (3-step flow) - red
+              optionStyle = 'bg-gradient-to-r from-red-600 to-red-500 text-white shadow-xl shadow-red-500/50';
+              iconStyle = 'bg-red-800 text-red-100';
+              statusIcon = '❌';
+            }
+          } else if (isPanelGuess && gameState.panelGuessSubmitted) {
+            // Step 1: Panel guess submitted but not checked yet - orange
+            optionStyle = 'bg-gradient-to-r from-orange-600 to-orange-500 text-white shadow-xl shadow-orange-500/50';
+            iconStyle = 'bg-orange-800 text-orange-100';
+            statusIcon = '🎯';
+          } else {
+            // Default neutral styling
+            optionStyle = 'bg-gray-700 hover:bg-gray-600 text-gray-300';
+            iconStyle = 'bg-gray-600 text-gray-300';
+          }
 
           return (
             <div
               key={option.key}
-              className={`p-6 rounded-xl transition-all duration-700 ${
-                isGuestAnswer && showResult
-                  ? 'bg-gradient-to-r from-green-600 to-green-500 text-white shadow-xl shadow-green-500/50 scale-105'
-                  : isPanelGuess && showResult && !isGuestAnswer
-                  ? 'bg-gradient-to-r from-red-600 to-red-500 text-white shadow-xl shadow-red-500/50'
-                  : isPanelGuess && !showResult
-                  ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-xl shadow-blue-500/50'
-                  : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
-              }`}
+              className={`p-6 rounded-xl transition-all duration-700 ${optionStyle}`}
             >
               <div className="flex items-center space-x-4">
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold ${
-                  isGuestAnswer && showResult
-                    ? 'bg-green-800 text-green-100'
-                    : isPanelGuess && showResult && !isGuestAnswer
-                    ? 'bg-red-800 text-red-100'
-                    : isPanelGuess && !showResult
-                    ? 'bg-blue-800 text-blue-100'
-                    : 'bg-gray-600 text-gray-300'
-                }`}>
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold ${iconStyle}`}>
                   {option.key}
                 </div>
                 
                 <div className="flex-1">
                   <div className={`text-lg font-medium ${
-                    isGuestAnswer && showResult || (isPanelGuess && showResult && !isGuestAnswer) || (isPanelGuess && !showResult)
+                    guestAnswerRevealed || (isPanelGuess && gameState.panelGuessSubmitted)
                       ? 'text-white'
                       : 'text-gray-300'
                   }`}>
@@ -87,14 +118,8 @@ export default function QuestionDisplay({ gameState }: QuestionDisplayProps) {
 
                 {/* Status indicators */}
                 <div className="flex items-center space-x-2">
-                  {isPanelGuess && !showResult && (
-                    <span className="text-blue-200 text-xl">🎯</span>
-                  )}
-                  {isGuestAnswer && showResult && (
-                    <span className="text-green-200 text-xl">✅</span>
-                  )}
-                  {isPanelGuess && showResult && !isGuestAnswer && (
-                    <span className="text-red-200 text-xl">❌</span>
+                  {statusIcon && (
+                    <span className="text-2xl">{statusIcon}</span>
                   )}
                 </div>
               </div>
@@ -112,20 +137,39 @@ export default function QuestionDisplay({ gameState }: QuestionDisplayProps) {
         )}
 
         {gameState.panelGuessSubmitted && !gameState.panelGuessChecked && (
-          <div className="text-blue-400 text-lg font-semibold">
-            🎯 Panel guessed: {gameState.panelGuess}
+          <div className="text-orange-400 text-lg font-semibold">
+            🎯 Panel guessed: {gameState.panelGuess} • Waiting to check panel guess...
           </div>
         )}
 
-        {gameState.panelGuessChecked && gameState.needsManualReveal && (
-          <div className="text-orange-400 text-lg font-semibold animate-pulse">
-            🔍 Revealing guest answer...
+        {gameState.panelGuessChecked && !gameState.currentQuestionAnswerRevealed && (
+          <div className="space-y-2">
+            {gameState.panelGuess === question.guest_answer ? (
+              <div className="text-green-400 text-lg font-semibold">
+                ✅ Panel got it right! Round complete.
+              </div>
+            ) : (
+              <div className="text-red-400 text-lg font-semibold">
+                ❌ Panel was wrong! Waiting for guest answer reveal...
+              </div>
+            )}
           </div>
         )}
 
         {gameState.currentQuestionAnswerRevealed && (
-          <div className="text-green-400 text-lg font-semibold">
-            🎉 Guest answer revealed: {question.guest_answer}
+          <div className="space-y-2">
+            <div className="text-green-400 text-lg font-semibold">
+              🎉 Guest answer revealed: {question.guest_answer}
+            </div>
+            {gameState.panelGuess === question.guest_answer ? (
+              <div className="text-green-300 text-base">
+                ✅ Panel got it right!
+              </div>
+            ) : (
+              <div className="text-gray-300 text-base">
+                Panel: {gameState.panelGuess} (❌) • Guest: {question.guest_answer} (✅) • Guest advances!
+              </div>
+            )}
           </div>
         )}
       </div>
