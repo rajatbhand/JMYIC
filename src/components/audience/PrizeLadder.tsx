@@ -18,11 +18,18 @@ export default function PrizeLadder({ gameState }: PrizeLadderProps) {
           const isCompleted = tier.level < gameState.currentQuestionNumber;
           const isLocked = gameState.lock.placed && tier.level === gameState.lock.level;
           
+          // Check if guest won the current round (should show green)
+          const guestWonCurrentRound = isCurrent && 
+            gameState.currentQuestionAnswerRevealed && 
+            gameState.pendingAdvancement;
+          
           return (
             <div
               key={tier.level}
               className={`relative p-4 rounded-lg transition-all duration-500 ${
-                isCurrent
+                guestWonCurrentRound
+                  ? 'bg-gradient-to-r from-green-600 to-green-500 text-white shadow-xl shadow-green-500/50 scale-105'
+                  : isCurrent
                   ? 'bg-gradient-to-r from-yellow-600 to-yellow-500 text-black shadow-xl shadow-yellow-500/50 scale-105'
                   : isCompleted
                   ? 'bg-gradient-to-r from-green-600 to-green-500 text-white'
@@ -41,7 +48,9 @@ export default function PrizeLadder({ gameState }: PrizeLadderProps) {
               <div className="flex justify-between items-center">
                 <div className="flex items-center space-x-3">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                    isCurrent
+                    guestWonCurrentRound
+                      ? 'bg-green-800 text-green-100'
+                      : isCurrent
                       ? 'bg-yellow-800 text-yellow-100'
                       : isCompleted
                       ? 'bg-green-800 text-green-100'

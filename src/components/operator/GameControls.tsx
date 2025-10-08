@@ -3,7 +3,6 @@ import type { GameState } from '@/lib/types';
 import { gameStateManager } from '@/lib/gameState';
 import { soundPlayer } from '@/lib/sounds';
 import { GameLogic } from '@/utils/gameLogic';
-import { PRIZE_TIERS } from '@/lib/firebase';
 import { setDoc } from 'firebase/firestore';
 import { db, questionsDocRef } from '@/lib/firebase';
 
@@ -25,9 +24,6 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
       // Play sound immediately (non-blocking)
       soundPlayer.playSound('questionSelection');
       
-      // Immediate local update for operator feedback
-      console.log('Submitting panel guess:', guess);
-      
       await gameStateManager.updateGameState({
         panelGuess: guess,
         panelGuessSubmitted: true
@@ -45,7 +41,7 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
     try {
       setProcessing(true);
       
-      console.log('Checking panel guess - immediate action:', {
+      console.log('Checking panel guess:', {
         panelGuess: gameState.panelGuess,
         guestAnswer: gameState.currentQuestion.guest_answer,
         gameState: gameState
@@ -54,24 +50,24 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
       // Calculate result using game logic
       const updates = GameLogic.calculatePanelGuessResult(gameState, gameState.panelGuess);
       
-      console.log('Panel guess updates - applying immediately:', updates);
+      console.log('Panel guess updates:', updates);
       
-      // Calculate result for immediate sound feedback
+      // Play appropriate sound
       const isCorrect = GameLogic.isPanelGuessCorrectWithContext(
         gameState.panelGuess, 
         gameState.currentQuestion.guest_answer,
         gameState.currentQuestion
       );
       
-      console.log('Panel guess result - immediate:', isCorrect);
+      console.log('Panel guess is correct:', isCorrect);
       
       // Play sound immediately (non-blocking)
       soundPlayer.playSound(isCorrect ? 'panelCorrect' : 'panelWrong');
       
-      // Update game state with immediate local optimistic update
+      // Update game state
       await gameStateManager.updateGameState(updates);
       
-      console.log('Panel guess check completed - should sync immediately');
+      console.log('Panel guess check completed successfully');
       
     } catch (error) {
       console.error('Panel guess check error:', error);
@@ -87,8 +83,6 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
     try {
       setProcessing(true);
       
-      console.log('Revealing guest answer - immediate action');
-      
       // Calculate reveal result
       const updates = GameLogic.calculateRevealResult(gameState);
       
@@ -100,17 +94,10 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
       
       const combinedUpdates = { ...updates, ...usedQuestionUpdates };
       
-      console.log('Guest answer reveal updates - applying immediately:', combinedUpdates);
-      
-      // Play sound and update state with optimistic local update
-      await Promise.all([
-        soundPlayer.playSound('revealAnswer'),
-        gameStateManager.updateGameState(combinedUpdates)
-      ]);
+      await soundPlayer.playSound('revealAnswer');
+      await gameStateManager.updateGameState(combinedUpdates);
       
       onQuestionUsed(); // Refresh question pool
-      
-      console.log('Guest answer revealed - should sync immediately');
       
     } catch (error) {
       onError('Failed to reveal guest answer');
@@ -133,24 +120,6 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
       
     } catch (error) {
       onError('Failed to place lock');
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  const handlePlaceLockAtLevel = async (level: number) => {
-    if (processing || !gameState || gameState.lock.placed) return;
-
-    try {
-      setProcessing(true);
-      
-      const updates = GameLogic.calculateLockPlacement(gameState, level);
-      
-      await soundPlayer.playSound('lockPlaced');
-      await gameStateManager.updateGameState(updates);
-      
-    } catch (error) {
-      onError(`Failed to place lock at level ${level}`);
     } finally {
       setProcessing(false);
     }
@@ -209,6 +178,50 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
     }
   };
 
+  const handleStartAllOrNothing = async () => {
+    if (processing || !GameLogic.canStartAllOrNothing(gameState)) return;
+
+    try {
+      setProcessing(true);
+      
+      const updates = GameLogic.startAllOrNothing(gameState);
+      
+      await gameStateManager.updateGameState(updates);
+      
+      console.log('All or Nothing started');
+      
+    } catch (error) {
+      onError('Failed to start All or Nothing');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleAllOrNothingGuess = async (guess: 'A' | 'B' | 'C' | 'D') => {
+    if (processing || !gameState.allOrNothingActive || !gameState.currentQuestion) return;
+
+    try {
+      setProcessing(true);
+      
+      const updates = GameLogic.handleAllOrNothingGuess(gameState, guess);
+      
+      await gameStateManager.updateGameState(updates);
+      
+      if (updates.allOrNothingWon) {
+        await soundPlayer.playSound('correctAnswer');
+      } else if (updates.allOrNothingComplete) {
+        await soundPlayer.playSound('wrongAnswer');  
+      } else {
+        await soundPlayer.playSound('wrongAnswer');
+      }
+      
+    } catch (error) {
+      onError('Failed to process All or Nothing guess');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   return (
     <div className="bg-gray-800 rounded-lg p-6">
       <h2 className="text-2xl font-bold text-white mb-6">Game Controls</h2>
@@ -216,13 +229,7 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
       {/* Current Question Display */}
       {gameState.currentQuestion ? (
         <div className="bg-blue-900 rounded-lg p-4 mb-6">
-          <div className="flex justify-between items-center mb-2">
-            <h3 className="text-lg font-semibold text-white">Current Question</h3>
-            <div className="text-sm text-gray-300">
-              Level {gameState.currentQuestionNumber} | Prize: ₹{gameState.prize.toLocaleString()}
-            </div>
-          </div>
-          
+          <h3 className="text-lg font-semibold text-white mb-2">Current Question</h3>
           <p className="text-gray-200 mb-4">{gameState.currentQuestion.question}</p>
           
           <div className="grid grid-cols-2 gap-2 mb-4">
@@ -232,32 +239,14 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
             <div className="text-gray-300">D) {gameState.currentQuestion.option_d}</div>
           </div>
           
-          <div className="text-sm text-yellow-300 mb-2">
-            Guest Answer: {gameState.currentQuestion.guest_answer} 
-            {gameState.currentQuestion.guest_answer && ['A', 'B', 'C', 'D'].includes(gameState.currentQuestion.guest_answer.toString().toUpperCase()) && (
-              <span className="text-gray-300">
-                ({gameState.currentQuestion.guest_answer === 'A' ? gameState.currentQuestion.option_a : 
-                  gameState.currentQuestion.guest_answer === 'B' ? gameState.currentQuestion.option_b :
-                  gameState.currentQuestion.guest_answer === 'C' ? gameState.currentQuestion.option_c :
-                  gameState.currentQuestion.option_d})
-              </span>
-            )}
-          </div>
-          
-          <div className="text-xs text-gray-400 flex gap-4">
-            <span>Guest Wins: {gameState.questionsAnswered}</span>
-            <span>Panel Correct: {gameState.panelCorrectAnswers}/2</span>
-            {gameState.gameOver && <span className="text-red-400">⚠️ GAME OVER - Final Gamble Time!</span>}
+          <div className="text-sm text-yellow-300">
+            Guest Answer: {gameState.currentQuestion.guest_answer}
           </div>
         </div>
       ) : (
         <div className="bg-gray-700 rounded-lg p-4 mb-6">
           <h3 className="text-lg font-semibold text-white mb-2">No Question Selected</h3>
-          <p className="text-gray-300 mb-2">Please select a question from the pool below to start the game.</p>
-          <div className="text-xs text-gray-400 flex gap-4">
-            <span>Guest Wins: {gameState.questionsAnswered}</span>
-            <span>Panel Correct: {gameState.panelCorrectAnswers}/2</span>
-          </div>
+          <p className="text-gray-300">Please select a question from the pool below to start the game.</p>
         </div>
       )}
 
@@ -298,30 +287,12 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
         >
           {processing ? 'Checking...' : 'Check Panel Guess'}
         </button>
-        
-        {/* Show immediate result when panel guess is checked */}
-        {gameState.panelGuessChecked && !gameState.needsManualReveal && (
-          <div className="mt-3 p-3 bg-green-900 border border-green-600 rounded">
-            <div className="text-green-400 font-semibold text-xl">✅ Round Complete!</div>
-            <div className="text-green-300">Panel = Guest Answer ({gameState.panelGuess})</div>
-            <div className="text-yellow-300">Guest stays at ₹{gameState.prize.toLocaleString()}</div>
-            <div className="text-white font-medium mt-2">🎯 Start next question below</div>
-          </div>
-        )}
-        
-        {gameState.panelGuessChecked && gameState.needsManualReveal && (
-          <div className="mt-3 p-3 bg-red-900 border border-red-600 rounded">
-            <div className="text-red-400 font-semibold">❌ Panel Wrong!</div>
-            <div className="text-red-300">Panel ≠ Guest Answer</div>
-            <div className="text-yellow-300 font-medium">👇 Click Step 3 to advance guest</div>
-          </div>
-        )}
       </div>
 
-      {/* Step 3: Reveal Guest Answer - Only show when panel is wrong */}
-      {gameState.needsManualReveal && (
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold text-white mb-3">Step 3: Reveal Guest Answer</h3>
+      {/* Step 3: Reveal Guest Answer (conditional) - Always Show */}
+      <div className="mb-6">
+        <h3 className="text-lg font-semibold text-white mb-3">Step 3: Reveal Guest Answer</h3>
+        {gameState.needsManualReveal ? (
           <button
             onClick={handleRevealGuestAnswer}
             disabled={processing || gameState.currentQuestionAnswerRevealed}
@@ -329,49 +300,127 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
           >
             {processing ? 'Revealing...' : 'Reveal Guest Answer'}
           </button>
-        </div>
-      )}
+        ) : (
+          <div className="text-gray-400">
+            {gameState.panelGuessChecked ? 'Auto-revealed (answers matched)' : 'Will show after checking panel guess'}
+          </div>
+        )}
+      </div>
 
       {/* Lock Controls - Always Show */}
       <div className="mb-6">
         <h3 className="text-lg font-semibold text-white mb-3">Lock Control</h3>
-        {gameState.lock.placed ? (
-          <div className="text-green-400">
-            🔒 Lock placed at Level {gameState.lock.level} - ₹{GameLogic.getPrizeForLevel(gameState.lock.level!).toLocaleString()}
-          </div>
-        ) : GameLogic.canPlaceLock(gameState) ? (
-          <div className="space-y-2">
-            <label className="block text-gray-300 text-sm">Select prize tier to lock:</label>
-            <select
-              onChange={(e) => {
-                if (e.target.value) {
-                  handlePlaceLockAtLevel(parseInt(e.target.value));
-                }
-              }}
-              disabled={processing}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:border-purple-500 focus:outline-none disabled:opacity-50"
-              defaultValue=""
-            >
-              <option value="" disabled>Choose level to lock...</option>
-              {PRIZE_TIERS
-                .filter(tier => tier.level <= gameState.currentQuestionNumber)
-                .map(tier => (
-                  <option key={tier.level} value={tier.level}>
-                    Level {tier.level} - ₹{tier.amount.toLocaleString()}
-                  </option>
-                ))
-              }
-            </select>
-            <p className="text-xs text-gray-400">
-              Lock can only secure amounts already won (current level or below)
-            </p>
-          </div>
+        {GameLogic.canPlaceLock(gameState) ? (
+          <button
+            onClick={handlePlaceLock}
+            disabled={processing}
+            className="px-6 py-2 bg-purple-600 text-white rounded font-semibold hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {processing ? 'Placing...' : `Place Lock at ₹${GameLogic.getPrizeForLevel(gameState.currentQuestionNumber).toLocaleString()}`}
+          </button>
         ) : (
           <div className="text-gray-400">
-            Lock not available (already placed or game over)
+            Lock not available (need to use immunity first)
           </div>
         )}
       </div>
+
+      {/* All or Nothing Controls */}
+      {GameLogic.canStartAllOrNothing(gameState) && (
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold text-white mb-3">🎰 All or Nothing</h3>
+          <div className="bg-red-900 border border-red-600 rounded-lg p-4 mb-4">
+            <div className="text-red-400 font-semibold mb-2">⚠️ Final Gamble Available</div>
+            <div className="text-red-300 text-sm mb-3">
+              Guest has lost all lives. Start All or Nothing phase for a chance to win ₹50,000 flat!
+            </div>
+            <p className="text-xs text-gray-400 mb-3">
+              Panel gets 2 attempts to answer correctly. If panel fails both, guest wins ₹50,000.
+              If panel succeeds on either attempt, guest leaves with ₹0 (even locked money).
+            </p>
+            <button
+              onClick={() => handleStartAllOrNothing()}
+              disabled={processing}
+              className="px-6 py-2 bg-red-600 text-white rounded font-semibold hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {processing ? 'Starting...' : '🎰 Start All or Nothing'}
+            </button>
+            <p className="text-yellow-400 text-xs mt-2">Select a question after starting</p>
+          </div>
+        </div>
+      )}
+
+      {/* All or Nothing Game Flow */}
+      {gameState.allOrNothingActive && (
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold text-white mb-3">
+            🎰 All or Nothing - Attempt {gameState.allOrNothingAttempt}/2
+          </h3>
+          
+          <div className="bg-red-900 border border-red-600 rounded-lg p-4 mb-4">
+            <div className="text-yellow-400 font-semibold mb-2">
+              Playing for: ₹50,000 FLAT
+            </div>
+            <div className="text-red-300 text-sm">
+              Panel Attempt {gameState.allOrNothingAttempt} of 2
+            </div>
+          </div>
+
+          {!gameState.currentQuestion ? (
+            <div className="mb-4 p-4 bg-yellow-900 border border-yellow-600 rounded-lg">
+              <div className="text-yellow-400 font-semibold mb-2">⚠️ No Question Selected</div>
+              <div className="text-yellow-300 text-sm">
+                Please select a question from the question pool below to continue All or Nothing.
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Panel Guess Buttons */}
+              <div className="mb-4">
+                <h4 className="text-md font-semibold text-white mb-3">Panel Answer:</h4>
+                <div className="flex gap-2">
+                  {(['A', 'B', 'C', 'D'] as const).map((option) => (
+                    <button
+                      key={option}
+                      onClick={() => handleAllOrNothingGuess(option)}
+                      disabled={processing || !gameState.currentQuestion || gameState.panelGuessSubmitted || gameState.allOrNothingComplete}
+                      className={`px-4 py-2 rounded font-semibold transition-colors ${
+                        gameState.panelGuess === option
+                          ? gameState.panelGuessChecked 
+                            ? 'bg-orange-600 text-white'  // Locked answer
+                            : 'bg-blue-600 text-white'     // Selected but not locked
+                          : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                      } disabled:opacity-50 disabled:cursor-not-allowed`}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+                
+                {gameState.panelGuessChecked && gameState.currentQuestionAnswerRevealed && (
+                  <div className="mt-3 p-3 rounded border">
+                    {gameState.allOrNothingComplete ? (
+                      gameState.allOrNothingWon ? (
+                        <div className="bg-green-900 border-green-600 text-green-400">
+                          🎉 GUEST WINS ₹50,000! Panel failed both attempts!
+                        </div>
+                      ) : (
+                        <div className="bg-red-900 border-red-600 text-red-400">
+                          💀 Game Over! Panel correct - Guest gets ₹0
+                        </div>
+                      )
+                    ) : (
+                      <div className="bg-blue-900 border-blue-600 text-blue-400">
+                        ❌ Panel Wrong! Moving to Attempt 2...
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Reset Controls - Always Show */}
       <div className="mb-6">

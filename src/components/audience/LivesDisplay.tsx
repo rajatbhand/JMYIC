@@ -14,36 +14,69 @@ export default function LivesDisplay({ gameState }: LivesDisplayProps) {
         <div className="text-center">
           <div className="text-gray-400 text-sm uppercase tracking-wide mb-2">Lives</div>
           <div className={`text-4xl font-bold ${
-            gameState.lives > 0 ? 'text-green-400' : 'text-red-400'
+            gameState.lives > 0 ? 'text-red-400' : 'text-gray-500'
           }`}>
-            {gameState.lives}
+            {gameState.lives}/2
           </div>
-          <div className="flex justify-center mt-2">
-            {[...Array(1)].map((_, i) => (
+          <div className="flex justify-center mt-2 space-x-1">
+            {[...Array(2)].map((_, i) => (
               <div
                 key={i}
-                className={`w-6 h-6 rounded-full mx-1 ${
-                  i < gameState.lives ? 'bg-green-500' : 'bg-gray-600'
+                className={`text-3xl transition-all duration-500 ${
+                  i < gameState.lives 
+                    ? 'text-red-500 drop-shadow-lg' 
+                    : 'text-gray-600 opacity-50'
                 }`}
-              />
+              >
+                ❤️
+              </div>
             ))}
+          </div>
+          <div className="text-xs text-gray-400 mt-1">
+            {gameState.lives > 0 
+              ? `${gameState.lives === 2 ? 'Full health' : `${gameState.lives} life remaining`}`
+              : 'No lives left'
+            }
           </div>
         </div>
 
-        {/* Immunity Status */}
+        {/* Game Status */}
         <div className="text-center">
-          <div className="text-gray-400 text-sm uppercase tracking-wide mb-2">Immunity</div>
+          <div className="text-gray-400 text-sm uppercase tracking-wide mb-2">Game Status</div>
           <div className={`text-2xl font-bold ${
-            gameState.lifeUsed ? 'text-red-400' : 'text-yellow-400'
+            gameState.gameOver 
+              ? 'text-red-400' 
+              : gameState.lives === 2 
+              ? 'text-green-400' 
+              : gameState.lives === 1 
+              ? 'text-yellow-400' 
+              : 'text-red-400'
           }`}>
-            {gameState.lifeUsed ? '❌ Used' : '🛡️ Available'}
+            {gameState.gameOver 
+              ? '💀 Game Over' 
+              : gameState.lives === 2 
+              ? '💪 Strong' 
+              : gameState.lives === 1 
+              ? '⚠️ Danger' 
+              : '� Eliminated'
+            }
           </div>
           <div className={`text-sm mt-1 ${
-            gameState.lifeUsed ? 'text-red-300' : 'text-yellow-300'
+            gameState.gameOver 
+              ? 'text-red-300' 
+              : gameState.lives === 2 
+              ? 'text-green-300' 
+              : gameState.lives === 1 
+              ? 'text-yellow-300' 
+              : 'text-red-300'
           }`}>
-            {gameState.lifeUsed 
-              ? 'One-time immunity has been used'
-              : 'Can survive one wrong answer'
+            {gameState.gameOver 
+              ? 'The game has ended'
+              : gameState.lives === 2 
+              ? 'All lives intact'
+              : gameState.lives === 1 
+              ? 'One mistake away from elimination'
+              : 'No lives remaining'
             }
           </div>
         </div>

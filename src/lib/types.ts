@@ -24,12 +24,23 @@ export interface GameState {
   questionsAnswered: number;
   panelCorrectAnswers: number; // Track panel correct guesses for game end
   prize: number;
+  pendingAdvancement: boolean; // Guest won round, waiting for next question to advance
   
   // Game status
   gameOver: boolean;
   softEliminated: boolean;
   currentQuestionAnswerRevealed: boolean;
   needsManualReveal: boolean;
+  
+  // All or Nothing phase
+  allOrNothingActive: boolean;
+  allOrNothingAttempt: number; // 0 = not started, 1 = first attempt, 2 = second attempt
+  allOrNothingComplete: boolean;
+  allOrNothingWon: boolean;
+  
+  // All or Nothing attempt tracking
+  allOrNothingLastGuess: string; // Track last guess for highlighting
+  allOrNothingLastGuessCorrect: boolean; // Track if last guess was correct
   
   // Lock system
   lock: {

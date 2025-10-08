@@ -141,19 +141,27 @@ export class GameLogic {
 
     // If Panel = Guest (panel correct), complete the round immediately
     if (isPanelCorrect) {
-      // Panel wins - guest stays at current level, loses a life, increment panel correct count
+      // Panel wins - guest loses a life and stays at current level
       updates.currentQuestionAnswerRevealed = true; // Mark as complete
       updates.panelCorrectAnswers = (gameState.panelCorrectAnswers || 0) + 1;
       
       // Guest loses a life when panel guesses correctly
-      if (gameState.lives > 0 && !gameState.lifeUsed) {
-        updates.lifeUsed = true;
-        updates.lives = 0; // Set lives to 0 when life is used
+      if (gameState.lives > 0) {
+        const newLives = gameState.lives - 1;
+        updates.lives = newLives;
+        
+        // Only set soft elimination when ALL lives are lost
+        if (newLives === 0) {
+          updates.softEliminated = true; // Eligible for All or Nothing, but don't end game yet
+        }
+        
+        console.log(`Panel correct! Guest loses a life. Lives remaining: ${newLives}`);
       }
       
-      // Check if game should end (2 panel correct answers)
-      if (updates.panelCorrectAnswers >= 2) {
+      // Check if game should end (2 panel correct answers) - but only if All or Nothing not available
+      if (updates.panelCorrectAnswers >= 2 && updates.lives > 0) {
         updates.gameOver = true;
+        updates.softEliminated = true;
       }
       
       // Mark question as used
@@ -183,7 +191,11 @@ export class GameLogic {
       throw new Error('Invalid state for reveal');
     }
 
-    const isPanelCorrect = this.isPanelGuessCorrect(gameState.panelGuess, gameState.currentQuestion.guest_answer);
+    const isPanelCorrect = this.isPanelGuessCorrectWithContext(
+      gameState.panelGuess, 
+      gameState.currentQuestion.guest_answer, 
+      gameState.currentQuestion
+    );
     
     let updates: Partial<GameState> = {
       currentQuestionAnswerRevealed: true,
@@ -191,19 +203,16 @@ export class GameLogic {
     };
 
     if (!isPanelCorrect) {
-      // Panel WRONG = Guest WINS! 🎉
-      // Guest advances UP the prize ladder
-      const nextLevel = gameState.currentQuestionNumber + 1;
-      const newPrize = this.getPrizeForLevel(nextLevel);
-      
+      // Panel WRONG = Guest WINS the round! 🎉
+      // Mark for advancement on next question selection
       updates = {
         ...updates,
-        currentQuestionNumber: nextLevel,
-        prize: newPrize,
-        questionsAnswered: gameState.questionsAnswered + 1
+        questionsAnswered: gameState.questionsAnswered + 1,
+        pendingAdvancement: true
+        // Note: currentQuestionNumber and prize stay same until next question
       };
       
-      console.log(`Guest wins! Moving from level ${gameState.currentQuestionNumber} to ${nextLevel}, prize: ₹${newPrize}`);
+      console.log(`Guest wins round ${gameState.questionsAnswered + 1}! Advancement pending for next question selection.`);
     } else {
       // Panel CORRECT = Panel wins
       // Guest stays at current level - no advancement, loses a life
@@ -212,18 +221,25 @@ export class GameLogic {
       updates.panelCorrectAnswers = newPanelCorrectCount;
       
       // Guest loses a life when panel guesses correctly
-      if (gameState.lives > 0 && !gameState.lifeUsed) {
-        updates.lifeUsed = true;
-        updates.lives = 0; // Set lives to 0 when life is used
+      if (gameState.lives > 0) {
+        const newLives = gameState.lives - 1;
+        updates.lives = newLives;
+        
+        // Only set soft elimination when ALL lives are lost
+        if (newLives === 0) {
+          updates.softEliminated = true; // Eligible for All or Nothing, but don't end game yet
+        }
+        
+        console.log(`Panel correct! Guest loses a life. Lives remaining: ${newLives}`);
       }
       
-      // Check if game should end (panel got 2 correct answers)
-      if (newPanelCorrectCount >= 2) {
+      // Check if game should end (2 panel correct answers) - but only if All or Nothing not available
+      if (newPanelCorrectCount >= 2 && updates.lives > 0) {
         updates.gameOver = true;
-        console.log(`Panel got 2 correct answers! Game ends. Moving to Final Gamble.`);
+        updates.softEliminated = true;
       }
       
-      console.log(`Panel guessed correctly! (${newPanelCorrectCount}/2) Guest stays at level ${gameState.currentQuestionNumber}, prize: ₹${gameState.prize}, life used: ${updates.lifeUsed}`);
+      console.log(`Panel got ${newPanelCorrectCount} correct answers! Game may end if panel reaches 2.`);
     }
 
     return updates;
@@ -281,5 +297,133 @@ export class GameLogic {
   static shouldGameEnd(gameState: GameState): boolean {
     // Game ends when panel gets 2 questions right (after soft elimination)
     return gameState.softEliminated || gameState.currentQuestionNumber > 7;
+  }
+
+  /**
+   * Check if All or Nothing phase can be started
+   */
+  static canStartAllOrNothing(gameState: GameState): boolean {
+    return gameState.lives === 0 && gameState.softEliminated && !gameState.allOrNothingActive && !gameState.allOrNothingComplete && !gameState.gameOver;
+  }
+
+  /**
+   * Start All or Nothing phase (clear current question, operator will select)
+   */
+  static startAllOrNothing(gameState: GameState): Partial<GameState> {
+    return {
+      allOrNothingActive: true,
+      allOrNothingAttempt: 1,
+      allOrNothingComplete: false,
+      allOrNothingWon: false,
+      allOrNothingLastGuess: '',
+      allOrNothingLastGuessCorrect: false,
+      currentQuestion: null, // Clear question - operator will select one for both attempts
+      panelGuess: '',
+      panelGuessSubmitted: false,
+      panelGuessChecked: false,
+      currentQuestionAnswerRevealed: false,
+      needsManualReveal: false
+    };
+  }
+
+  /**
+   * Handle All or Nothing panel guess
+   */
+  static handleAllOrNothingGuess(gameState: GameState, panelGuess: 'A' | 'B' | 'C' | 'D'): Partial<GameState> {
+    if (!gameState.allOrNothingActive || !gameState.currentQuestion) {
+      throw new Error('All or Nothing not active');
+    }
+
+    const isPanelCorrect = this.isPanelGuessCorrectWithContext(
+      panelGuess,
+      gameState.currentQuestion.guest_answer,
+      gameState.currentQuestion
+    );
+
+    let updates: Partial<GameState> = {
+      panelGuess,
+      panelGuessSubmitted: true,
+      panelGuessChecked: true,
+      currentQuestionAnswerRevealed: true,
+      allOrNothingLastGuess: panelGuess,
+      allOrNothingLastGuessCorrect: isPanelCorrect
+    };
+
+    if (isPanelCorrect) {
+      // Panel correct - guest loses, gets ₹0 (even if locked money exists)
+      updates.allOrNothingComplete = true;
+      updates.allOrNothingWon = false;
+      updates.gameOver = true;
+      console.log(`All or Nothing: Panel correct on attempt ${gameState.allOrNothingAttempt}! Guest gets ₹0`);
+    } else {
+      // Panel wrong
+      if (gameState.allOrNothingAttempt === 1) {
+        // First attempt wrong - prepare for second attempt on SAME question
+        updates.allOrNothingAttempt = 2;
+        // Keep the same question - do NOT clear it
+        updates.panelGuess = '';
+        updates.panelGuessSubmitted = false;
+        updates.panelGuessChecked = false;
+        updates.currentQuestionAnswerRevealed = false;
+        console.log('All or Nothing: Panel wrong on attempt 1! Moving to attempt 2 with same question');
+      } else {
+        // Second attempt wrong - guest wins ₹50,000
+        updates.allOrNothingComplete = true;
+        updates.allOrNothingWon = true;
+        updates.gameOver = true;
+        updates.prize = 50000; // Set final prize to ₹50,000
+        console.log('All or Nothing: Panel wrong on attempt 2! Guest wins ₹50,000!');
+      }
+    }
+
+    return updates;
+  }
+
+  /**
+   * Calculate advancement when selecting new question
+   */
+  static calculateQuestionSelection(gameState: GameState, newQuestion: Question): Partial<GameState> {
+    // If All or Nothing is active, just set the question without advancement logic
+    if (gameState.allOrNothingActive) {
+      return {
+        currentQuestion: newQuestion,
+        panelGuess: '',
+        panelGuessSubmitted: false,
+        panelGuessChecked: false,
+        currentQuestionAnswerRevealed: false,
+        needsManualReveal: false
+      };
+    }
+
+    // Normal game logic
+    let updates: Partial<GameState> = {
+      currentQuestion: newQuestion,
+      panelGuess: '',
+      panelGuessSubmitted: false,
+      panelGuessChecked: false,
+      currentQuestionAnswerRevealed: false,
+      needsManualReveal: false
+    };
+
+    // Check if guest should advance (pendingAdvancement flag is set)
+    if (gameState.pendingAdvancement) {
+      // Guest advances to next level
+      const nextLevel = gameState.currentQuestionNumber + 1;
+      const newPrize = this.getPrizeForLevel(nextLevel);
+      
+      updates.currentQuestionNumber = nextLevel;
+      updates.prize = newPrize;
+      updates.pendingAdvancement = false; // Clear the flag
+      
+      console.log(`Guest advances! Moving from level ${gameState.currentQuestionNumber} to ${nextLevel}, prize: ₹${newPrize}`);
+    }
+
+    // Mark question as used
+    updates.usedQuestions = {
+      ...gameState.usedQuestions,
+      [newQuestion.id]: true
+    };
+
+    return updates;
   }
 }

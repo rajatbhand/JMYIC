@@ -27,15 +27,11 @@ export default function QuestionPool({
     try {
       setProcessing(true);
       
-      // Update game state with selected question
-      await gameStateManager.updateGameState({
-        currentQuestion: question,
-        panelGuess: '',
-        panelGuessSubmitted: false,
-        panelGuessChecked: false,
-        currentQuestionAnswerRevealed: false,
-        needsManualReveal: false
-      });
+      // Calculate updates including potential advancement
+      const updates = GameLogic.calculateQuestionSelection(gameState, question);
+      
+      // Update game state with calculated changes
+      await gameStateManager.updateGameState(updates);
 
       // Play question selection sound
       await soundPlayer.playSound('questionSelection');

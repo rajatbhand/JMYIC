@@ -7,6 +7,7 @@ import PrizeLadder from '@/components/audience/PrizeLadder';
 import QuestionDisplay from '@/components/audience/QuestionDisplay';
 import LivesDisplay from '@/components/audience/LivesDisplay';
 import GameOverDisplay from '@/components/audience/GameOverDisplay';
+import AllOrNothingDisplay from '@/components/audience/AllOrNothingDisplay';
 
 export default function AudienceDisplay() {
   const [gameState, setGameState] = useState<GameState | null>(null);
@@ -62,6 +63,11 @@ export default function AudienceDisplay() {
         </div>
       </div>
     );
+  }
+
+  // Show All or Nothing display
+  if (gameState.allOrNothingActive) {
+    return <AllOrNothingDisplay gameState={gameState} />;
   }
 
   // Show game over screen
