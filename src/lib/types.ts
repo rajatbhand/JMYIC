@@ -41,6 +41,10 @@ export interface GameState {
   // All or Nothing attempt tracking
   allOrNothingLastGuess: string; // Track last guess for highlighting
   allOrNothingLastGuessCorrect: boolean; // Track if last guess was correct
+  allOrNothingAttempt1Guess: string; // Track attempt 1 guess
+  allOrNothingAttempt1Correct: boolean; // Track if attempt 1 was correct
+  allOrNothingAttempt2Guess: string; // Track attempt 2 guess
+  allOrNothingAttempt2Correct: boolean; // Track if attempt 2 was correct
   
   // Lock system
   lock: {

@@ -113,22 +113,54 @@ export default function AllOrNothingDisplay({ gameState }: AllOrNothingDisplayPr
                       <div
                         key={option.letter}
                         className={`p-3 rounded-lg border-2 transition-all duration-500 ${
-                          // Show current attempt highlighting
-                          gameState.panelGuess === option.letter
-                            ? gameState.panelGuessChecked
-                              ? gameState.currentQuestion.guest_answer === option.letter
-                                ? 'bg-green-700 border-green-500 text-white'  // Correct answer
-                                : 'bg-red-700 border-red-500 text-white'      // Wrong panel guess
-                              : 'bg-orange-600 border-orange-400 text-white'  // Panel's locked answer
-                          // Show previous attempt highlighting when on attempt 2 with no current guess
-                          : gameState.allOrNothingAttempt === 2 && !gameState.panelGuess && gameState.allOrNothingLastGuess === option.letter
-                            ? gameState.allOrNothingLastGuessCorrect
-                              ? 'bg-green-700 border-green-500 text-white'    // Previous attempt was correct
-                              : 'bg-red-700 border-red-500 text-white'        // Previous attempt was wrong
-                          // Show correct answer if revealed
-                          : gameState.currentQuestionAnswerRevealed && gameState.currentQuestion.guest_answer === option.letter
-                            ? 'bg-green-700 border-green-500 text-white'      // Correct answer (revealed)
-                            : 'bg-gray-700 border-gray-600 text-gray-300'     // Normal option
+                          (() => {
+                            const correctAnswer = gameState.currentQuestion.guest_answer;
+                            const isCorrectAnswer = option.letter === correctAnswer;
+                            
+                            // Check if this option was guessed in attempt 1
+                            const isAttempt1Guess = gameState.allOrNothingAttempt1Guess === option.letter;
+                            const attempt1Correct = gameState.allOrNothingAttempt1Correct;
+                            
+                            // Check if this option was guessed in attempt 2
+                            const isAttempt2Guess = gameState.allOrNothingAttempt2Guess === option.letter;
+                            const attempt2Correct = gameState.allOrNothingAttempt2Correct;
+                            
+                            // Check current attempt guess
+                            const isCurrentGuess = gameState.panelGuess === option.letter;
+                            
+                            // Priority order for highlighting:
+                            // 1. Current attempt (if in progress) - orange
+                            // 2. Correct guesses - green
+                            // 3. Wrong guesses - red
+                            // 4. Correct answer (if revealed and no other highlighting) - green
+                            // 5. Default - gray
+                            
+                            if (isCurrentGuess && gameState.panelGuessSubmitted && !gameState.panelGuessChecked) {
+                              return 'bg-orange-600 border-orange-400 text-white'; // Current locked guess
+                            }
+                            
+                            if (isAttempt1Guess && attempt1Correct) {
+                              return 'bg-green-700 border-green-500 text-white'; // Attempt 1 correct
+                            }
+                            
+                            if (isAttempt2Guess && attempt2Correct) {
+                              return 'bg-green-700 border-green-500 text-white'; // Attempt 2 correct
+                            }
+                            
+                            if (isAttempt1Guess && !attempt1Correct) {
+                              return 'bg-red-700 border-red-500 text-white'; // Attempt 1 wrong
+                            }
+                            
+                            if (isAttempt2Guess && !attempt2Correct) {
+                              return 'bg-red-700 border-red-500 text-white'; // Attempt 2 wrong
+                            }
+                            
+                            if (gameState.currentQuestionAnswerRevealed && isCorrectAnswer) {
+                              return 'bg-green-700 border-green-500 text-white'; // Correct answer revealed
+                            }
+                            
+                            return 'bg-gray-700 border-gray-600 text-gray-300'; // Default
+                          })()
                         }`}
                       >
                         <div className="flex items-center">

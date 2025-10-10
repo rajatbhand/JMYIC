@@ -52,6 +52,10 @@ export const defaultGameState: GameState = {
   allOrNothingWon: false,
   allOrNothingLastGuess: '',
   allOrNothingLastGuessCorrect: false,
+  allOrNothingAttempt1Guess: '',
+  allOrNothingAttempt1Correct: false,
+  allOrNothingAttempt2Guess: '',
+  allOrNothingAttempt2Correct: false,
   lock: {
     placed: false,
     level: null,

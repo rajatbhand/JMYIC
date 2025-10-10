@@ -317,6 +317,10 @@ export class GameLogic {
       allOrNothingWon: false,
       allOrNothingLastGuess: '',
       allOrNothingLastGuessCorrect: false,
+      allOrNothingAttempt1Guess: '',
+      allOrNothingAttempt1Correct: false,
+      allOrNothingAttempt2Guess: '',
+      allOrNothingAttempt2Correct: false,
       currentQuestion: null, // Clear question - operator will select one for both attempts
       panelGuess: '',
       panelGuessSubmitted: false,
@@ -348,6 +352,15 @@ export class GameLogic {
       allOrNothingLastGuess: panelGuess,
       allOrNothingLastGuessCorrect: isPanelCorrect
     };
+
+    // Track attempt-specific data
+    if (gameState.allOrNothingAttempt === 1) {
+      updates.allOrNothingAttempt1Guess = panelGuess;
+      updates.allOrNothingAttempt1Correct = isPanelCorrect;
+    } else if (gameState.allOrNothingAttempt === 2) {
+      updates.allOrNothingAttempt2Guess = panelGuess;
+      updates.allOrNothingAttempt2Correct = isPanelCorrect;
+    }
 
     if (isPanelCorrect) {
       // Panel correct - guest loses, gets ₹0 (even if locked money exists)

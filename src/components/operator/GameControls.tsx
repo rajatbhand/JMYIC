@@ -203,17 +203,35 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
     try {
       setProcessing(true);
       
+      // Check if panel guess is correct for this attempt
+      const isPanelCorrect = GameLogic.isPanelGuessCorrectWithContext(
+        guess,
+        gameState.currentQuestion.guest_answer,
+        gameState.currentQuestion
+      );
+      
       const updates = GameLogic.handleAllOrNothingGuess(gameState, guess);
       
-      await gameStateManager.updateGameState(updates);
+      // Determine what sound to play based on who wins
+      let soundToPlay: string;
       
-      if (updates.allOrNothingWon) {
-        await soundPlayer.playSound('correctAnswer');
-      } else if (updates.allOrNothingComplete) {
-        await soundPlayer.playSound('wrongAnswer');  
+      if (isPanelCorrect) {
+        // Panel correct = Panel wins = Play Correct.mp3
+        soundToPlay = 'panelCorrect';
       } else {
-        await soundPlayer.playSound('wrongAnswer');
+        // Panel wrong - check if this results in guest winning
+        if (updates.allOrNothingComplete && updates.allOrNothingWon) {
+          // Guest wins (panel failed final attempt) = Play Correct.mp3
+          soundToPlay = 'panelCorrect';
+        } else {
+          // Panel wrong but game continues = Play Wrong.mp3
+          soundToPlay = 'panelWrong';
+        }
       }
+      
+      soundPlayer.playSound(soundToPlay);
+      
+      await gameStateManager.updateGameState(updates);
       
     } catch (error) {
       onError('Failed to process All or Nothing guess');
@@ -250,21 +268,22 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
         </div>
       )}
 
-      {/* Step 1: Panel Guess - Always Show */}
-      <div className="mb-6">
-        <h3 className="text-lg font-semibold text-white mb-3">Step 1: Panel Guess</h3>
-        <div className="flex gap-2">
-          {(['A', 'B', 'C', 'D'] as const).map((option) => (
-            <button
-              key={option}
-              onClick={() => handleSubmitPanelGuess(option)}
-              disabled={processing || gameState.panelGuessSubmitted || !gameState.currentQuestion}
-              className={`px-4 py-2 rounded font-semibold transition-colors ${
-                gameState.panelGuess === option
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
-            >
+      {/* Step 1: Panel Guess - Hide during All or Nothing */}
+      {!gameState.allOrNothingActive && (
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold text-white mb-3">Step 1: Panel Guess</h3>
+          <div className="flex gap-2">
+            {(['A', 'B', 'C', 'D'] as const).map((option) => (
+              <button
+                key={option}
+                onClick={() => handleSubmitPanelGuess(option)}
+                disabled={processing || gameState.panelGuessSubmitted || !gameState.currentQuestion}
+                className={`px-4 py-2 rounded font-semibold transition-colors ${
+                  gameState.panelGuess === option
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
               {option}
             </button>
           ))}
@@ -275,26 +294,30 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
         {!gameState.currentQuestion && (
           <p className="text-yellow-400 mt-2">Select a question first</p>
         )}
-      </div>
+        </div>
+      )}
 
-      {/* Step 2: Check Panel Guess - Always Show */}
-      <div className="mb-6">
-        <h3 className="text-lg font-semibold text-white mb-3">Step 2: Check Panel Guess</h3>
-        <button
-          onClick={handleCheckPanelGuess}
-          disabled={processing || !gameState.panelGuessSubmitted || gameState.panelGuessChecked || !gameState.currentQuestion}
-          className="px-6 py-2 bg-yellow-600 text-white rounded font-semibold hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+      {/* Step 2: Check Panel Guess - Hide during All or Nothing */}
+      {!gameState.allOrNothingActive && (
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold text-white mb-3">Step 2: Check Panel Guess</h3>
+          <button
+            onClick={handleCheckPanelGuess}
+            disabled={processing || !gameState.panelGuessSubmitted || gameState.panelGuessChecked || !gameState.currentQuestion}
+            className="px-6 py-2 bg-yellow-600 text-white rounded font-semibold hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {processing ? 'Checking...' : 'Check Panel Guess'}
         </button>
-      </div>
+        </div>
+      )}
 
-      {/* Step 3: Reveal Guest Answer (conditional) - Always Show */}
-      <div className="mb-6">
-        <h3 className="text-lg font-semibold text-white mb-3">Step 3: Reveal Guest Answer</h3>
-        {gameState.needsManualReveal ? (
-          <button
-            onClick={handleRevealGuestAnswer}
+      {/* Step 3: Reveal Guest Answer (conditional) - Hide during All or Nothing */}
+      {!gameState.allOrNothingActive && (
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold text-white mb-3">Step 3: Reveal Guest Answer</h3>
+          {gameState.needsManualReveal ? (
+            <button
+              onClick={handleRevealGuestAnswer}
             disabled={processing || gameState.currentQuestionAnswerRevealed}
             className="px-6 py-2 bg-red-600 text-white rounded font-semibold hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
@@ -305,11 +328,13 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
             {gameState.panelGuessChecked ? 'Auto-revealed (answers matched)' : 'Will show after checking panel guess'}
           </div>
         )}
-      </div>
+        </div>
+      )}
 
-      {/* Lock Controls - Always Show */}
-      <div className="mb-6">
-        <h3 className="text-lg font-semibold text-white mb-3">Lock Control</h3>
+      {/* Lock Controls - Hide during All or Nothing */}
+      {!gameState.allOrNothingActive && (
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold text-white mb-3">Lock Control</h3>
         {GameLogic.canPlaceLock(gameState) ? (
           <button
             onClick={handlePlaceLock}
@@ -323,7 +348,8 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
             Lock not available (need to use immunity first)
           </div>
         )}
-      </div>
+        </div>
+      )}
 
       {/* All or Nothing Controls */}
       {GameLogic.canStartAllOrNothing(gameState) && (
