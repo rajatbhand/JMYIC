@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import type { GameState } from '@/lib/types';
 import { gameStateManager } from '@/lib/gameState';
-import { soundPlayer } from '@/lib/sounds';
 import { GameLogic } from '@/utils/gameLogic';
 import { setDoc } from 'firebase/firestore';
 import { db, questionsDocRef } from '@/lib/firebase';
@@ -20,9 +19,6 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
     
     try {
       setProcessing(true);
-      
-      // Play sound immediately (non-blocking)
-      soundPlayer.playSound('questionSelection');
       
       await gameStateManager.updateGameState({
         panelGuess: guess,
@@ -52,17 +48,7 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
       
       console.log('Panel guess updates:', updates);
       
-      // Play appropriate sound
-      const isCorrect = GameLogic.isPanelGuessCorrectWithContext(
-        gameState.panelGuess, 
-        gameState.currentQuestion.guest_answer,
-        gameState.currentQuestion
-      );
-      
-      console.log('Panel guess is correct:', isCorrect);
-      
-      // Play sound immediately (non-blocking)
-      soundPlayer.playSound(isCorrect ? 'panelCorrect' : 'panelWrong');
+      console.log('Panel guess updates:', updates);
       
       // Update game state
       await gameStateManager.updateGameState(updates);
@@ -94,7 +80,6 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
       
       const combinedUpdates = { ...updates, ...usedQuestionUpdates };
       
-      await soundPlayer.playSound('revealAnswer');
       await gameStateManager.updateGameState(combinedUpdates);
       
       onQuestionUsed(); // Refresh question pool
@@ -115,7 +100,6 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
       const lockLevel = gameState.currentQuestionNumber;
       const updates = GameLogic.calculateLockPlacement(gameState, lockLevel);
       
-      await soundPlayer.playSound('lockPlaced');
       await gameStateManager.updateGameState(updates);
       
     } catch (error) {
@@ -197,39 +181,32 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
     }
   };
 
+  const handleTriggerGameOver = async () => {
+    if (processing || !GameLogic.canTriggerGameOver(gameState)) return;
+
+    try {
+      setProcessing(true);
+      
+      const updates = GameLogic.triggerGameOver(gameState);
+      
+      await gameStateManager.updateGameState(updates);
+      
+      console.log('Game over triggered manually');
+      
+    } catch (error) {
+      onError('Failed to trigger game over');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   const handleAllOrNothingGuess = async (guess: 'A' | 'B' | 'C' | 'D') => {
     if (processing || !gameState.allOrNothingActive || !gameState.currentQuestion) return;
 
     try {
       setProcessing(true);
       
-      // Check if panel guess is correct for this attempt
-      const isPanelCorrect = GameLogic.isPanelGuessCorrectWithContext(
-        guess,
-        gameState.currentQuestion.guest_answer,
-        gameState.currentQuestion
-      );
-      
       const updates = GameLogic.handleAllOrNothingGuess(gameState, guess);
-      
-      // Determine what sound to play based on who wins
-      let soundToPlay: string;
-      
-      if (isPanelCorrect) {
-        // Panel correct = Panel wins = Play Correct.mp3
-        soundToPlay = 'panelCorrect';
-      } else {
-        // Panel wrong - check if this results in guest winning
-        if (updates.allOrNothingComplete && updates.allOrNothingWon) {
-          // Guest wins (panel failed final attempt) = Play Correct.mp3
-          soundToPlay = 'panelCorrect';
-        } else {
-          // Panel wrong but game continues = Play Wrong.mp3
-          soundToPlay = 'panelWrong';
-        }
-      }
-      
-      soundPlayer.playSound(soundToPlay);
       
       await gameStateManager.updateGameState(updates);
       
@@ -445,6 +422,26 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
               </div>
             </>
           )}
+        </div>
+      )}
+
+      {/* Game Over Control - Show when guest has lost all lives */}
+      {GameLogic.canTriggerGameOver(gameState) && (
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold text-white mb-3">💀 Game Control</h3>
+          <div className="bg-red-900 border border-red-600 rounded-lg p-4">
+            <div className="text-red-400 font-semibold mb-2">⚠️ Guest Eliminated</div>
+            <div className="text-red-300 text-sm mb-3">
+              Guest has lost all lives. Show the final game over screen to end the show.
+            </div>
+            <button
+              onClick={handleTriggerGameOver}
+              disabled={processing}
+              className="px-6 py-2 bg-red-600 text-white rounded font-semibold hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {processing ? 'Ending Game...' : '💀 Show Game Over'}
+            </button>
+          </div>
         </div>
       )}
 

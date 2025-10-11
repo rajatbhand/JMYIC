@@ -1,5 +1,4 @@
 import React, { useState, useRef } from 'react';
-import { soundPlayer } from '@/lib/sounds';
 import { db, questionsDocRef } from '@/lib/firebase';
 import { setDoc } from 'firebase/firestore';
 import Papa from 'papaparse';
@@ -64,7 +63,6 @@ export default function CSVUpload({ onSuccess, onError }: CSVUploadProps) {
             
             console.log(`Successfully uploaded ${questions.length} questions to Firebase`);
             
-            soundPlayer.playSound('questionSelection');
             onSuccess();
             
             // Clear file input

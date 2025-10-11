@@ -97,6 +97,7 @@ export default function OperatorPanel() {
           prize: 0,
           pendingAdvancement: false,
           gameOver: false,
+          pendingGameOver: false,
           softEliminated: false,
           currentQuestionAnswerRevealed: false,
           needsManualReveal: false,

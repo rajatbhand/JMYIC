@@ -28,6 +28,7 @@ export interface GameState {
   
   // Game status
   gameOver: boolean;
+  pendingGameOver: boolean; // Guest lost all lives, waiting for operator to show game over
   softEliminated: boolean;
   currentQuestionAnswerRevealed: boolean;
   needsManualReveal: boolean;

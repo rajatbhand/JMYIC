@@ -439,4 +439,21 @@ export class GameLogic {
 
     return updates;
   }
+
+  /**
+   * Manually trigger game over (operator control)
+   */
+  static triggerGameOver(gameState: GameState): Partial<GameState> {
+    return {
+      gameOver: true,
+      pendingGameOver: false
+    };
+  }
+
+  /**
+   * Check if manual game over trigger should be available
+   */
+  static canTriggerGameOver(gameState: GameState): boolean {
+    return gameState.lives === 0 && gameState.softEliminated && !gameState.gameOver && !gameState.allOrNothingActive;
+  }
 }

@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import type { GameState } from '@/lib/types';
+import { soundPlayer } from '@/lib/sounds';
+import { GameLogic } from '@/utils/gameLogic';
 
 interface AllOrNothingDisplayProps {
   gameState: GameState;
@@ -7,6 +9,51 @@ interface AllOrNothingDisplayProps {
 
 export default function AllOrNothingDisplay({ gameState }: AllOrNothingDisplayProps) {
   const [showConfetti, setShowConfetti] = useState(false);
+
+  // Play audio when panel guess is checked during All or Nothing (synced with visual highlighting)
+  useEffect(() => {
+    if (gameState.panelGuessChecked && gameState.panelGuess && gameState.currentQuestion && gameState.allOrNothingActive) {
+      const isCorrect = GameLogic.isPanelGuessCorrectWithContext(
+        gameState.panelGuess,
+        gameState.currentQuestion.guest_answer,
+        gameState.currentQuestion
+      );
+      
+      // Determine what sound to play based on who wins this attempt
+      let soundToPlay: string;
+      if (isCorrect) {
+        // Panel correct = Panel wins = Play Correct.mp3
+        soundToPlay = 'panelCorrect';
+      } else {
+        // Panel wrong - check if this results in guest winning
+        if (gameState.allOrNothingComplete && gameState.allOrNothingWon) {
+          // Guest wins (panel failed final attempt) = Play Correct.mp3
+          soundToPlay = 'panelCorrect';
+        } else {
+          // Panel wrong but game continues = Play Wrong.mp3
+          soundToPlay = 'panelWrong';
+        }
+      }
+      
+      soundPlayer.playSound(soundToPlay);
+    }
+  }, [gameState.panelGuessChecked, gameState.panelGuess, gameState.allOrNothingComplete, gameState.allOrNothingWon]);
+
+  // Play audio when a new question appears during All or Nothing
+  useEffect(() => {
+    if (gameState.currentQuestion && gameState.allOrNothingActive && !gameState.panelGuessSubmitted) {
+      console.log('🎵 Playing All or Nothing question selection audio');
+      soundPlayer.playSound('questionSelection');
+    }
+  }, [gameState.currentQuestion?.id, gameState.allOrNothingActive]);
+
+  // Play audio when panel selects an option during All or Nothing
+  useEffect(() => {
+    if (gameState.panelGuessSubmitted && gameState.panelGuess && !gameState.panelGuessChecked && gameState.allOrNothingActive) {
+      console.log('🎵 Playing All or Nothing panel option selection audio');
+      soundPlayer.playSound('questionSelection');
+    }
+  }, [gameState.panelGuessSubmitted, gameState.panelGuess, gameState.allOrNothingActive]);
 
   useEffect(() => {
     if (gameState.allOrNothingWon && gameState.allOrNothingComplete) {

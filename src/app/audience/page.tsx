@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { gameStateManager } from '@/lib/gameState';
+import { soundPlayer } from '@/lib/sounds';
 import type { GameState } from '@/lib/types';
 import PrizeLadder from '@/components/audience/PrizeLadder';
 import QuestionDisplay from '@/components/audience/QuestionDisplay';
@@ -21,6 +22,15 @@ export default function AudienceDisplay() {
       try {
         // Initialize game state
         await gameStateManager.initializeGame();
+        
+        // Initialize sound system
+        await soundPlayer.preloadSounds();
+        console.log('Sound system initialized on audience page');
+        
+        // Make soundPlayer available globally for testing
+        if (typeof window !== 'undefined') {
+          (window as any).soundPlayer = soundPlayer;
+        }
         
         // Subscribe to real-time updates
         unsubscribe = gameStateManager.subscribeToGameState((state) => {
@@ -70,8 +80,8 @@ export default function AudienceDisplay() {
     return <AllOrNothingDisplay gameState={gameState} />;
   }
 
-  // Show game over screen
-  if (gameState.gameOver || gameState.softEliminated) {
+  // Show game over screen only when explicitly triggered by operator
+  if (gameState.gameOver) {
     return <GameOverDisplay gameState={gameState} />;
   }
 

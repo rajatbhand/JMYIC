@@ -1,11 +1,64 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import type { GameState } from '@/lib/types';
+import { soundPlayer } from '@/lib/sounds';
+import { GameLogic } from '@/utils/gameLogic';
 
 interface QuestionDisplayProps {
   gameState: GameState;
 }
 
 export default function QuestionDisplay({ gameState }: QuestionDisplayProps) {
+  const lastAudioPlayedRef = useRef<string>('');
+
+  // Play audio when panel guess is checked (synced with visual highlighting)
+  useEffect(() => {
+    if (gameState.panelGuessChecked && gameState.panelGuess && gameState.currentQuestion) {
+      // Create a unique key for this guess to prevent duplicate audio
+      const guessKey = `${gameState.currentQuestion.id}-${gameState.panelGuess}-${gameState.panelGuessChecked}`;
+      
+      // Only play audio if we haven't already played it for this specific guess
+      if (lastAudioPlayedRef.current !== guessKey) {
+        const isCorrect = GameLogic.isPanelGuessCorrectWithContext(
+          gameState.panelGuess,
+          gameState.currentQuestion.guest_answer,
+          gameState.currentQuestion
+        );
+        console.log('🔊 Playing panel result audio:', isCorrect ? 'Correct.mp3' : 'Wrong.mp3');
+        soundPlayer.playSound(isCorrect ? 'panelCorrect' : 'panelWrong');
+        lastAudioPlayedRef.current = guessKey;
+      }
+    }
+    
+    // Reset when a new question is selected
+    if (!gameState.panelGuessChecked) {
+      lastAudioPlayedRef.current = '';
+    }
+  }, [gameState.panelGuessChecked, gameState.panelGuess, gameState.currentQuestion]);
+
+  // Play audio when guest answer is revealed (synced with visual reveal)
+  useEffect(() => {
+    if (gameState.currentQuestionAnswerRevealed && gameState.currentQuestion) {
+      console.log('Playing reveal answer audio');
+      soundPlayer.playSound('revealAnswer');
+    }
+  }, [gameState.currentQuestionAnswerRevealed, gameState.currentQuestion]);
+
+  // Play audio when a new question appears (synced with question display)
+  useEffect(() => {
+    if (gameState.currentQuestion && !gameState.panelGuessSubmitted) {
+      console.log('🎵 Playing question selection audio');
+      soundPlayer.playSound('questionSelection');
+    }
+  }, [gameState.currentQuestion?.id]);
+
+  // Play audio when panel selects an option (synced with option selection)
+  useEffect(() => {
+    if (gameState.panelGuessSubmitted && gameState.panelGuess && !gameState.panelGuessChecked) {
+      console.log('🎵 Playing panel option selection audio');
+      soundPlayer.playSound('questionSelection');
+    }
+  }, [gameState.panelGuessSubmitted, gameState.panelGuess]);
+
   if (!gameState.currentQuestion) {
     return (
       <div className="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-2xl p-8">

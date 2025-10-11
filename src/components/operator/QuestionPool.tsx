@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import type { GameState, Question } from '@/lib/types';
 import { gameStateManager } from '@/lib/gameState';
-import { soundPlayer } from '@/lib/sounds';
 import { GameLogic } from '@/utils/gameLogic';
 
 interface QuestionPoolProps {
@@ -33,9 +32,6 @@ export default function QuestionPool({
       // Update game state with calculated changes
       await gameStateManager.updateGameState(updates);
 
-      // Play question selection sound
-      await soundPlayer.playSound('questionSelection');
-      
       onQuestionSelected();
     } catch (error) {
       onError('Failed to select question');
