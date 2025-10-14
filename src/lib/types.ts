@@ -39,6 +39,11 @@ export interface GameState {
   allOrNothingComplete: boolean;
   allOrNothingWon: boolean;
   
+  // All or Nothing manual control
+  allOrNothingPendingPanelWin: boolean; // Panel won, waiting for operator to show modal
+  allOrNothingPendingGuestWin: boolean; // Guest won, waiting for operator to show modal
+  allOrNothingModalVisible: boolean; // Modal is currently displayed
+  
   // All or Nothing attempt tracking
   allOrNothingLastGuess: string; // Track last guess for highlighting
   allOrNothingLastGuessCorrect: boolean; // Track if last guess was correct

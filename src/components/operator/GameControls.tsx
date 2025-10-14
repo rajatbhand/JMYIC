@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { GameState } from '@/lib/types';
 import { gameStateManager } from '@/lib/gameState';
-import { GameLogic } from '@/utils/gameLogic';
+import { GameLogic, showAllOrNothingPanelWinModal, showAllOrNothingGuestWinModal, toggleAllOrNothingModal } from '@/utils/gameLogic';
 import { setDoc } from 'firebase/firestore';
 import { db, questionsDocRef } from '@/lib/firebase';
 
@@ -13,6 +13,17 @@ interface GameControlsProps {
 
 export default function GameControls({ gameState, onError, onQuestionUsed }: GameControlsProps) {
   const [processing, setProcessing] = useState(false);
+
+  // Debug logging for All or Nothing state
+  useEffect(() => {
+    console.log('🔵 DEBUG: GameControls state update:', {
+      gameOver: gameState.gameOver,
+      allOrNothingWon: gameState.allOrNothingWon,
+      allOrNothingComplete: gameState.allOrNothingComplete,
+      allOrNothingModalVisible: gameState.allOrNothingModalVisible,
+      conditionResult: gameState.gameOver && (gameState.allOrNothingWon === true || gameState.allOrNothingWon === false)
+    });
+  }, [gameState.gameOver, gameState.allOrNothingWon, gameState.allOrNothingComplete, gameState.allOrNothingModalVisible]);
 
   const handleSubmitPanelGuess = async (guess: 'A' | 'B' | 'C' | 'D') => {
     if (processing) return;
@@ -195,6 +206,52 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
       
     } catch (error) {
       onError('Failed to trigger game over');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleShowPanelWinModal = async () => {
+    if (processing || !gameState.allOrNothingPendingPanelWin) return;
+
+    try {
+      setProcessing(true);
+      await showAllOrNothingPanelWinModal();
+      console.log('All or Nothing panel win modal triggered');
+    } catch (error) {
+      onError('Failed to show panel win modal');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleShowGuestWinModal = async () => {
+    if (processing || !gameState.allOrNothingPendingGuestWin) return;
+
+    console.log('🟢 DEBUG: Guest win button clicked');
+    try {
+      setProcessing(true);
+      await showAllOrNothingGuestWinModal();
+      console.log('🟢 DEBUG: Guest win modal triggered successfully');
+    } catch (error) {
+      console.error('🔴 DEBUG: Guest win modal failed:', error);
+      onError('Failed to show guest win modal');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleToggleAllOrNothingModal = async () => {
+    if (processing) return;
+
+    console.log('🟡 DEBUG: Toggle button clicked');
+    try {
+      setProcessing(true);
+      await toggleAllOrNothingModal();
+      console.log('🟢 DEBUG: Toggle completed successfully');
+    } catch (error) {
+      console.error('🔴 DEBUG: Toggle failed:', error);
+      onError('Failed to toggle modal');
     } finally {
       setProcessing(false);
     }
@@ -442,6 +499,51 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
               {processing ? 'Ending Game...' : '💀 Show Game Over'}
             </button>
           </div>
+        </div>
+      )}
+
+      {/* All or Nothing Modal Controls */}
+      {(gameState.allOrNothingPendingPanelWin || gameState.allOrNothingPendingGuestWin || gameState.allOrNothingModalVisible) && (
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold text-white mb-3">🎯 All or Nothing Controls</h3>
+
+          {/* Smart Result Control - Always available once All or Nothing concludes */}
+          {(() => {
+            // Simple check: if we have any All or Nothing result (true or false), show the control
+            const shouldShow = (gameState.allOrNothingWon === true || gameState.allOrNothingWon === false);
+            console.log('🟣 DEBUG: Purple section render check:', {
+              shouldShow,
+              allOrNothingComplete: gameState.allOrNothingComplete,
+              allOrNothingWon: gameState.allOrNothingWon,
+              modalVisible: gameState.allOrNothingModalVisible,
+              gameOver: gameState.gameOver
+            });
+            return shouldShow;
+          })() && (
+            <div className="bg-purple-900 border border-purple-600 rounded-lg p-4 mb-3">
+              <div className="text-purple-400 font-semibold mb-2">
+                🎭 Result Display
+              </div>
+              <div className="text-purple-300 text-sm mb-3">
+                {gameState.allOrNothingModalVisible 
+                  ? `Showing ${gameState.allOrNothingWon ? 'Guest Victory (₹50,000)' : 'Panel Victory (₹0)'} modal. Click to hide.`
+                  : `Result ready: ${gameState.allOrNothingWon ? 'Guest Won!' : 'Panel Won!'}. Click to display.`
+                }
+              </div>
+              <button
+                onClick={handleToggleAllOrNothingModal}
+                disabled={processing}
+                className="px-6 py-2 bg-purple-600 text-white rounded font-semibold hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {processing 
+                  ? 'Processing...' 
+                  : gameState.allOrNothingModalVisible 
+                    ? '🚫 Hide Result' 
+                    : `🎭 Show ${gameState.allOrNothingWon ? '🎉 Guest Victory' : '💀 Panel Victory'}`
+                }
+              </button>
+            </div>
+          )}
         </div>
       )}
 

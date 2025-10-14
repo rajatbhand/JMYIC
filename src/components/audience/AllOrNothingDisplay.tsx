@@ -2,13 +2,13 @@ import React, { useEffect, useState } from 'react';
 import type { GameState } from '@/lib/types';
 import { soundPlayer } from '@/lib/sounds';
 import { GameLogic } from '@/utils/gameLogic';
+import confetti from 'canvas-confetti';
 
 interface AllOrNothingDisplayProps {
   gameState: GameState;
 }
 
 export default function AllOrNothingDisplay({ gameState }: AllOrNothingDisplayProps) {
-  const [showConfetti, setShowConfetti] = useState(false);
 
   // Play audio when panel guess is checked during All or Nothing (synced with visual highlighting)
   useEffect(() => {
@@ -55,32 +55,45 @@ export default function AllOrNothingDisplay({ gameState }: AllOrNothingDisplayPr
     }
   }, [gameState.panelGuessSubmitted, gameState.panelGuess, gameState.allOrNothingActive]);
 
+  // Enhanced confetti animation when guest wins
   useEffect(() => {
-    if (gameState.allOrNothingWon && gameState.allOrNothingComplete) {
-      setShowConfetti(true);
+    if (gameState.allOrNothingModalVisible && gameState.allOrNothingWon) {
+      const duration = 15 * 1000;
+      const animationEnd = Date.now() + duration;
+      const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 1000 };
+
+      function randomInRange(min: number, max: number) {
+        return Math.random() * (max - min) + min;
+      }
+
+      const interval = setInterval(function() {
+        const timeLeft = animationEnd - Date.now();
+
+        if (timeLeft <= 0) {
+          return clearInterval(interval);
+        }
+
+        const particleCount = 50 * (timeLeft / duration);
+        // Multiple confetti bursts from different positions
+        confetti({ 
+          ...defaults, 
+          particleCount, 
+          origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } 
+        });
+        confetti({ 
+          ...defaults, 
+          particleCount, 
+          origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } 
+        });
+      }, 250);
+
+      // Cleanup interval if component unmounts or modal closes
+      return () => clearInterval(interval);
     }
-  }, [gameState.allOrNothingWon, gameState.allOrNothingComplete]);
+  }, [gameState.allOrNothingModalVisible, gameState.allOrNothingWon]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-900 via-orange-900 to-yellow-900 relative overflow-hidden">
-      {/* Confetti Effect */}
-      {showConfetti && (
-        <div className="fixed inset-0 pointer-events-none z-50">
-          <div className="confetti">
-            {[...Array(100)].map((_, i) => (
-              <div
-                key={i}
-                className="confetti-piece"
-                style={{
-                  left: `${Math.random() * 100}%`,
-                  animationDelay: `${Math.random() * 3}s`,
-                  animationDuration: `${3 + Math.random() * 2}s`
-                }}
-              />
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Header */}
       <div className="text-center py-8">
@@ -217,37 +230,6 @@ export default function AllOrNothingDisplay({ gameState }: AllOrNothingDisplayPr
                       </div>
                     ))}
                   </div>
-
-                  {/* Result Display */}
-                  {gameState.allOrNothingComplete && (
-                    <div className="mt-6 text-center">
-                      {gameState.allOrNothingWon ? (
-                        <div className="bg-green-900 border-2 border-green-500 rounded-xl p-4">
-                          <div className="text-green-400 text-2xl font-bold mb-2">
-                            🎉 WINNER! 🎉
-                          </div>
-                          <div className="text-green-300 text-lg">
-                            Guest wins ₹50,000!
-                          </div>
-                          <div className="text-green-200 text-sm mt-2">
-                            Panel failed both attempts
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="bg-red-900 border-2 border-red-500 rounded-xl p-4">
-                          <div className="text-red-400 text-2xl font-bold mb-2">
-                            💀 GAME OVER 💀
-                          </div>
-                          <div className="text-red-300 text-lg">
-                            Guest gets ₹0
-                          </div>
-                          <div className="text-red-200 text-sm mt-2">
-                            Panel got it right on attempt {gameState.allOrNothingAttempt}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </>
               )}
             </div>
@@ -255,54 +237,46 @@ export default function AllOrNothingDisplay({ gameState }: AllOrNothingDisplayPr
         </div>
       </div>
 
-      {/* Confetti CSS */}
-      <style jsx>{`
-        .confetti {
-          position: relative;
-          width: 100%;
-          height: 100%;
-        }
-        
-        .confetti-piece {
-          position: absolute;
-          width: 10px;
-          height: 10px;
-          background: linear-gradient(45deg, #ffd700, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #feca57);
-          animation: confetti-fall linear infinite;
-        }
-        
-        .confetti-piece:nth-child(odd) {
-          background: linear-gradient(45deg, #ff6b6b, #ffd700);
-          width: 8px;
-          height: 8px;
-          animation-duration: 3s;
-        }
-        
-        .confetti-piece:nth-child(even) {
-          background: linear-gradient(45deg, #4ecdc4, #45b7d1);
-          width: 6px;
-          height: 6px;
-          animation-duration: 2.5s;
-        }
-        
-        .confetti-piece:nth-child(3n) {
-          background: linear-gradient(45deg, #96ceb4, #feca57);
-          width: 4px;
-          height: 4px;
-          animation-duration: 4s;
-        }
-        
-        @keyframes confetti-fall {
-          0% {
-            transform: translateY(-100vh) rotate(0deg);
-            opacity: 1;
-          }
-          100% {
-            transform: translateY(100vh) rotate(720deg);
-            opacity: 0;
-          }
-        }
-      `}</style>
+      {/* All or Nothing Result Modals */}
+      {gameState.allOrNothingModalVisible && (
+        <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
+          {gameState.allOrNothingWon ? (
+            /* Guest Win Modal - ₹50,000 + Confetti */
+            <div className="bg-gradient-to-br from-green-600 to-emerald-600 rounded-3xl p-8 max-w-4xl mx-4 text-center shadow-2xl border-4 border-green-400 animate-bounce">
+              <div className="text-6xl mb-4">🎉</div>
+              <h2 className="text-4xl lg:text-5xl font-bold text-white mb-4 animate-pulse">
+                CONGRATULATIONS!
+              </h2>
+              <div className="text-yellow-300 text-2xl lg:text-3xl font-bold mb-4">
+                GUEST WINS
+              </div>
+              <div className="text-6xl lg:text-7xl font-bold text-white mb-4">
+                ₹50,000
+              </div>
+              <div className="text-green-200 text-lg lg:text-xl">
+                Panel failed both attempts! 🎊
+              </div>
+            </div>
+          ) : (
+            /* Panel Win Modal - Simple Bouncing Card */
+            <div className="bg-gradient-to-br from-red-700 to-red-900 rounded-3xl p-12 max-w-2xl mx-4 text-center shadow-2xl border-4 border-red-500 animate-bounce">
+              <div className="text-8xl mb-6">💀</div>
+              <h2 className="text-6xl font-bold text-white mb-4">
+                GAME OVER
+              </h2>
+              <div className="text-red-300 text-3xl font-bold mb-4">
+                PANEL WINS
+              </div>
+              <div className="text-8xl font-bold text-white mb-4">
+                ₹0
+              </div>
+              <div className="text-red-200 text-xl">
+                Panel answered correctly! 😭
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

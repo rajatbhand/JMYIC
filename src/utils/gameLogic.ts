@@ -1,5 +1,6 @@
 import type { GameState, Question, PrizeTier } from '@/lib/types';
 import { PRIZE_TIERS } from '@/lib/firebase';
+import { gameStateManager } from '@/lib/gameState';
 
 export class GameLogic {
   /**
@@ -363,11 +364,11 @@ export class GameLogic {
     }
 
     if (isPanelCorrect) {
-      // Panel correct - guest loses, gets ₹0 (even if locked money exists)
-      updates.allOrNothingComplete = true;
-      updates.allOrNothingWon = false;
-      updates.gameOver = true;
-      console.log(`All or Nothing: Panel correct on attempt ${gameState.allOrNothingAttempt}! Guest gets ₹0`);
+      // Panel correct - set pending state for operator control
+      updates.allOrNothingPendingPanelWin = true;
+      updates.allOrNothingWon = false; // Panel won
+      updates.prize = 0; // Guest gets ₹0 (even if locked money exists)
+      console.log(`All or Nothing: Panel correct on attempt ${gameState.allOrNothingAttempt}! Waiting for operator to show game over`);
     } else {
       // Panel wrong
       if (gameState.allOrNothingAttempt === 1) {
@@ -380,12 +381,11 @@ export class GameLogic {
         updates.currentQuestionAnswerRevealed = false;
         console.log('All or Nothing: Panel wrong on attempt 1! Moving to attempt 2 with same question');
       } else {
-        // Second attempt wrong - guest wins ₹50,000
-        updates.allOrNothingComplete = true;
-        updates.allOrNothingWon = true;
-        updates.gameOver = true;
+        // Second attempt wrong - set pending state for operator control
+        updates.allOrNothingPendingGuestWin = true;
+        updates.allOrNothingWon = true; // Guest won
         updates.prize = 50000; // Set final prize to ₹50,000
-        console.log('All or Nothing: Panel wrong on attempt 2! Guest wins ₹50,000!');
+        console.log('All or Nothing: Panel wrong on attempt 2! Guest wins ₹50,000! Waiting for operator to show win modal');
       }
     }
 
@@ -455,5 +455,94 @@ export class GameLogic {
    */
   static canTriggerGameOver(gameState: GameState): boolean {
     return gameState.lives === 0 && gameState.softEliminated && !gameState.gameOver && !gameState.allOrNothingActive;
+  }
+}
+
+/**
+ * Trigger All or Nothing panel win modal (guest loses, crying emoji rain)
+ */
+export async function showAllOrNothingPanelWinModal() {
+  const updates: Partial<GameState> = {
+    allOrNothingPendingPanelWin: false,
+    allOrNothingModalVisible: true,
+    allOrNothingComplete: true,
+    allOrNothingWon: false,
+    gameOver: true,
+    prize: 0
+  };
+  await gameStateManager.updateGameState(updates);
+}
+
+/**
+ * Trigger All or Nothing guest win modal (guest wins ₹50,000, confetti)
+ */
+export async function showAllOrNothingGuestWinModal() {
+  const updates: Partial<GameState> = {
+    allOrNothingPendingGuestWin: false,
+    allOrNothingModalVisible: true,
+    allOrNothingComplete: true,
+    allOrNothingWon: true,
+    gameOver: true,
+    prize: 50000
+  };
+  await gameStateManager.updateGameState(updates);
+}
+
+/**
+ * Smart toggle All or Nothing modal - shows appropriate result based on game outcome
+ */
+export async function toggleAllOrNothingModal() {
+  const currentState = gameStateManager.getCurrentLocalState();
+  if (!currentState) {
+    console.error('🔴 DEBUG: No current state available');
+    return;
+  }
+  
+  console.log('🔵 DEBUG: Toggle function called with state:', {
+    allOrNothingModalVisible: currentState.allOrNothingModalVisible,
+    allOrNothingComplete: currentState.allOrNothingComplete,
+    allOrNothingWon: currentState.allOrNothingWon,
+    gameOver: currentState.gameOver,
+    prize: currentState.prize
+  });
+  
+  if (currentState.allOrNothingModalVisible) {
+    // Currently visible - hide it but preserve all other state
+    console.log('🟡 DEBUG: Hiding modal, preserving other state values');
+    const updates: Partial<GameState> = {
+      allOrNothingModalVisible: false
+      // Don't change allOrNothingComplete, allOrNothingWon, gameOver, etc.
+    };
+    console.log('🟡 DEBUG: Updates to apply:', updates);
+    await gameStateManager.updateGameState(updates);
+    console.log('🟢 DEBUG: Hide operation completed');
+  } else {
+    // Currently hidden - show the appropriate result modal
+    console.log('🟡 DEBUG: Showing modal based on allOrNothingWon:', currentState.allOrNothingWon);
+    if (currentState.allOrNothingWon === true) {
+      // Guest won - show guest win modal
+      const updates: Partial<GameState> = {
+        allOrNothingModalVisible: true,
+        allOrNothingComplete: true,
+        allOrNothingWon: true,
+        gameOver: true,
+        prize: 50000
+      };
+      console.log('🟢 DEBUG: Showing guest win modal with updates:', updates);
+      await gameStateManager.updateGameState(updates);
+    } else if (currentState.allOrNothingWon === false) {
+      // Panel won - show panel win modal  
+      const updates: Partial<GameState> = {
+        allOrNothingModalVisible: true,
+        allOrNothingComplete: true,
+        allOrNothingWon: false,
+        gameOver: true,
+        prize: 0
+      };
+      console.log('🟢 DEBUG: Showing panel win modal with updates:', updates);
+      await gameStateManager.updateGameState(updates);
+    } else {
+      console.error('🔴 DEBUG: Invalid allOrNothingWon value:', currentState.allOrNothingWon);
+    }
   }
 }
