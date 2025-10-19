@@ -3,7 +3,7 @@ import type { GameState } from '@/lib/types';
 import { gameStateManager } from '@/lib/gameState';
 import { GameLogic, showAllOrNothingPanelWinModal, showAllOrNothingGuestWinModal, toggleAllOrNothingModal } from '@/utils/gameLogic';
 import { setDoc } from 'firebase/firestore';
-import { db, questionsDocRef } from '@/lib/firebase';
+import { db, questionsDocRef, PRIZE_TIERS } from '@/lib/firebase';
 
 interface GameControlsProps {
   gameState: GameState;
@@ -13,6 +13,14 @@ interface GameControlsProps {
 
 export default function GameControls({ gameState, onError, onQuestionUsed }: GameControlsProps) {
   const [processing, setProcessing] = useState(false);
+  const [selectedLockLevel, setSelectedLockLevel] = useState<number>(gameState.currentQuestionNumber || 1);
+
+  // Update selected lock level when current question changes
+  useEffect(() => {
+    if (gameState.currentQuestionNumber) {
+      setSelectedLockLevel(gameState.currentQuestionNumber);
+    }
+  }, [gameState.currentQuestionNumber]);
 
   // Debug logging for All or Nothing state
   useEffect(() => {
@@ -108,7 +116,7 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
     try {
       setProcessing(true);
       
-      const lockLevel = gameState.currentQuestionNumber;
+      const lockLevel = selectedLockLevel;
       const updates = GameLogic.calculateLockPlacement(gameState, lockLevel);
       
       await gameStateManager.updateGameState(updates);
@@ -369,19 +377,41 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
       {!gameState.allOrNothingActive && (
         <div className="mb-6">
           <h3 className="text-lg font-semibold text-white mb-3">Lock Control</h3>
-        {GameLogic.canPlaceLock(gameState) ? (
-          <button
-            onClick={handlePlaceLock}
-            disabled={processing}
-            className="px-6 py-2 bg-purple-600 text-white rounded font-semibold hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {processing ? 'Placing...' : `Place Lock at ₹${GameLogic.getPrizeForLevel(gameState.currentQuestionNumber).toLocaleString()}`}
-          </button>
-        ) : (
-          <div className="text-gray-400">
-            Lock not available (need to use immunity first)
-          </div>
-        )}
+          {GameLogic.canPlaceLock(gameState) ? (
+            <div className="space-y-3">
+              {/* Lock Level Dropdown */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Select Lock Level
+                </label>
+                <select
+                  value={selectedLockLevel}
+                  onChange={(e) => setSelectedLockLevel(Number(e.target.value))}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  disabled={processing}
+                >
+                  {PRIZE_TIERS.map((tier) => (
+                    <option key={tier.level} value={tier.level}>
+                      Level {tier.level} - {tier.displayText} (₹{tier.amount.toLocaleString()})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              {/* Place Lock Button */}
+              <button
+                onClick={handlePlaceLock}
+                disabled={processing}
+                className="w-full px-6 py-2 bg-purple-600 text-white rounded font-semibold hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {processing ? 'Placing...' : `Place Lock at ${PRIZE_TIERS.find(t => t.level === selectedLockLevel)?.displayText || '₹0'}`}
+              </button>
+            </div>
+          ) : (
+            <div className="text-gray-400">
+              Lock not available (need to use immunity first)
+            </div>
+          )}
         </div>
       )}
 
