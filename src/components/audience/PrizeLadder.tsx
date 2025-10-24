@@ -9,8 +9,32 @@ interface PrizeLadderProps {
 
 export default function PrizeLadder({ gameState }: PrizeLadderProps) {
   return (
-    <div className="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-2xl p-6">
-      <h2 className="text-2xl font-bold text-center text-white mb-4 font-bebas">Prize Ladder</h2>
+    <div className="bg-black/10 backdrop-blur-sm rounded-2xl p-2">
+
+      {/* Bottom Info Row */}
+      <div className="flex justify-between items-center mx-2">
+        {/* Current Prize Highlight */}
+        <div className="text-center">
+          <div className="text-gray-400 text-xs uppercase tracking-wide font-bebas">Playing For</div>
+          <div className="text-white text-2xl font-bold font-bebas">
+            ₹{GameLogic.getPrizeForLevel(gameState.currentQuestionNumber).toLocaleString()}
+          </div>
+        </div>
+
+        <h2 className="text-2xl font-bold text-center text-white mb-4 font-bebas">Prize Ladder</h2>
+
+        {/* Lock Status */}
+        {gameState.lock.placed ? (
+          <div className="text-center">
+            <div className="text-purple-300 text-xs uppercase tracking-wide font-bebas">Lock Placed</div>
+            <div className="text-white text-lg font-bold font-bebas">
+              ₹{gameState.lockedMoney.toLocaleString()} Guaranteed
+            </div>
+          </div>
+        ) : (
+          <div></div>
+        )}
+      </div>
       
       {/* Horizontal Prize Tier */}
       <div className="flex flex-wrap justify-center gap-3 mb-6">
@@ -27,7 +51,7 @@ export default function PrizeLadder({ gameState }: PrizeLadderProps) {
           return (
             <div
               key={tier.level}
-              className={`relative px-4 py-1 rounded-lg transition-all duration-500 min-w-[120px] text-center ${
+              className={`relative px-4 py-4 rounded-lg transition-all duration-500 min-w-[120px] text-center ${
                 guestWonCurrentRound
                   ? 'bg-gradient-to-r from-green-600 to-green-500 text-white shadow-xl shadow-green-500/50 scale-105'
                   : isCurrent
@@ -47,14 +71,14 @@ export default function PrizeLadder({ gameState }: PrizeLadderProps) {
               )}
 
               {/* Level number */}
-              <div className={`text-2xl font-bold mb-1 font-bebas ${
+              {/* <div className={`text-2xl font-bold mb-1 font-bebas ${
                 isCurrent ? 'text-white' : isCompleted ? 'text-white' : 'text-gray-400'
               }`}>
                 {tier.level}
-              </div>
+              </div> */}
               
               {/* Prize amount */}
-              <div className={`text-4xl font-bold font-bebas ${
+              <div className={`text-2xl font-bold font-bebas ${
                 isCurrent ? 'text-white' : isCompleted ? 'text-white' : 'text-gray-300'
               }`}>
                 {tier.displayText}
@@ -64,29 +88,7 @@ export default function PrizeLadder({ gameState }: PrizeLadderProps) {
         })}
       </div>
 
-      {/* Bottom Info Row */}
-      <div className="flex justify-between items-center">
-
-        {/* Current Prize Highlight */}
-        <div className="text-center">
-          <div className="text-gray-400 text-xs uppercase tracking-wide font-bebas">Playing For</div>
-          <div className="text-white text-2xl font-bold font-bebas">
-            ₹{GameLogic.getPrizeForLevel(gameState.currentQuestionNumber).toLocaleString()}
-          </div>
-        </div>
-
-        {/* Lock Status */}
-        {gameState.lock.placed ? (
-          <div className="text-center">
-            <div className="text-purple-300 text-xs uppercase tracking-wide font-bebas">Lock Placed</div>
-            <div className="text-white text-lg font-bold font-bebas">
-              ₹{gameState.lockedMoney.toLocaleString()} Guaranteed
-            </div>
-          </div>
-        ) : (
-          <div></div>
-        )}
-      </div>
+      
     </div>
   );
 }

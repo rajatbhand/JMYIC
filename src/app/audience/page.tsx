@@ -9,6 +9,8 @@ import QuestionDisplay from '@/components/audience/QuestionDisplay';
 import LivesDisplay from '@/components/audience/LivesDisplay';
 import GameOverDisplay from '@/components/audience/GameOverDisplay';
 import AllOrNothingDisplay from '@/components/audience/AllOrNothingDisplay';
+import { GameLogic } from '@/utils/gameLogic';
+
 
 export default function AudienceDisplay() {
   const [gameState, setGameState] = useState<GameState | null>(null);
@@ -92,23 +94,36 @@ export default function AudienceDisplay() {
          style={{ backgroundImage: "url('/images/backgrounds/BG-1.jpg')", backgroundColor: "#1a3a2e" }}>
       
       <div className="container mx-auto px-6 py-4">
-        {/* 1. Title */}
-        <div className="text-center mb-4">
-          <h1 className="text-5xl font-bold text-white mb-1 font-bebas">Judge Me If You Can</h1>
-          <p className="text-lg text-gray-300 font-bebas">Live Comedy Game Show</p>
-
-          {/* 4. Stats Bar */}
-          <div className="mb-4">
+        <div className="flex items-center justify-between mb-4">
+          {/* Left: Lives */}
+          <div className="w-1/4 text-center">
             <LivesDisplay gameState={gameState} />
           </div>
-          
-          {/* Connection Status */}
-          {/*<div className="mt-2 text-xs text-gray-400">
-            <span className="inline-flex items-center font-bebas">
-              <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-              Live • Last update: {lastUpdate}
-            </span>
-          </div>*/}
+
+          {/* Center: Title */}
+          <div className="w-2/4 text-center">
+            <h1 className="text-4xl font-bold text-white mb-1 font-bebas">Judge Me If You Can</h1>
+            <p className="text-md text-gray-300 font-bebas">Live Comedy Game Show</p>
+          </div>
+
+          {/* Right: Lock Status */}
+          <div className="w-1/4 text-right flex flex-row justify-center items-center">
+            {/* Add your lock available component here */}
+                      <div className="text-gray-400 text-2xl uppercase tracking-wide mr-3 font-bebas">Lock</div>
+                      {gameState.lock.placed ? (
+                        <div>
+                          <div className="text-2xl font-bold text-purple-400 font-bebas">Placed 🔒</div>
+                        </div>
+                      ) : GameLogic.canPlaceLock(gameState) ? (
+                        <div>
+                          <div className="text-2xl font-bold text-yellow-400 font-bebas">Available 🔓</div>
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="text-2xl font-bold text-gray-500 font-bebas">Not Available 🚫</div>
+                        </div>
+                      )}
+          </div>
         </div>
 
         {/* 2. Horizontal Prize Tier */}

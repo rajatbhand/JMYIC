@@ -80,9 +80,9 @@ export default function QuestionDisplay({ gameState }: QuestionDisplayProps) {
     <div className="space-y-8">
       <div className="w-full mx-auto">
         {/* Question Card with Golden Border */}
-        <div className="bg-transparent border-2 border-yellow-400 rounded-lg p-8 mb-8">
+        <div className="bg-transparent border-2 border-yellow-400 rounded-lg px-8 py-4 mb-6">
           {/* Header with Question Number and Lives */}
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex justify-between items-center">
             <div className="text-yellow-400 text-2xl font-bebas tracking-wider">
               QUESTION-{gameState.currentQuestionNumber}
             </div>
@@ -97,7 +97,7 @@ export default function QuestionDisplay({ gameState }: QuestionDisplayProps) {
           </div>
           
           {/* Question Text */}
-          <div className="text-yellow-400 text-4xl md:text-5xl lg:text-6xl font-bebas leading-tight mb-8 text-center">
+          <div className="text-yellow-400 text-4xl md:text-5xl lg:text-6xl font-bebas leading-tight mb-6 text-center">
             {question.question}
           </div>
 
@@ -129,7 +129,7 @@ export default function QuestionDisplay({ gameState }: QuestionDisplayProps) {
               if (guestAnswerRevealed) {
                 if (isGuestAnswer) {
                   // Guest answer - always show as correct (green with glow)
-                  optionClasses = `bg-green-500 border-green-600 shadow-lg shadow-green-500/50 scale-105`;
+                  optionClasses = `bg-green-500 border-green-600 shadow-lg shadow-green-500/50`;
                   textColor = 'text-white';
                 } else if (isPanelGuess && !isGuestAnswer) {
                   // Panel guess that was wrong - red with glow
@@ -143,7 +143,7 @@ export default function QuestionDisplay({ gameState }: QuestionDisplayProps) {
               } else if (panelGuessChecked && isPanelGuess) {
                 if (isGuestAnswer) {
                   // Panel guessed correctly - green with glow
-                  optionClasses = `bg-green-500 border-green-600 shadow-lg shadow-green-500/50 scale-105`;
+                  optionClasses = `bg-green-500 border-green-600 shadow-lg shadow-green-500/50`;
                   textColor = 'text-white';
                 } else {
                   // Panel guessed wrong - red glow
@@ -152,7 +152,7 @@ export default function QuestionDisplay({ gameState }: QuestionDisplayProps) {
                 }
               } else if (isPanelGuess && gameState.panelGuessSubmitted) {
                 // Panel selected this option - yellow with glow
-                optionClasses = `bg-blue-400 border-blue-500 shadow-lg shadow-blue-500/50 scale-105`;
+                optionClasses = `bg-blue-400 border-blue-500 shadow-lg shadow-blue-500/50`;
                 textColor = 'text-blue-900';
               } else {
                 // Default state - dark green
