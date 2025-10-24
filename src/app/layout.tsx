@@ -1,8 +1,14 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Inter, Bebas_Neue } from 'next/font/google';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
+const bebasNeue = Bebas_Neue({ 
+  weight: '400',
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-bebas-neue'
+});
 
 export const metadata: Metadata = {
   title: 'Judge Me If You Can - Comedy Game Show',
@@ -23,7 +29,7 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.ico" />
         <meta name="theme-color" content="#1e1b4b" />
       </head>
-      <body className={inter.className}>
+      <body className={`${inter.className} ${bebasNeue.variable}`}>
         {children}
       </body>
     </html>

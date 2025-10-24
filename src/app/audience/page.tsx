@@ -55,10 +55,11 @@ export default function AudienceDisplay() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
+      <div className="min-h-screen bg-contain" 
+           style={{ backgroundImage: "url('/images/backgrounds/BG-1.jpg')", backgroundColor: "#1a3a2e" }}>
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
-          <div className="text-white text-xl">Loading Show...</div>
+          <div className="text-white text-xl font-bebas">Loading Show...</div>
         </div>
       </div>
     );
@@ -66,10 +67,11 @@ export default function AudienceDisplay() {
 
   if (!gameState) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
+      <div className="min-h-screen bg-contain flex items-center justify-center" 
+           style={{ backgroundImage: "url('/images/backgrounds/BG-1.jpg')", backgroundColor: "#1a3a2e" }}>
         <div className="text-center">
-          <div className="text-white text-2xl mb-4">Judge Me If You Can</div>
-          <div className="text-gray-300">Waiting for game to start...</div>
+          <div className="text-white text-2xl mb-4 font-bebas">Judge Me If You Can</div>
+          <div className="text-gray-300 font-bebas">Waiting for game to start...</div>
         </div>
       </div>
     );
@@ -86,35 +88,37 @@ export default function AudienceDisplay() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
-      {/* Header */}
-      <div className="text-center py-8">
-        <h1 className="text-6xl font-bold text-white mb-2">Judge Me If You Can</h1>
-        <p className="text-xl text-gray-300">Live Comedy Game Show</p>
-        
-        {/* Connection Status */}
-        <div className="mt-4 text-sm text-gray-400">
-          <span className="inline-flex items-center">
-            <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-            Live • Last update: {lastUpdate}
-          </span>
+    <div className="min-h-screen bg-contain" 
+         style={{ backgroundImage: "url('/images/backgrounds/BG-1.jpg')", backgroundColor: "#1a3a2e" }}>
+      
+      <div className="container mx-auto px-6 py-4">
+        {/* 1. Title */}
+        <div className="text-center mb-4">
+          <h1 className="text-5xl font-bold text-white mb-1 font-bebas">Judge Me If You Can</h1>
+          <p className="text-lg text-gray-300 font-bebas">Live Comedy Game Show</p>
+
+          {/* 4. Stats Bar */}
+          <div className="mb-4">
+            <LivesDisplay gameState={gameState} />
+          </div>
+          
+          {/* Connection Status */}
+          {/*<div className="mt-2 text-xs text-gray-400">
+            <span className="inline-flex items-center font-bebas">
+              <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+              Live • Last update: {lastUpdate}
+            </span>
+          </div>*/}
         </div>
-      </div>
 
-      <div className="container mx-auto px-6 pb-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left: Prize Ladder */}
-          <div className="lg:col-span-1">
-            <PrizeLadder gameState={gameState} />
-          </div>
+        {/* 2. Horizontal Prize Tier */}
+        <div className="mb-4">
+          <PrizeLadder gameState={gameState} />
+        </div>
 
-          {/* Center: Question Display */}
-          <div className="lg:col-span-2">
-            <div className="space-y-8">
-              <QuestionDisplay gameState={gameState} />
-              <LivesDisplay gameState={gameState} />
-            </div>
-          </div>
+        {/* 3. Question Box with Options */}
+        <div className="mb-4">
+          <QuestionDisplay gameState={gameState} />
         </div>
       </div>
     </div>

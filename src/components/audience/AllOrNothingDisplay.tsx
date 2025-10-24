@@ -93,11 +93,12 @@ export default function AllOrNothingDisplay({ gameState }: AllOrNothingDisplayPr
   }, [gameState.allOrNothingModalVisible, gameState.allOrNothingWon]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-900 via-orange-900 to-yellow-900 relative overflow-hidden">
+    <div className="min-h-screen bg-repeat-x bg-top relative overflow-hidden" 
+         style={{ backgroundImage: "url('/images/backgrounds/BG-1.jpg')", backgroundColor: "#1a3a2e" }}>
 
       {/* Header */}
       <div className="text-center py-8">
-        <h1 className="text-6xl font-bold text-white mb-2 animate-pulse">
+        <h1 className="text-6xl font-bold text-white mb-2 animate-pulse font-bebas">
           🎰 ALL OR NOTHING 🎰
         </h1>
         <p className="text-2xl text-yellow-300 font-bold">

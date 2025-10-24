@@ -11,11 +11,12 @@ export default function GameOverDisplay({ gameState }: GameOverDisplayProps) {
   const isWin = finalPrize > 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
+    <div className="min-h-screen bg-repeat-x bg-top flex items-center justify-center" 
+         style={{ backgroundImage: "url('/images/backgrounds/BG-1.jpg')", backgroundColor: "#1a3a2e" }}>
       <div className="text-center px-6">
         {/* Game Over Header */}
         <div className="mb-8">
-          <h1 className="text-6xl md:text-8xl font-bold text-white mb-4">Game Over!</h1>
+          <h1 className="text-6xl md:text-8xl font-bold text-white mb-4 font-bebas">Game Over!</h1>
           <div className="text-2xl md:text-3xl text-gray-300">
             {gameState.softEliminated ? 'Soft Elimination' : 'Game Complete'}
           </div>

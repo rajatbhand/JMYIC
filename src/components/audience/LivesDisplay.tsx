@@ -8,16 +8,16 @@ interface LivesDisplayProps {
 
 export default function LivesDisplay({ gameState }: LivesDisplayProps) {
   return (
-    <div className="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-2xl p-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div className="bg-transparent">
+      <div className="flex items-center justify-between">
         {/* Lives Status */}
         <div className="text-center">
-          <div className="text-gray-400 text-sm uppercase tracking-wide mb-2">Lives</div>
-          <div className={`text-4xl font-bold ${
+          <div className="text-gray-400 text-sm uppercase tracking-wide mb-2 font-bebas">Lives</div>
+          {/*<div className={`text-4xl font-bold font-bebas ${
             gameState.lives > 0 ? 'text-red-400' : 'text-gray-500'
           }`}>
             {gameState.lives}/2
-          </div>
+          </div>*/}
           <div className="flex justify-center mt-2 space-x-1">
             {[...Array(2)].map((_, i) => (
               <div
@@ -41,9 +41,9 @@ export default function LivesDisplay({ gameState }: LivesDisplayProps) {
         </div>
 
         {/* Game Status */}
-        <div className="text-center">
-          <div className="text-gray-400 text-sm uppercase tracking-wide mb-2">Game Status</div>
-          <div className={`text-2xl font-bold ${
+        {/*<div className="text-center">
+          <div className="text-gray-400 text-sm uppercase tracking-wide mb-2 font-bebas">Game Status</div>
+          <div className={`text-2xl font-bold font-bebas ${
             gameState.gameOver 
               ? 'text-red-400' 
               : gameState.lives === 2 
@@ -79,28 +79,28 @@ export default function LivesDisplay({ gameState }: LivesDisplayProps) {
               : 'No lives remaining'
             }
           </div>
-        </div>
+        </div>*/}
 
         {/* Lock Status */}
         <div className="text-center">
-          <div className="text-gray-400 text-sm uppercase tracking-wide mb-2">Lock</div>
+          <div className="text-gray-400 text-sm uppercase tracking-wide mb-2 font-bebas">Lock</div>
           {gameState.lock.placed ? (
             <div>
-              <div className="text-2xl font-bold text-purple-400">🔒 Placed</div>
+              <div className="text-2xl font-bold text-purple-400 font-bebas">🔒 Placed</div>
               <div className="text-sm text-purple-300 mt-1">
                 ₹{gameState.lockedMoney.toLocaleString()} guaranteed
               </div>
             </div>
           ) : GameLogic.canPlaceLock(gameState) ? (
             <div>
-              <div className="text-2xl font-bold text-yellow-400">🔓 Available</div>
+              <div className="text-2xl font-bold text-yellow-400 font-bebas">🔓 Available</div>
               <div className="text-sm text-yellow-300 mt-1">
                 Can secure current prize
               </div>
             </div>
           ) : (
             <div>
-              <div className="text-2xl font-bold text-gray-500">🚫 Not Available</div>
+              <div className="text-2xl font-bold text-gray-500 font-bebas">🚫 Not Available</div>
               <div className="text-sm text-gray-400 mt-1">
                 Use immunity first
               </div>
