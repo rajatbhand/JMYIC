@@ -156,7 +156,7 @@ export default function QuestionDisplay({ gameState }: QuestionDisplayProps) {
                 textColor = 'text-blue-900';
               } else {
                 // Default state - dark green
-                optionClasses = 'border-yellow-400 bg-yellow-400';
+                optionClasses = 'border-yellow-600 bg-yellow-400';
                 textColor = 'text-green-900';
               }
 

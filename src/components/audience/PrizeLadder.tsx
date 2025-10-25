@@ -9,7 +9,7 @@ interface PrizeLadderProps {
 
 export default function PrizeLadder({ gameState }: PrizeLadderProps) {
   return (
-    <div className="bg-black/10 backdrop-blur-sm rounded-2xl p-2">
+    <div className="bg-black/20 rounded-2xl p-2">
 
       {/* Bottom Info Row */}
       <div className="flex justify-between items-center mx-2">

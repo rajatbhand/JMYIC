@@ -2,12 +2,17 @@
   "name": "functions",
   "scripts": {
     "dev": "next dev",
+    "dev:staging": "npx env-cmd -f .env.staging next dev",
     "build": "next build",
+    "build:staging": "npx env-cmd -f .env.staging next build",
+    "build:production": "npx env-cmd -f .env.production next build",
     "build:watch": "tsc --watch",
     "serve": "npm run build && firebase emulators:start --only functions",
     "shell": "npm run build && firebase functions:shell",
     "start": "npm run shell",
     "deploy": "firebase deploy --only functions",
+    "deploy:staging": "npm run build:staging && firebase deploy --project staging",
+    "deploy:production": "npm run build:production && firebase deploy --project prod",
     "logs": "firebase functions:log"
   },
   "engines": {
@@ -30,6 +35,7 @@
     "@typescript-eslint/eslint-plugin": "^5.12.0",
     "@typescript-eslint/parser": "^5.12.0",
     "autoprefixer": "^10.4.21",
+    "env-cmd": "^11.0.0",
     "eslint": "^8.9.0",
     "eslint-config-google": "^0.14.0",
     "eslint-plugin-import": "^2.25.4",

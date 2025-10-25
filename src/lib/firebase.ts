@@ -3,12 +3,12 @@ import { getFirestore, doc, collection, connectFirestoreEmulator, enableNetwork,
 import type { GameState } from './types';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyATZxvQOsml1OuAu36x682kvNLdQbY66l8",
-  authDomain: "jmyic-ffc7a.firebaseapp.com",
-  projectId: "jmyic-ffc7a",
-  storageBucket: "jmyic-ffc7a.firebasestorage.app",
-  messagingSenderId: "782936467903",
-  appId: "1:782936467903:web:5467291d78cee96750190a"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN!,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID!,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET!,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID!,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!
 };
 
 // Initialize Firebase
@@ -19,7 +19,8 @@ export const db = getFirestore(app);
 
 // Add connection verification and optimize for real-time sync
 if (typeof window !== 'undefined') {
-  console.log('Firebase initialized for project:', firebaseConfig.projectId);
+  const environment = process.env.NEXT_PUBLIC_ENVIRONMENT || 'unknown';
+  console.log(`🔥 Firebase initialized for ${environment}:`, firebaseConfig.projectId);
   
   // Enable network for faster sync
   enableNetwork(db).catch(console.error);
