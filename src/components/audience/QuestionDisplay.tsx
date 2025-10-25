@@ -9,6 +9,7 @@ interface QuestionDisplayProps {
 
 export default function QuestionDisplay({ gameState }: QuestionDisplayProps) {
   const lastAudioPlayedRef = useRef<string>('');
+  const processedLockEvents = useRef<Set<string>>(new Set());
 
   // Play audio when panel guess is checked (synced with visual highlighting)
   useEffect(() => {
@@ -35,15 +36,29 @@ export default function QuestionDisplay({ gameState }: QuestionDisplayProps) {
     }
   }, [gameState.panelGuessChecked, gameState.panelGuess, gameState.currentQuestion]);
 
-  // Play audio when guest answer is revealed (synced with visual reveal)
+  // Guest answer revealed audio effect
   useEffect(() => {
-    if (gameState.currentQuestionAnswerRevealed && gameState.currentQuestion) {
-      console.log('Playing reveal answer audio');
+    if (gameState.currentQuestionAnswerRevealed) {
+      console.log('🔊 Guest answer revealed - playing revealAnswer sound');
       soundPlayer.playSound('revealAnswer');
     }
-  }, [gameState.currentQuestionAnswerRevealed, gameState.currentQuestion]);
+  }, [gameState.currentQuestionAnswerRevealed]);
 
-  // Play audio when a new question appears (synced with question display)
+  // Lock placed audio effect
+  useEffect(() => {
+    if (gameState.lock.placed && gameState.lock.level !== null) {
+      const lockKey = `lock-${gameState.lock.level}`;
+      
+      if (!processedLockEvents.current.has(lockKey)) {
+        console.log('🔒 Lock placed audio triggered for level', gameState.lock.level);
+        soundPlayer.playSound('lockPlaced');
+        
+        processedLockEvents.current.add(lockKey);
+      }
+    }
+  }, [gameState.lock.placed, gameState.lock.level]);
+
+  // Question selection audio effect
   useEffect(() => {
     if (gameState.currentQuestion && !gameState.panelGuessSubmitted) {
       console.log('🎵 Playing question selection audio');

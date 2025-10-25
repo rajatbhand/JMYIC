@@ -16,7 +16,7 @@ export default function AllOrNothingDisplay({
 
   // Play audio when panel guess is checked during All or Nothing (synced with visual highlighting)
   useEffect(() => {
-    console.log('🔍 Audio effect triggered with state:', {
+    console.log('🔍 Primary audio effect triggered with state:', {
       panelGuessChecked: gameState.panelGuessChecked,
       panelGuess: gameState.panelGuess,
       currentQuestion: !!gameState.currentQuestion,
@@ -24,6 +24,11 @@ export default function AllOrNothingDisplay({
       attempt: gameState.allOrNothingAttempt,
     });
 
+    // DISABLED: Primary audio system disabled in favor of backup system
+    // The backup system is more reliable and prevents duplicate audio
+    console.log('🔇 Primary audio system disabled - using backup system only');
+    
+    /*
     if (
       gameState.panelGuessChecked &&
       gameState.panelGuess &&
@@ -71,6 +76,7 @@ export default function AllOrNothingDisplay({
       // Mark this attempt as processed
       setProcessedAttempts(prev => new Set([...prev, attemptKey]));
     }
+    */
   }, [
     gameState.panelGuessChecked,
     gameState.panelGuess,
@@ -147,9 +153,10 @@ export default function AllOrNothingDisplay({
         soundPlayer.playSound("panelCorrect");
         console.log('🎵 Backup: Attempt 2 correct');
       } else {
-        // On second wrong attempt, guest wins
-        soundPlayer.playSound("panelCorrect");
-        console.log('🎵 Backup: Attempt 2 wrong - guest wins');
+        // On second wrong attempt, play wrong sound first
+        // Guest wins sound will be handled by modal system
+        soundPlayer.playSound("panelWrong");
+        console.log('🎵 Backup: Attempt 2 wrong');
       }
       
       setProcessedAttempts(prev => new Set([...prev, attemptKey]));
