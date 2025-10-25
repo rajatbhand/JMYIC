@@ -213,6 +213,17 @@ export default function AllOrNothingDisplay({
     }
   }, [gameState.allOrNothingModalVisible, gameState.allOrNothingWon]);
 
+  // Play audio when modal is shown
+  useEffect(() => {
+    if (gameState.allOrNothingModalVisible) {
+      // Guest wins = play Correct.mp3
+      // Panel wins = play Wrong.mp3
+      const soundToPlay = gameState.allOrNothingWon ? 'panelCorrect' : 'panelWrong';
+      console.log('🎵 All or Nothing modal shown - playing:', soundToPlay, 'Guest won:', gameState.allOrNothingWon);
+      soundPlayer.playSound(soundToPlay);
+    }
+  }, [gameState.allOrNothingModalVisible]);
+
   return (
     <div
       className="min-h-screen bg-contain"
@@ -232,7 +243,7 @@ export default function AllOrNothingDisplay({
       </div>
 
       <div className="container mx-auto px-6">
-        <div className="flex justify-around w-full mb-8 py-2 bg-black/20 rounded-lg">
+        <div className="flex justify-around w-full mb-8 py-2 game-card-gradient rounded-lg">
           {/* Left: Prize Display */}
           <div className="text-center flex items-end">
             <div className="text-yellow-100 text-4xl font-bebas mr-4">
@@ -263,7 +274,7 @@ export default function AllOrNothingDisplay({
         </div>
         {/* bottom: Question */}
         <div className="mx-auto w-full">
-          <div className="bg-transparent border-2 border-yellow-400 rounded-lg px-8 py-4 mb-6">
+          <div className="game-card-gradient border-2 border-yellow-400 rounded-lg px-8 py-4 mb-6">
             {!gameState.currentQuestion ? (
               <div className="text-center py-12">
                 <div className="text-yellow-400 text-lg font-bebas mb-4">
@@ -279,7 +290,7 @@ export default function AllOrNothingDisplay({
                   {/* <div className="text-yellow-400 text-sm font-bebas mb-2">
                     FINAL QUESTION
                   </div> */}
-                  <h2 className="text-yellow-400 text-4xl md:text-5xl lg:text-6xl font-bebas leading-tight mb-6 text-center">
+                  <h2 className="text-yellow-400 text-5xl font-bebas leading-tight mb-6 text-center">
                     {gameState.currentQuestion.question}
                   </h2>
                 </div>

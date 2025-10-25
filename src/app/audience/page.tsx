@@ -57,7 +57,7 @@ export default function AudienceDisplay() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-contain" 
+      <div className="min-h-screen bg-cover" 
            style={{ backgroundImage: "url('/images/backgrounds/BG-1.jpg')", backgroundColor: "#1a3a2e" }}>
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
@@ -69,7 +69,7 @@ export default function AudienceDisplay() {
 
   if (!gameState) {
     return (
-      <div className="min-h-screen bg-contain flex items-center justify-center" 
+      <div className="min-h-screen bg-cover flex items-center justify-center" 
            style={{ backgroundImage: "url('/images/backgrounds/BG-1.jpg')", backgroundColor: "#1a3a2e" }}>
         <div className="text-center">
           <div className="text-white text-2xl mb-4 font-bebas">Judge Me If You Can</div>
@@ -90,7 +90,7 @@ export default function AudienceDisplay() {
   }
 
   return (
-    <div className="min-h-screen bg-contain" 
+    <div className="min-h-screen bg-cover" 
          style={{ backgroundImage: "url('/images/backgrounds/BG-1.jpg')", backgroundColor: "#1a3a2e" }}>
       
       <div className="container mx-auto px-6 py-4">

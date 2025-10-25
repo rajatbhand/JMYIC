@@ -9,7 +9,7 @@ interface PrizeLadderProps {
 
 export default function PrizeLadder({ gameState }: PrizeLadderProps) {
   return (
-    <div className="bg-black/20 rounded-2xl p-2">
+    <div className="game-card-gradient rounded-lg p-2">
 
       {/* Bottom Info Row */}
       <div className="flex justify-between items-center mx-2">
@@ -58,7 +58,7 @@ export default function PrizeLadder({ gameState }: PrizeLadderProps) {
                   ? 'bg-gradient-to-r from-yellow-600 to-yellow-500 text-black shadow-xl shadow-yellow-500/50 scale-105'
                   : isCompleted
                   ? 'bg-gradient-to-r from-green-600 to-green-500 text-white'
-                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  : 'game-card-gradient text-gray-300'
               } ${
                 isLocked ? 'ring-4 ring-purple-400 ring-opacity-75' : ''
               }`}

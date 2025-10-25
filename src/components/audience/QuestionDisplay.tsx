@@ -82,7 +82,7 @@ export default function QuestionDisplay({ gameState }: QuestionDisplayProps) {
         <div className="text-yellow-400 text-xl font-bebas tracking-wide">
           THE MOST HILARIOUS GAME SHOW
         </div>
-        <div className="text-gray-300 text-lg mt-4">
+        <div className="text-gray-300 text-xl font-bebas mt-4">
           Waiting for the first question...
         </div>
       </div>
@@ -94,8 +94,8 @@ export default function QuestionDisplay({ gameState }: QuestionDisplayProps) {
   return (
     <div className="space-y-8">
       <div className="w-full mx-auto">
-        {/* Question Card with Golden Border */}
-        <div className="bg-transparent border-2 border-yellow-400 rounded-lg px-8 py-4 mb-6">
+        {/* Question Card with Golden Border and Gradient Background */}
+        <div className="game-card-gradient border-2 border-yellow-400 rounded-lg px-8 py-4 mb-6">
           {/* Header with Question Number and Lives */}
           <div className="flex justify-between items-center">
             <div className="text-yellow-400 text-2xl font-bebas tracking-wider">
@@ -112,7 +112,7 @@ export default function QuestionDisplay({ gameState }: QuestionDisplayProps) {
           </div>
           
           {/* Question Text */}
-          <div className="text-yellow-400 text-4xl md:text-5xl lg:text-6xl font-bebas leading-tight mb-6 text-center">
+          <div className="text-yellow-400 text-5xl font-bebas leading-tight mb-6 text-center">
             {question.question}
           </div>
 
@@ -178,7 +178,7 @@ export default function QuestionDisplay({ gameState }: QuestionDisplayProps) {
               return (
                 <div
                   key={option.key}
-                  className={`border-2 rounded-lg transition-all duration-700 ${optionClasses}`}
+                  className={`border-2 rounded-lg transition-all duration-500 ${optionClasses}`}
                 >
                   <div className="flex items-start m-1 p-4 rounded-sm">
                     <span className={`text-4xl font-bebas font-bold mr-4 ${textColor}`}>

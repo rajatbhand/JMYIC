@@ -29,3 +29,10 @@ body {
 .font-bebas {
   font-family: var(--font-bebas-neue), sans-serif;
 }
+
+/* Game card gradient background */
+.game-card-gradient {
+  background: linear-gradient(68.8deg, #264531 10.24%, rgba(0, 0, 0, 0.5) 35.02%, rgba(12, 22, 15, 0.66) 49.07%, #264531 80.46%, rgba(36, 66, 47, 0.99) 87.07%, rgba(32, 57, 41, 0.96) 92.85%);
+  background-blend-mode: hard-light;
+  mix-blend-mode: hard-light;
+}
