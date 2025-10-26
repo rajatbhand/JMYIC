@@ -90,11 +90,12 @@ export default function AudienceDisplay() {
   }
 
   return (
-    <div className="min-h-screen bg-cover" 
+    <div className="h-screen overflow-hidden bg-cover flex flex-col" 
          style={{ backgroundImage: "url('/images/backgrounds/BG-1.jpg')", backgroundColor: "#1a3a2e" }}>
       
-      <div className="container mx-auto px-6 py-4">
-        <div className="flex items-center justify-between mb-4">
+      <div className="container mx-auto px-6 py-3 flex flex-col h-full">
+        {/* Header - Fixed Height */}
+        <div className="flex items-center justify-between mb-3 flex-shrink-0">
           {/* Left: Lives */}
           <div className="w-1/4 text-center">
             <LivesDisplay gameState={gameState} />
@@ -126,13 +127,13 @@ export default function AudienceDisplay() {
           </div>
         </div>
 
-        {/* 2. Horizontal Prize Tier */}
-        <div className="mb-4">
+        {/* Prize Tier - Fixed Height */}
+        <div className="mb-3 flex-shrink-0">
           <PrizeLadder gameState={gameState} />
         </div>
 
-        {/* 3. Question Box with Options */}
-        <div className="mb-4">
+        {/* Question Box - Flexible Height */}
+        <div className="flex-1 min-h-0">
           <QuestionDisplay gameState={gameState} />
         </div>
       </div>

@@ -92,13 +92,13 @@ export default function QuestionDisplay({ gameState }: QuestionDisplayProps) {
   const question = gameState.currentQuestion;
 
   return (
-    <div className="space-y-8">
-      <div className="w-full mx-auto">
+    <div className="h-full flex flex-col">
+      <div className="w-full mx-auto h-full flex flex-col">
         {/* Question Card with Golden Border and Gradient Background */}
-        <div className="game-card-gradient border-2 border-yellow-400 rounded-lg px-8 py-4 mb-6">
+        <div className="game-card-gradient border-2 border-yellow-400 rounded-lg px-6 py-3 flex flex-col h-full min-h-0">
           {/* Header with Question Number and Lives */}
-          <div className="flex justify-between items-center">
-            <div className="text-yellow-400 text-2xl font-bebas tracking-wider">
+          <div className="flex justify-between items-center flex-shrink-0 mb-2">
+            <div className="text-yellow-400 text-xl font-bebas tracking-wider">
               QUESTION-{gameState.currentQuestionNumber}
             </div>
             <div className="flex space-x-2">
@@ -111,13 +111,15 @@ export default function QuestionDisplay({ gameState }: QuestionDisplayProps) {
             </div>
           </div>
           
-          {/* Question Text */}
-          <div className="text-yellow-400 text-5xl font-bebas leading-tight mb-6 text-center">
-            {question.question}
+          {/* Question Text - Scales based on content length */}
+          <div className="text-yellow-400 font-bebas leading-tight mb-3 text-center flex-shrink-0 overflow-hidden text-5xl">
+            <div className="line-clamp-4">
+              {question.question}
+            </div>
           </div>
 
-          {/* Options Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Options Grid - Takes remaining space */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 flex-1 min-h-0">
             {[
               { key: 'A', text: question.option_a },
               { key: 'B', text: question.option_b },
@@ -178,13 +180,13 @@ export default function QuestionDisplay({ gameState }: QuestionDisplayProps) {
               return (
                 <div
                   key={option.key}
-                  className={`border-2 rounded-lg transition-all duration-500 ${optionClasses}`}
+                  className={`border-2 rounded-lg transition-all duration-500 flex items-center ${optionClasses}`}
                 >
-                  <div className="flex items-start m-1 p-4 rounded-sm">
-                    <span className={`text-4xl font-bebas font-bold mr-4 ${textColor}`}>
+                  <div className="flex items-center m-1 p-3 rounded-sm w-full overflow-hidden">
+                    <span className={`text-3xl font-bebas font-bold mr-3 flex-shrink-0 ${textColor}`}>
                       {option.key}.
                     </span>
-                    <span className={`text-4xl font-bebas tracking-wide ${textColor}`}>
+                    <span className={`text-3xl font-bebas tracking-wide line-clamp-2 ${textColor}`}>
                       {option.text}
                     </span>
                   </div>
@@ -198,7 +200,7 @@ export default function QuestionDisplay({ gameState }: QuestionDisplayProps) {
       </div>
 
       {/* Game Status Messages */}
-      <div className="text-center space-y-3">
+      {/* <div className="text-center space-y-3">
         {!gameState.panelGuessSubmitted && (
           <div className="text-yellow-400 text-lg font-semibold animate-pulse">
             🎤 Panel is discussing...
@@ -241,7 +243,7 @@ export default function QuestionDisplay({ gameState }: QuestionDisplayProps) {
             )}
           </div>
         )}
-      </div>
+      </div> */}
     </div>
   );
 }
