@@ -151,9 +151,27 @@ export class GameLogic {
         const newLives = gameState.lives - 1;
         updates.lives = newLives;
         
-        // Only set soft elimination when ALL lives are lost
+        // Check if ALL lives are lost
         if (newLives === 0) {
           updates.softEliminated = true; // Eligible for All or Nothing, but don't end game yet
+          
+          console.log('💀 DEBUG: Lives reached 0 in calculatePanelGuessResult, checking lock status:', {
+            'gameState.lock': gameState.lock,
+            'gameState.lock.placed': gameState.lock.placed,
+            'lockedMoney': gameState.lockedMoney
+          });
+          
+          // Check scenarios when all lives are lost
+          if (!gameState.lock.placed) {
+            // No lock placed - Guest Lost scenario
+            console.log('💀 GUEST LOST! All lives lost without placing the lock!');
+            updates.guestLostPending = true;
+          } else {
+            // Lock was placed - Lock Victory scenario (guest wins locked amount)
+            console.log('🏆 LOCK VICTORY! Guest lost all lives but has locked ₹' + gameState.lockedMoney);
+            updates.guestVictoryPending = true;
+            // Guest wins the locked amount
+          }
         }
         
         console.log(`Panel correct! Guest loses a life. Lives remaining: ${newLives}`);
@@ -206,14 +224,39 @@ export class GameLogic {
     if (!isPanelCorrect) {
       // Panel WRONG = Guest WINS the round! 🎉
       // Mark for advancement on next question selection
+      const newQuestionsAnswered = gameState.questionsAnswered + 1;
       updates = {
         ...updates,
-        questionsAnswered: gameState.questionsAnswered + 1,
+        questionsAnswered: newQuestionsAnswered,
         pendingAdvancement: true
         // Note: currentQuestionNumber and prize stay same until next question
       };
       
-      console.log(`Guest wins round ${gameState.questionsAnswered + 1}! Advancement pending for next question selection.`);
+      console.log(`Guest wins round ${newQuestionsAnswered}! Advancement pending for next question selection.`);
+      
+      // Check for Guest Victory: Completed all 7 questions
+      // This works for ALL scenarios:
+      // 1. Guest wins all 7 questions in a row without lock → ₹50K victory
+      // 2. Guest wins 7 questions WITH lock placed → Lock amount victory
+      // 3. Guest reaches Q7, loses life(s), retries Q7, and wins (with or without lock)
+      if (newQuestionsAnswered === 7) {
+        console.log('🏆 GUEST VICTORY DETECTED!', {
+          questionsAnswered: newQuestionsAnswered,
+          currentLevel: gameState.currentQuestionNumber,
+          lockPlaced: gameState.lock.placed,
+          lockedMoney: gameState.lockedMoney,
+          lives: gameState.lives,
+          scenario: gameState.lock.placed 
+            ? `Won with lock placed at ₹${gameState.lockedMoney}` 
+            : 'Won all 7 without lock (₹50K)',
+          detailedScenario: gameState.currentQuestionNumber === 7 
+            ? 'Won 7th question (possibly with retries)' 
+            : 'Advanced through all 7 levels'
+        });
+        updates.guestVictoryPending = true;
+        // Don't set gameOver yet - let operator trigger the modal manually
+        // When operator shows modal, it will set gameOver
+      }
     } else {
       // Panel CORRECT = Panel wins
       // Guest stays at current level - no advancement, loses a life
@@ -226,9 +269,26 @@ export class GameLogic {
         const newLives = gameState.lives - 1;
         updates.lives = newLives;
         
-        // Only set soft elimination when ALL lives are lost
+        // Check if ALL lives are lost
         if (newLives === 0) {
           updates.softEliminated = true; // Eligible for All or Nothing, but don't end game yet
+          
+          console.log('💀 DEBUG: Lives reached 0, checking lock status:', {
+            'gameState.lock': gameState.lock,
+            'gameState.lock.placed': gameState.lock.placed,
+            'typeof lock.placed': typeof gameState.lock.placed,
+            'lock.placed === false': gameState.lock.placed === false,
+            '!lock.placed': !gameState.lock.placed
+          });
+          
+          // Check for Guest Lost: Lost all lives WITHOUT placing lock
+          if (!gameState.lock.placed) {
+            console.log('💀 GUEST LOST! All lives lost without placing the lock!');
+            updates.guestLostPending = true;
+            // Don't set gameOver yet - let operator trigger the modal manually
+          } else {
+            console.log('🔒 Lock was placed, NOT setting guestLostPending');
+          }
         }
         
         console.log(`Panel correct! Guest loses a life. Lives remaining: ${newLives}`);
@@ -454,7 +514,29 @@ export class GameLogic {
    * Check if manual game over trigger should be available
    */
   static canTriggerGameOver(gameState: GameState): boolean {
-    return gameState.lives === 0 && gameState.softEliminated && !gameState.gameOver && !gameState.allOrNothingActive;
+    // Show generic game over control ONLY if:
+    // - Guest is eliminated (lives = 0, softEliminated = true)
+    // - BUT not if guestLostPending (we have a special modal for that)
+    // - AND not if guestVictoryPending (we have a special modal for that too)
+    const result = gameState.lives === 0 
+      && gameState.softEliminated 
+      && !gameState.gameOver 
+      && !gameState.allOrNothingActive
+      && !gameState.guestLostPending
+      && !gameState.guestVictoryPending;
+    
+    console.log('🔍 DEBUG canTriggerGameOver:', {
+      lives: gameState.lives,
+      softEliminated: gameState.softEliminated,
+      gameOver: gameState.gameOver,
+      allOrNothingActive: gameState.allOrNothingActive,
+      guestLostPending: gameState.guestLostPending,
+      guestVictoryPending: gameState.guestVictoryPending,
+      lockPlaced: gameState.lock.placed,
+      result
+    });
+    
+    return result;
   }
 }
 
@@ -544,5 +626,91 @@ export async function toggleAllOrNothingModal() {
     } else {
       console.error('🔴 DEBUG: Invalid allOrNothingWon value:', currentState.allOrNothingWon);
     }
+  }
+}
+
+/**
+ * Show or hide guest victory modal (for completing all 7 questions without lock)
+ */
+export async function toggleGuestVictoryModal() {
+  const currentState = await gameStateManager.getCurrentGameState();
+  if (!currentState) {
+    console.error('No game state found');
+    return;
+  }
+
+  console.log(' DEBUG: toggleGuestVictoryModal called, current modalVisible:', currentState.guestVictoryModalVisible);
+  
+  if (currentState.guestVictoryModalVisible) {
+    // Currently visible - hide it
+    console.log(' DEBUG: Hiding guest victory modal');
+    const updates: Partial<GameState> = {
+      guestVictoryModalVisible: false
+    };
+    await gameStateManager.updateGameState(updates);
+    console.log(' DEBUG: Guest victory modal hidden');
+  } else {
+    // Currently hidden - show guest victory modal
+    console.log('🏆 DEBUG: Showing guest victory modal');
+    
+    // Determine prize:
+    // 1. If guest has lives remaining: Show current prize (they won the game!)
+    // 2. If guest lost all lives (lives = 0) and lock placed: Show locked amount
+    const prizeAmount = (currentState.lives === 0 && currentState.lock.placed) 
+      ? currentState.lockedMoney 
+      : currentState.prize;
+    
+    console.log('🏆 DEBUG: Prize calculation:', {
+      lives: currentState.lives,
+      lockPlaced: currentState.lock.placed,
+      currentPrize: currentState.prize,
+      lockedMoney: currentState.lockedMoney,
+      prizeAmount,
+      reason: (currentState.lives === 0 && currentState.lock.placed)
+        ? 'Guest lost all lives - showing locked amount'
+        : 'Guest won with lives remaining - showing current prize'
+    });
+    
+    const updates: Partial<GameState> = {
+      guestVictoryModalVisible: true,
+      gameOver: true,
+      prize: prizeAmount
+    };
+    await gameStateManager.updateGameState(updates);
+    console.log(`🏆 DEBUG: Guest victory modal shown with ₹${prizeAmount} prize`);
+  }
+}
+
+
+/**
+ * Show or hide guest lost modal (for losing all lives without placing lock)
+ */
+export async function toggleGuestLostModal() {
+  const currentState = await gameStateManager.getCurrentGameState();
+  if (!currentState) {
+    console.error('No game state found');
+    return;
+  }
+
+  console.log(' DEBUG: toggleGuestLostModal called, current modalVisible:', currentState.guestLostModalVisible);
+  
+  if (currentState.guestLostModalVisible) {
+    // Currently visible - hide it and show game over
+    console.log(' DEBUG: Hiding guest lost modal, showing game over');
+    const updates: Partial<GameState> = {
+      guestLostModalVisible: false,
+      gameOver: true
+    };
+    await gameStateManager.updateGameState(updates);
+    console.log(' DEBUG: Guest lost modal hidden, game over shown');
+  } else {
+    // Currently hidden - show guest lost modal
+    console.log(' DEBUG: Showing guest lost modal');
+    const updates: Partial<GameState> = {
+      guestLostModalVisible: true,
+      prize: 0
+    };
+    await gameStateManager.updateGameState(updates);
+    console.log(' DEBUG: Guest lost modal shown with ?0 prize');
   }
 }

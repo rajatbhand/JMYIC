@@ -11,18 +11,16 @@ export default function GameOverDisplay({ gameState }: GameOverDisplayProps) {
   const isWin = finalPrize > 0;
 
   return (
-    <div className="min-h-screen bg-repeat-x bg-top flex items-center justify-center" 
+    <div className="min-h-screen bg-cover flex items-center justify-center" 
          style={{ backgroundImage: "url('/images/backgrounds/BG-1.jpg')", backgroundColor: "#1a3a2e" }}>
       <div className="text-center px-6">
-        {/* Game Over Header */}
-        <div className="mb-8">
-          <h1 className="text-6xl md:text-8xl font-bold text-white mb-4 font-bebas">Game Over!</h1>
-          <div className="text-2xl md:text-3xl text-gray-300">
-            {gameState.softEliminated ? 'Soft Elimination' : 'Game Complete'}
-          </div>
+        {/* Thank You */}
+        <div>
+          <div className="text-7xl font-bebas mb-2 text-gray-300">Thank you for watching</div>
+          <div className="text-9xl font-bebas text-yellow-400">Judge Me If You Can!</div>
         </div>
 
-        {/* Prize Display */}
+        {/* Prize Display 
         <div className="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-3xl p-12 mb-8 max-w-2xl mx-auto">
           <div className="mb-6">
             <div className="text-gray-400 text-xl uppercase tracking-wide">Final Prize</div>
@@ -31,9 +29,9 @@ export default function GameOverDisplay({ gameState }: GameOverDisplayProps) {
             }`}>
               ₹{finalPrize.toLocaleString()}
             </div>
-          </div>
+          </div>*/}
 
-          {/* Prize Status */}
+          {/* Prize Status
           {gameState.lock.placed && (
             <div className="mb-6 p-4 bg-purple-900 bg-opacity-50 rounded-lg border border-purple-500">
               <div className="text-purple-300 text-lg">🔒 Lock Saved the Day!</div>
@@ -41,9 +39,9 @@ export default function GameOverDisplay({ gameState }: GameOverDisplayProps) {
                 Secured at level {gameState.lock.level}
               </div>
             </div>
-          )}
+          )} */}
 
-          {/* Game Statistics */}
+          {/* Game Statistics
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
             <div className="bg-gray-800 rounded-lg p-4">
               <div className="text-gray-400 text-sm uppercase">Questions Answered</div>
@@ -62,9 +60,9 @@ export default function GameOverDisplay({ gameState }: GameOverDisplayProps) {
               </div>
             </div>
           </div>
-        </div>
+        </div> */}
 
-        {/* Prize Ladder Summary */}
+        {/* Prize Ladder Summary 
         <div className="bg-gray-900 bg-opacity-60 backdrop-blur-sm rounded-2xl p-6 max-w-md mx-auto mb-8">
           <h3 className="text-white text-xl font-bold mb-4">Prize Journey</h3>
           <div className="space-y-2">
@@ -91,14 +89,14 @@ export default function GameOverDisplay({ gameState }: GameOverDisplayProps) {
               );
             })}
           </div>
-        </div>
+        </div>*/}
 
-        {/* Celebration/Condolence */}
+        {/* Celebration/Condolence 
         <div className="text-center">
           {isWin ? (
             <div>
               <div className="text-6xl mb-4">🎉</div>
-              <div className="text-2xl text-green-400 font-bold mb-2">Congratulations!</div>
+              <div className="text-9xl text-green-400 font-bebas mb-2">Congratulations!</div>
               <div className="text-gray-300">
                 What an amazing performance! The audience loved every moment.
               </div>
@@ -106,19 +104,15 @@ export default function GameOverDisplay({ gameState }: GameOverDisplayProps) {
           ) : (
             <div>
               <div className="text-6xl mb-4">😅</div>
-              <div className="text-2xl text-yellow-400 font-bold mb-2">Better Luck Next Time!</div>
+              <div className="text-5xl text-yellow-400 font-bebas mb-2">Better Luck Next Time!</div>
               <div className="text-gray-300">
                 Thanks for playing! The laughs were worth more than any prize.
               </div>
             </div>
           )}
-        </div>
+        </div>*/}
 
-        {/* Thank You */}
-        <div className="mt-12 text-gray-400">
-          <div className="text-lg mb-2">Thank you for watching</div>
-          <div className="text-3xl font-bold text-white">Judge Me If You Can!</div>
-        </div>
+        
       </div>
     </div>
   );

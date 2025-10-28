@@ -2,6 +2,9 @@ import React, { useState, useRef } from 'react';
 import { db, questionsDocRef } from '@/lib/firebase';
 import { setDoc } from 'firebase/firestore';
 import Papa from 'papaparse';
+import { gameStateManager } from '@/lib/gameState';
+
+
 
 interface CSVUploadProps {
   onSuccess: () => void;
@@ -12,6 +15,8 @@ export default function CSVUpload({ onSuccess, onError }: CSVUploadProps) {
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+    const [processing, setProcessing] = useState(false);
+  
 
   const handleFileSelect = (file: File) => {
     if (!file) return;
@@ -128,6 +133,27 @@ export default function CSVUpload({ onSuccess, onError }: CSVUploadProps) {
     window.URL.revokeObjectURL(url);
   };
 
+  
+  const handleTriggerBuzzer = async () => {
+    if (processing) return;
+
+    try {
+      setProcessing(true);
+      
+      // Update buzzerTrigger with current timestamp to trigger sound on audience side
+      await gameStateManager.updateGameState({
+        buzzerTrigger: Date.now()
+      });
+      
+      console.log('🔔 Buzzer triggered for audience');
+      
+    } catch (error) {
+      onError('Failed to trigger buzzer');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   return (
     <div className="bg-gray-800 rounded-lg p-4">
       <h2 className="text-xl font-bold text-white mb-4">CSV Upload</h2>
@@ -210,6 +236,24 @@ export default function CSVUpload({ onSuccess, onError }: CSVUploadProps) {
           <p>✅ Drag & drop support</p>
           <p>✅ Real-time refresh</p>
           <p>✅ Auto validation</p>
+        </div>
+      </div>
+
+      {/* Buzzer Control - Always Show */}
+      <div className="mb-6">
+        <h3 className="text-lg font-semibold text-white mb-3">🔔 Host Alert</h3>
+        <div className="bg-gray-700 border border-yellow-500 rounded-lg p-4">
+          <div className="text-yellow-300 text-sm mb-3">
+            Use this buzzer to alert the live host if they are explaining a wrong rule or are confused about the game.
+            Sound will play on audience display only.
+          </div>
+          <button
+            onClick={handleTriggerBuzzer}
+            disabled={processing}
+            className="px-6 py-3 bg-yellow-600 text-white rounded font-semibold hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-lg"
+          >
+            {processing ? 'Triggering...' : '🔔 TRIGGER BUZZER'}
+          </button>
         </div>
       </div>
     </div>

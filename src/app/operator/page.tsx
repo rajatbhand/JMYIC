@@ -114,9 +114,14 @@ export default function OperatorPanel() {
           allOrNothingAttempt1Correct: false,
           allOrNothingAttempt2Guess: '',
           allOrNothingAttempt2Correct: false,
+          guestVictoryPending: false,
+          guestVictoryModalVisible: false,
+          guestLostPending: false,
+          guestLostModalVisible: false,
           lock: { placed: false, level: null },
           lockedMoney: 0,
           usedQuestions: {},
+          buzzerTrigger: 0,
           lastActivity: new Date().toISOString(),
           documentVersion: '3.0'
         });

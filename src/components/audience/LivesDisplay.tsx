@@ -11,12 +11,12 @@ export default function LivesDisplay({ gameState }: LivesDisplayProps) {
     <div className="bg-transparent">
         {/* Lives Status */}
         <div className="text-center flex flex-row justify-center">
-          <div className="text-gray-400 text-2xl uppercase tracking-wide font-bebas mr-3">Lives</div>
-          <div className="flex justify-center space-x-1">
+          <div className="text-gray-400 text-5xl uppercase tracking-wide font-bebas mr-3">Lives</div>
+          <div className="flex justify-center space-x-1 mb-3">
             {[...Array(2)].map((_, i) => (
               <div
                 key={i}
-                className={`text-2xl transition-all duration-500 ${
+                className={`text-5xl transition-all duration-500 ${
                   i < gameState.lives 
                     ? 'text-red-500 drop-shadow-lg' 
                     : 'text-gray-600 opacity-50'

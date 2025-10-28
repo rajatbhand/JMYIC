@@ -20,6 +20,10 @@ export const SOUND_EFFECTS: Record<string, SoundEffect> = {
   lockPlaced: {
     name: 'Lock Placed',
     file: '/sounds/lock.mp3'
+  },
+  buzzer: {
+    name: 'Buzzer',
+    file: '/sounds/buzzer.wav'
   }
 } as const;
 

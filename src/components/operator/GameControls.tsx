@@ -181,6 +181,8 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
     }
   };
 
+
+
   const handleStartAllOrNothing = async () => {
     if (processing || !GameLogic.canStartAllOrNothing(gameState)) return;
 
@@ -260,6 +262,40 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
     } catch (error) {
       console.error('🔴 DEBUG: Toggle failed:', error);
       onError('Failed to toggle modal');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleToggleGuestVictoryModal = async () => {
+    if (processing) return;
+
+    console.log('🏆 DEBUG: Guest Victory toggle clicked');
+    try {
+      setProcessing(true);
+      const { toggleGuestVictoryModal } = await import('@/utils/gameLogic');
+      await toggleGuestVictoryModal();
+      console.log('🎉 DEBUG: Guest Victory toggle completed');
+    } catch (error) {
+      console.error('❌ DEBUG: Guest Victory toggle failed:', error);
+      onError('Failed to toggle guest victory modal');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleToggleGuestLostModal = async () => {
+    if (processing) return;
+
+    console.log('💀 DEBUG: Guest Lost toggle clicked');
+    try {
+      setProcessing(true);
+      const { toggleGuestLostModal } = await import('@/utils/gameLogic');
+      await toggleGuestLostModal();
+      console.log('💔 DEBUG: Guest Lost toggle completed');
+    } catch (error) {
+      console.error('❌ DEBUG: Guest Lost toggle failed:', error);
+      onError('Failed to toggle guest lost modal');
     } finally {
       setProcessing(false);
     }
@@ -577,6 +613,92 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
         </div>
       )}
 
+      {/* Guest Victory Modal Controls */}
+      {gameState.guestVictoryPending && (
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold text-white mb-3">🏆 Guest Victory Controls</h3>
+          <div className="bg-gradient-to-r from-yellow-900 to-green-900 p-4 rounded-lg">
+            <div className="text-white text-sm mb-3">
+              {gameState.lives === 0 && gameState.lock.placed ? (
+                <>
+                  🔒 <strong>Guest lost all lives but has locked ₹{gameState.lockedMoney.toLocaleString()}!</strong>
+                  <br />
+                  {gameState.guestVictoryModalVisible 
+                    ? '✅ Lock Victory modal is currently shown to audience. Click to hide.'
+                    : '⏳ Ready to celebrate! Click to show lock victory modal with confetti.'}
+                </>
+              ) : (
+                <>
+                  🎊 <strong>Guest won {gameState.questionsAnswered} questions and reached ₹{gameState.prize.toLocaleString()}!</strong>
+                  <br />
+                  📊 Current level: ₹{gameState.prize.toLocaleString()} | Lives: {gameState.lives} | Questions answered: {gameState.questionsAnswered}/7
+                  {gameState.lock.placed && (
+                    <>
+                      <br />
+                      🔓 Lock was placed at ₹{gameState.lockedMoney.toLocaleString()}, but guest WON with {gameState.lives} life remaining!
+                    </>
+                  )}
+                  <br />
+                  {gameState.guestVictoryModalVisible 
+                    ? '✅ Guest Victory modal is currently shown to audience. Click to hide.'
+                    : '⏳ Ready to celebrate! Click to show victory modal with confetti.'}
+                </>
+              )}
+            </div>
+            <button
+              onClick={handleToggleGuestVictoryModal}
+              disabled={processing}
+              className="px-6 py-2 bg-purple-600 text-white rounded font-semibold hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {processing 
+                ? 'Processing...' 
+                : gameState.guestVictoryModalVisible 
+                  ? '🚫 Hide Victory Modal' 
+                  : (gameState.lives === 0 && gameState.lock.placed)
+                    ? `🎉 Show Lock Victory (₹${gameState.lockedMoney.toLocaleString()})`
+                    : `🎉 Show Guest Victory (₹${gameState.prize.toLocaleString()})`
+              }
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Guest Lost Modal Controls */}
+      {(() => {
+        console.log('🔍 DEBUG Guest Lost Controls Check:', {
+          guestLostPending: gameState.guestLostPending,
+          lives: gameState.lives,
+          softEliminated: gameState.softEliminated,
+          lockPlaced: gameState.lock.placed
+        });
+        return gameState.guestLostPending;
+      })() && (
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold text-white mb-3">💀 Guest Elimination Controls</h3>
+          <div className="bg-gradient-to-r from-red-900 to-gray-900 p-4 rounded-lg">
+            <div className="text-white text-sm mb-3">
+              💔 <strong>Guest lost all lives without placing the lock!</strong>
+              <br />
+              {gameState.guestLostModalVisible 
+                ? '✅ Guest elimination modal is currently shown to audience. Click to hide and show game over.'
+                : '⏳ Ready to show elimination. Click to display guest elimination modal.'}
+            </div>
+            <button
+              onClick={handleToggleGuestLostModal}
+              disabled={processing}
+              className="px-6 py-2 bg-red-600 text-white rounded font-semibold hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {processing 
+                ? 'Processing...' 
+                : gameState.guestLostModalVisible 
+                  ? '🚫 Hide & Show Game Over' 
+                  : '💀 Show Guest Elimination'
+              }
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Reset Controls - Always Show */}
       <div className="mb-6">
         <h3 className="text-lg font-semibold text-white mb-3">Reset Controls</h3>
@@ -598,6 +720,8 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
           </button>
         </div>
       </div>
+
+      
 
       {/* Reset Information */}
       <div className="p-3 bg-gray-700 rounded text-sm text-gray-300">

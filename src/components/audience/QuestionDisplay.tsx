@@ -78,11 +78,11 @@ export default function QuestionDisplay({ gameState }: QuestionDisplayProps) {
     return (
       <div className="text-center py-12">
         <div className="text-6xl mb-6">🎭</div>
-        <div className="text-white text-4xl mb-4 font-bebas tracking-wider">WELCOME TO JUDGE ME IF YOU CAN!</div>
-        <div className="text-yellow-400 text-xl font-bebas tracking-wide">
+        <div className="text-white text-7xl mb-4 font-bebas tracking-wider">WELCOME TO JUDGE ME IF YOU CAN!</div>
+        <div className="text-yellow-400 text-5xl font-bebas tracking-wide">
           THE MOST HILARIOUS GAME SHOW
         </div>
-        <div className="text-gray-300 text-xl font-bebas mt-4">
+        <div className="text-gray-300 text-4xl font-bebas mt-4">
           Waiting for the first question...
         </div>
       </div>
@@ -92,34 +92,20 @@ export default function QuestionDisplay({ gameState }: QuestionDisplayProps) {
   const question = gameState.currentQuestion;
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="w-full mx-auto h-full flex flex-col">
+    <div className="h-full flex flex-col overflow-hidden justify-center">
+      <div className="w-full mx-auto">
         {/* Question Card with Golden Border and Gradient Background */}
-        <div className="game-card-gradient border-2 border-yellow-400 rounded-lg px-6 py-3 flex flex-col h-full min-h-0">
-          {/* Header with Question Number and Lives */}
-          <div className="flex justify-between items-center flex-shrink-0 mb-2">
-            <div className="text-yellow-400 text-xl font-bebas tracking-wider">
-              QUESTION-{gameState.currentQuestionNumber}
-            </div>
-            <div className="flex space-x-2">
-              {[1, 2, 3].map((life, index) => (
-                <div 
-                  key={index}
-                  className="w-6 h-6 rounded-full border-2 border-yellow-400"
-                />
-              ))}
-            </div>
-          </div>
+        <div className="game-card-gradient border-2 border-yellow-400 rounded-lg px-4 py-3">
           
-          {/* Question Text - Scales based on content length */}
-          <div className="text-yellow-400 font-bebas leading-tight mb-3 text-center flex-shrink-0 overflow-hidden text-5xl">
-            <div className="line-clamp-4">
+          {/* Question Text - Responsive sizing */}
+          <div className="text-yellow-400 font-bebas leading-tight mb-3 text-center text-4xl xl:text-5xl">
+            <div className="line-clamp-3">
               {question.question}
             </div>
           </div>
 
-          {/* Options Grid - Takes remaining space */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 flex-1 min-h-0">
+          {/* Options Grid - Fixed height */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             {[
               { key: 'A', text: question.option_a },
               { key: 'B', text: question.option_b },
@@ -180,13 +166,13 @@ export default function QuestionDisplay({ gameState }: QuestionDisplayProps) {
               return (
                 <div
                   key={option.key}
-                  className={`border-2 rounded-lg transition-all duration-500 flex items-center ${optionClasses}`}
+                  className={`border-2 rounded-lg transition-all duration-500 ${optionClasses}`}
                 >
-                  <div className="flex items-center m-1 p-3 rounded-sm w-full overflow-hidden">
-                    <span className={`text-3xl font-bebas font-bold mr-3 flex-shrink-0 ${textColor}`}>
+                  <div className="flex items-center m-1 p-2 rounded-sm overflow-hidden h-[80px] xl:h-[100px]">
+                    <span className={`text-3xl xl:text-4xl font-bebas font-bold mr-2 flex-shrink-0 ${textColor}`}>
                       {option.key}.
                     </span>
-                    <span className={`text-3xl font-bebas tracking-wide line-clamp-2 ${textColor}`}>
+                    <span className={`text-3xl xl:text-4xl font-bebas tracking-wide line-clamp-2 ${textColor}`}>
                       {option.text}
                     </span>
                   </div>

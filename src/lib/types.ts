@@ -52,6 +52,14 @@ export interface GameState {
   allOrNothingAttempt2Guess: string; // Track attempt 2 guess
   allOrNothingAttempt2Correct: boolean; // Track if attempt 2 was correct
   
+  // Guest Victory (completing all 7 questions without lock)
+  guestVictoryPending: boolean; // Guest completed all 7 questions, waiting for operator to show victory modal
+  guestVictoryModalVisible: boolean; // Victory modal is currently displayed
+  
+  // Guest Lost (lost all lives without placing lock)
+  guestLostPending: boolean; // Guest lost without lock, waiting for operator to show elimination modal
+  guestLostModalVisible: boolean; // Elimination modal is currently displayed
+  
   // Lock system
   lock: {
     placed: boolean;
@@ -61,6 +69,9 @@ export interface GameState {
   
   // Question management
   usedQuestions: Record<string, boolean>;
+  
+  // Buzzer trigger (operator triggers, plays on audience)
+  buzzerTrigger: number; // Timestamp of buzzer trigger, changes trigger new sound
   
   // Metadata
   lastActivity: string;

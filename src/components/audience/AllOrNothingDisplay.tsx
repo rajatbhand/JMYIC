@@ -234,22 +234,22 @@ export default function AllOrNothingDisplay({
     >
       {/* Header */}
       <div className="text-center py-4 mb-6">
-        <h1 className="text-6xl font-bebas text-white mb-2 animate-pulse font-bebas">
+        <h1 className="text-8xl font-bebas text-white mb-2 animate-pulse font-bebas">
           🎰 ALL OR NOTHING 🎰
         </h1>
-        <p className="text-2xl text-yellow-300 font-bebas tracking-wide">
+        <p className="text-6xl text-yellow-300 font-bebas tracking-wide">
           FINAL GAMBLE - GET RICH OR GO HOME!
         </p>
       </div>
 
-      <div className="container mx-auto px-6">
-        <div className="flex justify-around w-full mb-8 py-2 game-card-gradient rounded-lg">
+      <div className="px-6">
+        <div className="flex justify-between w-full mb-8 p-6 game-card-gradient rounded-lg">
           {/* Left: Prize Display */}
-          <div className="text-center flex items-end">
-            <div className="text-yellow-100 text-4xl font-bebas mr-4">
+          <div className="text-center">
+            <div className="text-yellow-100 text-2xl uppercase tracking-wide font-bebas">
               PLAYING FOR
             </div>
-            <div className="text-6xl font-bebas text-white">₹50,000</div>
+            <div className="text-white text-5xl font-bold font-bebas">₹50,000</div>
           </div>
 
           {/* Attempt Indicator */}
@@ -261,7 +261,7 @@ export default function AllOrNothingDisplay({
                   attempt === gameState.allOrNothingAttempt
                     ? gameState.panelGuessChecked
                       ? "bg-red-600 text-white" // Checked
-                      : "bg-orange-500 text-white animate-pulse" // Current
+                      : "bg-orange-500 text-white" // Current
                     : attempt < gameState.allOrNothingAttempt
                     ? "bg-gray-600 text-gray-300" // Past
                     : "bg-gray-400 text-gray-600" // Future
@@ -277,10 +277,10 @@ export default function AllOrNothingDisplay({
           <div className="game-card-gradient border-2 border-yellow-400 rounded-lg px-8 py-4 mb-6">
             {!gameState.currentQuestion ? (
               <div className="text-center py-12">
-                <div className="text-yellow-400 text-lg font-bebas mb-4">
+                <div className="text-yellow-400 text-7xl font-bebas mb-4">
                   ⏳ WAITING FOR FINAL QUESTION
                 </div>
-                <div className="text-gray-300 text-sm">
+                <div className="text-gray-300 text-5xl font-bebas">
                   Operator is selecting the question for All or Nothing...
                 </div>
               </div>
@@ -290,13 +290,13 @@ export default function AllOrNothingDisplay({
                   {/* <div className="text-yellow-400 text-sm font-bebas mb-2">
                     FINAL QUESTION
                   </div> */}
-                  <h2 className="text-yellow-400 text-5xl font-bebas leading-tight mb-6 text-center">
+                  <h2 className="text-yellow-400 text-7xl font-bebas leading-tight mb-6 text-center">
                     {gameState.currentQuestion.question}
                   </h2>
                 </div>
 
                 {/* Options */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 h-[328px]">
                   {[
                     { letter: "A", text: gameState.currentQuestion.option_a },
                     { letter: "B", text: gameState.currentQuestion.option_b },
@@ -305,7 +305,7 @@ export default function AllOrNothingDisplay({
                   ].map((option) => (
                     <div
                       key={option.letter}
-                      className={`border-2 rounded-lg transition-all duration-700 ${(() => {
+                      className={`border-2 rounded-lg transition-all duration-700 flex items-center ${(() => {
                         const correctAnswer =
                           gameState.currentQuestion.guest_answer;
                         const isCorrectAnswer = option.letter === correctAnswer;
@@ -367,11 +367,11 @@ export default function AllOrNothingDisplay({
                         return "bg-yellow-400 border-yellow-600 text-green-900"; // Default
                       })()}`}
                     >
-                      <div className="flex items-start m-1 p-4 rounded-sm">
-                        <span className="text-4xl font-bebas font-bold mr-4">
+                      <div className="flex items-center m-1 p-3 rounded-sm w-full">
+                        <span className="text-5xl font-bebas font-bold mr-3 flex-shrink-0">
                           {option.letter}.
                         </span>
-                        <span className="text-4xl font-bebas tracking-wide">{option.text}</span>
+                        <span className="text-5xl font-bebas tracking-wide">{option.text}</span>
                       </div>
                     </div>
                   ))}
@@ -387,32 +387,63 @@ export default function AllOrNothingDisplay({
         <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
           {gameState.allOrNothingWon ? (
             /* Guest Win Modal - ₹50,000 + Confetti */
-            <div className="bg-gradient-to-br from-green-600 to-emerald-600 rounded-3xl p-8 max-w-4xl mx-4 text-center shadow-2xl border-4 border-green-400 animate-bounce">
-              <div className="text-6xl mb-4">🎉</div>
-              <h2 className="text-4xl lg:text-5xl font-bebas text-white mb-4 animate-pulse">
-                CONGRATULATIONS!
-              </h2>
-              <div className="text-yellow-300 text-2xl lg:text-3xl font-bebas mb-4">
-                GUEST WINS
-              </div>
-              <div className="text-6xl lg:text-7xl font-bebas text-white mb-4">
-                ₹50,000
-              </div>
-              <div className="text-green-200 text-lg lg:text-xl">
-                Panel failed both attempts! 🎊
-              </div>
+            <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50">
+             <div className="text-center animate-fadeIn">
+               {/* Victory Title */}
+               <div className="mb-8">
+                 <h1 className="text-8xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-yellow-200 to-yellow-400 animate-pulse mb-4" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
+                   🏆 Contestant WINS! 🏆
+                 </h1>
+                 
+               </div>
+       
+               {/* Prize Amount */}
+               <div className="bg-gradient-to-r from-yellow-600 via-yellow-400 to-yellow-600 p-8 rounded-2xl shadow-2xl mb-8 transform hover:scale-105 transition-transform">
+                 <p className="text-3xl text-gray-900 font-bold mb-2" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
+                   PRIZE WON
+                 </p>
+                 <p className="text-9xl font-extrabold text-transparent bg-clip-text bg-gradient-to-b from-yellow-900 to-yellow-700" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
+                   ₹50,000
+                 </p>
+               </div>
+       
+               {/* Celebration Message */}
+               <div className="text-3xl text-green-400 font-bold animate-bounce" style={{ fontFamily: 'Bebas Neue, sans-serif' }}>
+                 🎉 CONGRATULATIONS! 🎉
+               </div>
+             </div>
             </div>
           ) : (
             /* Panel Win Modal - Simple Bouncing Card */
-            <div className="bg-gradient-to-br from-red-700 to-red-900 rounded-3xl p-12 max-w-2xl mx-4 text-center shadow-2xl border-4 border-red-500 animate-bounce">
-              <div className="text-8xl mb-6">💀</div>
-              <h2 className="text-6xl font-bebas text-white mb-4">GAME OVER</h2>
-              <div className="text-red-300 text-3xl font-bebas mb-4">
-                PANEL WINS
-              </div>
-              <div className="text-8xl font-bebas text-white mb-4">₹0</div>
-              <div className="text-red-200 text-xl">
-                Panel answered correctly! 😭
+            <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50">
+              <div className="text-center animate-fadeIn">
+                {/* Elimination Title */}
+                <div className="mb-8">
+                  <h1 className="text-8xl font-bold text-red-600 mb-4 font-bebas">
+                    💀 CONTESTANT ELIMINATED 💀
+                  </h1>
+                  <p className="text-4xl text-white font-semibold font-bebas">
+                    ALL LIVES LOST WITHOUT PLACING THE LOCK!
+                  </p>
+                </div>
+            
+                {/* Prize Amount - Zero */}
+                <div className="bg-gradient-to-r from-gray-800 via-gray-700 to-gray-800 p-8 rounded-2xl shadow-2xl mb-8 border-4 border-red-600">
+                  <p className="text-3xl text-gray-300 font-bold mb-2 font-bebas">
+                    FINAL PRIZE
+                  </p>
+                  <p className="text-9xl font-extrabold text-red-500 font-bebas">
+                    ₹0
+                  </p>
+                  <p className="text-xl text-gray-400 mt-4 font-bebas">
+                    No Lock Placed - No Safety Net
+                  </p>
+                </div>
+            
+                {/* Sad Message */}
+                  <div className="text-3xl text-red-400 font-bold font-bebas">
+                    💔 BETTER LUCK NEXT TIME! 💔
+                  </div>
               </div>
             </div>
           )}

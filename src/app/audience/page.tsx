@@ -9,6 +9,8 @@ import QuestionDisplay from '@/components/audience/QuestionDisplay';
 import LivesDisplay from '@/components/audience/LivesDisplay';
 import GameOverDisplay from '@/components/audience/GameOverDisplay';
 import AllOrNothingDisplay from '@/components/audience/AllOrNothingDisplay';
+import GuestVictoryDisplay from '@/components/audience/GuestVictoryDisplay';
+import GuestLostDisplay from '@/components/audience/GuestLostDisplay';
 import { GameLogic } from '@/utils/gameLogic';
 
 
@@ -55,6 +57,14 @@ export default function AudienceDisplay() {
     };
   }, []);
 
+  // Buzzer sound effect listener
+  useEffect(() => {
+    if (gameState && gameState.buzzerTrigger > 0) {
+      console.log('🔔 Buzzer triggered, playing sound');
+      soundPlayer.playSound('buzzer');
+    }
+  }, [gameState?.buzzerTrigger]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-cover" 
@@ -84,18 +94,28 @@ export default function AudienceDisplay() {
     return <AllOrNothingDisplay gameState={gameState} />;
   }
 
+  // Show Guest Victory display
+  if (gameState.guestVictoryModalVisible) {
+    return <GuestVictoryDisplay gameState={gameState} />;
+  }
+
+  // Show Guest Lost display
+  if (gameState.guestLostModalVisible) {
+    return <GuestLostDisplay gameState={gameState} />;
+  }
+
   // Show game over screen only when explicitly triggered by operator
   if (gameState.gameOver) {
     return <GameOverDisplay gameState={gameState} />;
   }
 
   return (
-    <div className="h-screen overflow-hidden bg-cover flex flex-col" 
+    <div className="bg-cover flex flex-col h-screen overflow-hidden" 
          style={{ backgroundImage: "url('/images/backgrounds/BG-1.jpg')", backgroundColor: "#1a3a2e" }}>
       
-      <div className="container mx-auto px-6 py-3 flex flex-col h-full">
-        {/* Header - Fixed Height */}
-        <div className="flex items-center justify-between mb-3 flex-shrink-0">
+      <div className="px-4 py-2 flex flex-col h-full max-h-screen">
+        {/* Header - Fixed Height with viewport units */}
+        <div className="flex items-center justify-between mb-3 flex-shrink-0" style={{ height: '12vh' }}>
           {/* Left: Lives */}
           <div className="w-1/4 text-center">
             <LivesDisplay gameState={gameState} />
@@ -103,37 +123,39 @@ export default function AudienceDisplay() {
 
           {/* Center: Title */}
           <div className="w-2/4 text-center">
-            <h1 className="text-4xl font-bold text-white mb-1 font-bebas">Judge Me If You Can</h1>
-            <p className="text-md text-gray-300 font-bebas">Live Comedy Game Show</p>
+            <h1 className="text-6xl xl:text-7xl font-bold text-white font-bebas leading-tight">Judge Me If You Can</h1>
+            <p className="text-xl xl:text-2xl text-gray-300 font-bebas">Live Comedy Game Show</p>
           </div>
 
           {/* Right: Lock Status */}
           <div className="w-1/4 text-right flex flex-row justify-center items-center">
-            {/* Add your lock available component here */}
-                      <div className="text-gray-400 text-2xl uppercase tracking-wide mr-3 font-bebas">Lock</div>
-                      {gameState.lock.placed ? (
-                        <div>
-                          <div className="text-2xl font-bold text-purple-400 font-bebas">Placed 🔒</div>
-                        </div>
-                      ) : GameLogic.canPlaceLock(gameState) ? (
-                        <div>
-                          <div className="text-2xl font-bold text-yellow-400 font-bebas">Available 🔓</div>
-                        </div>
-                      ) : (
-                        <div>
-                          <div className="text-2xl font-bold text-gray-500 font-bebas">Not Available 🚫</div>
-                        </div>
-                      )}
+            <div className="text-gray-400 text-3xl xl:text-4xl uppercase tracking-wide mr-2 font-bebas">Lock</div>
+            {gameState.lock.placed ? (
+              <div className="flex items-center gap-1">
+                <div className="text-3xl xl:text-4xl font-bold text-purple-400 font-bebas">Placed</div>
+                <div className="text-3xl xl:text-4xl font-bold text-yellow-400 font-bebas">🔓</div>
+              </div>
+            ) : GameLogic.canPlaceLock(gameState) ? (
+              <div className="flex items-center gap-1">
+                <div className="text-3xl xl:text-4xl font-bold text-yellow-400 font-bebas">Available</div>
+                <div className="text-3xl xl:text-4xl font-bold text-yellow-400 font-bebas">🔓</div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1">
+                <div className="text-3xl xl:text-4xl font-bold text-gray-500 font-bebas">Not Available</div>
+                <div className="text-3xl xl:text-4xl font-bold text-yellow-400 font-bebas">🚫</div>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Prize Tier - Fixed Height */}
-        <div className="mb-3 flex-shrink-0">
+        {/* Prize Tier - Fixed viewport height */}
+        <div className="mb-3 flex-shrink-0" style={{ height: '20vh' }}>
           <PrizeLadder gameState={gameState} />
         </div>
 
-        {/* Question Box - Flexible Height */}
-        <div className="flex-1 min-h-0">
+        {/* Question Box - Remaining viewport height */}
+        <div className="flex-1 min-h-0" style={{ maxHeight: '65vh' }}>
           <QuestionDisplay gameState={gameState} />
         </div>
       </div>
