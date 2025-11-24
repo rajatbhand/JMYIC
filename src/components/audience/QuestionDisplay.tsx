@@ -16,7 +16,7 @@ export default function QuestionDisplay({ gameState }: QuestionDisplayProps) {
     if (gameState.panelGuessChecked && gameState.panelGuess && gameState.currentQuestion) {
       // Create a unique key for this guess to prevent duplicate audio
       const guessKey = `${gameState.currentQuestion.id}-${gameState.panelGuess}-${gameState.panelGuessChecked}`;
-      
+
       // Only play audio if we haven't already played it for this specific guess
       if (lastAudioPlayedRef.current !== guessKey) {
         const isCorrect = GameLogic.isPanelGuessCorrectWithContext(
@@ -29,7 +29,7 @@ export default function QuestionDisplay({ gameState }: QuestionDisplayProps) {
         lastAudioPlayedRef.current = guessKey;
       }
     }
-    
+
     // Reset when a new question is selected
     if (!gameState.panelGuessChecked) {
       lastAudioPlayedRef.current = '';
@@ -48,11 +48,11 @@ export default function QuestionDisplay({ gameState }: QuestionDisplayProps) {
   useEffect(() => {
     if (gameState.lock.placed && gameState.lock.level !== null) {
       const lockKey = `lock-${gameState.lock.level}`;
-      
+
       if (!processedLockEvents.current.has(lockKey)) {
         console.log('🔒 Lock placed audio triggered for level', gameState.lock.level);
         soundPlayer.playSound('lockPlaced');
-        
+
         processedLockEvents.current.add(lockKey);
       }
     }
@@ -96,7 +96,7 @@ export default function QuestionDisplay({ gameState }: QuestionDisplayProps) {
       <div className="w-full mx-auto">
         {/* Question Card with Golden Border and Gradient Background */}
         <div className="game-card-gradient border-2 border-yellow-400 rounded-lg px-4 py-3">
-          
+
           {/* Question Text - Responsive sizing */}
           <div className="text-yellow-400 font-bebas leading-tight mb-3 text-center text-4xl xl:text-5xl">
             <div className="line-clamp-3">
@@ -118,7 +118,7 @@ export default function QuestionDisplay({ gameState }: QuestionDisplayProps) {
               const guestAnswerText = question.guest_answer?.toString().toUpperCase().trim();
               const optionText = option.text?.toUpperCase().trim();
 
-              const isGuestAnswer = 
+              const isGuestAnswer =
                 guestAnswerText === option.key || // Letter format (A, B, C, D)
                 guestAnswerText === optionText;   // Text format (actual answer text)
 
@@ -163,6 +163,19 @@ export default function QuestionDisplay({ gameState }: QuestionDisplayProps) {
                 textColor = 'text-green-900';
               }
 
+              const isHidden = gameState.hiddenOption === option.key;
+
+              // If option is hidden, render an empty placeholder or nothing
+              if (isHidden) {
+                return (
+                  <div key={option.key} className="border-2 border-transparent rounded-lg opacity-0 pointer-events-none">
+                    <div className="flex items-center m-1 p-2 rounded-sm overflow-hidden h-[80px] xl:h-[100px]">
+                      {/* Invisible placeholder to maintain grid layout */}
+                    </div>
+                  </div>
+                );
+              }
+
               return (
                 <div
                   key={option.key}
@@ -182,7 +195,7 @@ export default function QuestionDisplay({ gameState }: QuestionDisplayProps) {
           </div>
         </div>
 
-        
+
       </div>
 
       {/* Game Status Messages */}

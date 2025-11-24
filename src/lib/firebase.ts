@@ -21,7 +21,7 @@ export const db = getFirestore(app);
 if (typeof window !== 'undefined') {
   const environment = process.env.NEXT_PUBLIC_ENVIRONMENT || 'unknown';
   console.log(`🔥 Firebase initialized for ${environment}:`, firebaseConfig.projectId);
-  
+
   // Enable network for faster sync
   enableNetwork(db).catch(console.error);
 }
@@ -48,6 +48,11 @@ export const defaultGameState: GameState = {
   softEliminated: false,
   currentQuestionAnswerRevealed: false,
   needsManualReveal: false,
+
+  // Hide Option Feature
+  hiddenOption: null,
+  hideOptionUsed: false,
+
   allOrNothingActive: false,
   allOrNothingAttempt: 0,
   allOrNothingComplete: false,

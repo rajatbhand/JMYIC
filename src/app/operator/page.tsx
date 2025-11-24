@@ -25,9 +25,9 @@ export default function OperatorPanel() {
       try {
         setLoading(true);
         setError(null);
-        
+
         console.log('Initializing operator panel...');
-        
+
         // Initialize game state with retry logic
         let retries = 3;
         while (retries > 0) {
@@ -37,17 +37,17 @@ export default function OperatorPanel() {
             break;
           } catch (initError) {
             retries--;
-            console.error(`Game state init attempt failed (${3-retries}/3):`, initError);
-            
+            console.error(`Game state init attempt failed (${3 - retries}/3):`, initError);
+
             if (retries === 0) {
               throw initError;
             }
-            
+
             // Wait before retry
             await new Promise(resolve => setTimeout(resolve, 2000));
           }
         }
-        
+
         // Subscribe to real-time updates with error handling
         try {
           unsubscribe = gameStateManager.subscribeToGameState((state) => {
@@ -69,10 +69,10 @@ export default function OperatorPanel() {
 
         // Load questions with error handling
         await loadQuestions();
-        
+
       } catch (err) {
         console.error('Error initializing operator panel:', err);
-        
+
         if (err instanceof Error && err.message.includes('permission-denied')) {
           setError('Firebase access denied. Please check your permissions.');
         } else if (err instanceof Error && err.message.includes('network')) {
@@ -80,9 +80,9 @@ export default function OperatorPanel() {
         } else {
           setError('Failed to initialize. Please refresh the page.');
         }
-        
+
         setLoading(false);
-        
+
         // Set a default game state to prevent crashes
         setGameState({
           currentQuestion: null,
@@ -123,7 +123,9 @@ export default function OperatorPanel() {
           usedQuestions: {},
           buzzerTrigger: 0,
           lastActivity: new Date().toISOString(),
-          documentVersion: '3.0'
+          documentVersion: '3.0',
+          hiddenOption: null,
+          hideOptionUsed: false
         });
       }
     };
@@ -140,25 +142,25 @@ export default function OperatorPanel() {
   const loadQuestions = async (useCache: boolean = false) => {
     try {
       console.log('Attempting to load questions from Firebase...');
-      
+
       // Check cache first if requested
       if (useCache && questions.length > 0) {
         console.log('Using cached questions');
         return;
       }
-      
+
       setQuestionsLoading(true);
-      
+
       // Add timeout and retry logic
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Firebase timeout')), 8000) // Reduced timeout
       );
-      
+
       const fetchPromise = getDoc(questionsDocRef);
-      
+
       // Race between timeout and actual fetch
       const docSnap = await Promise.race([fetchPromise, timeoutPromise]) as any;
-      
+
       if (docSnap.exists()) {
         const data = docSnap.data();
         const questions = data.questions || [];
@@ -170,10 +172,10 @@ export default function OperatorPanel() {
       }
     } catch (err) {
       console.error('Error loading questions:', err);
-      
+
       // Provide fallback empty state instead of failing completely
       setQuestions([]);
-      
+
       // Show user-friendly error message
       if (err instanceof Error && err.message.includes('timeout')) {
         setError('Connection timeout. Please check your internet connection.');
@@ -225,10 +227,10 @@ export default function OperatorPanel() {
 
       {/* 3-Column Layout: CSV Upload (30%) | Question Pool (30%) | Game Controls (30%) */}
       <div className="flex gap-6 h-full justify-center">
-        
+
         {/* Left Column: CSV Upload (20%) */}
         <div className="w-[30%] flex-shrink-0">
-          <CSVUpload 
+          <CSVUpload
             onSuccess={() => loadQuestions(false)}
             onError={handleError}
           />
@@ -236,7 +238,7 @@ export default function OperatorPanel() {
 
         {/* Center Column: Question Pool (50%) */}
         <div className="w-[30%] flex-shrink-0">
-          <QuestionPool 
+          <QuestionPool
             questions={questions}
             gameState={gameState}
             onError={handleError}
@@ -247,8 +249,8 @@ export default function OperatorPanel() {
 
         {/* Right Column: Game Controls (30%) */}
         <div className="w-[30%] flex-shrink-0">
-          <GameControls 
-            gameState={gameState} 
+          <GameControls
+            gameState={gameState}
             onError={handleError}
             onQuestionUsed={loadQuestions}
           />

@@ -23,12 +23,12 @@ export class GameLogic {
    */
   static normalizeGuestAnswer(guestAnswer: string, question: Question): string {
     const normalized = guestAnswer.trim().toUpperCase();
-    
+
     // If it's already a letter, return as-is
     if (['A', 'B', 'C', 'D'].includes(normalized)) {
       return normalized;
     }
-    
+
     // If it's full text, find matching option
     const options = [
       { letter: 'A', text: question.option_a.trim().toUpperCase() },
@@ -36,13 +36,13 @@ export class GameLogic {
       { letter: 'C', text: question.option_c.trim().toUpperCase() },
       { letter: 'D', text: question.option_d.trim().toUpperCase() }
     ];
-    
+
     const match = options.find(opt => opt.text === normalized);
     if (match) {
       console.log(`🔄 Converted guest answer "${guestAnswer}" to "${match.letter}"`);
       return match.letter;
     }
-    
+
     console.warn(`⚠️ Could not convert guest answer "${guestAnswer}" to letter format`);
     return normalized; // Return as-is if no match found
   }
@@ -55,17 +55,17 @@ export class GameLogic {
       console.error('Missing panel guess or guest answer:', { panelGuess, guestAnswer });
       return false;
     }
-    
+
     const normalizedPanelGuess = panelGuess.toUpperCase();
     const normalizedGuestAnswer = this.normalizeGuestAnswer(guestAnswer, question);
-    
+
     console.log('🔍 Comparing panel guess vs guest answer:', {
       panelGuess: normalizedPanelGuess,
       guestAnswer: normalizedGuestAnswer,
       originalGuestAnswer: guestAnswer,
       isMatch: normalizedPanelGuess === normalizedGuestAnswer
     });
-    
+
     return normalizedPanelGuess === normalizedGuestAnswer;
   }
 
@@ -77,10 +77,10 @@ export class GameLogic {
       console.error('Missing panel guess or guest answer:', { panelGuess, guestAnswer });
       return false;
     }
-    
+
     const normalizedPanelGuess = panelGuess.toUpperCase();
     let normalizedGuestAnswer = guestAnswer.toUpperCase();
-    
+
     // Handle legacy data where guest_answer might be full text instead of letter
     // Convert full text answers back to letters by checking against current question options
     if (normalizedGuestAnswer.length > 1 && ['A', 'B', 'C', 'D'].includes(normalizedPanelGuess)) {
@@ -88,13 +88,13 @@ export class GameLogic {
       // For now, log this case for debugging
       console.warn('⚠️ Guest answer appears to be full text, not letter:', normalizedGuestAnswer);
     }
-    
+
     console.log('🔍 Comparing panel guess vs guest answer:', {
       panelGuess: normalizedPanelGuess,
       guestAnswer: normalizedGuestAnswer,
       isMatch: normalizedPanelGuess === normalizedGuestAnswer
     });
-    
+
     return normalizedPanelGuess === normalizedGuestAnswer;
   }
 
@@ -105,11 +105,11 @@ export class GameLogic {
     if (!panelGuess || !guestAnswer) {
       return true; // If either is missing, require manual reveal
     }
-    
+
     if (question) {
       return !this.isPanelGuessCorrectWithContext(panelGuess, guestAnswer, question);
     }
-    
+
     return !this.isPanelGuessCorrect(panelGuess, guestAnswer);
   }
 
@@ -117,7 +117,7 @@ export class GameLogic {
    * Calculate game state updates when panel guess is checked
    */
   static calculatePanelGuessResult(
-    gameState: GameState, 
+    gameState: GameState,
     panelGuess: string
   ): Partial<GameState> {
     if (!gameState.currentQuestion) {
@@ -129,8 +129,8 @@ export class GameLogic {
     }
 
     const isPanelCorrect = this.isPanelGuessCorrectWithContext(
-      panelGuess, 
-      gameState.currentQuestion.guest_answer, 
+      panelGuess,
+      gameState.currentQuestion.guest_answer,
       gameState.currentQuestion
     );
     const needsReveal = !isPanelCorrect; // Only need reveal if panel is WRONG
@@ -145,22 +145,22 @@ export class GameLogic {
       // Panel wins - guest loses a life and stays at current level
       updates.currentQuestionAnswerRevealed = true; // Mark as complete
       updates.panelCorrectAnswers = (gameState.panelCorrectAnswers || 0) + 1;
-      
+
       // Guest loses a life when panel guesses correctly
       if (gameState.lives > 0) {
         const newLives = gameState.lives - 1;
         updates.lives = newLives;
-        
+
         // Check if ALL lives are lost
         if (newLives === 0) {
           updates.softEliminated = true; // Eligible for All or Nothing, but don't end game yet
-          
+
           console.log('💀 DEBUG: Lives reached 0 in calculatePanelGuessResult, checking lock status:', {
             'gameState.lock': gameState.lock,
             'gameState.lock.placed': gameState.lock.placed,
             'lockedMoney': gameState.lockedMoney
           });
-          
+
           // Check scenarios when all lives are lost
           if (!gameState.lock.placed) {
             // No lock placed - Guest Lost scenario
@@ -173,22 +173,22 @@ export class GameLogic {
             // Guest wins the locked amount
           }
         }
-        
+
         console.log(`Panel correct! Guest loses a life. Lives remaining: ${newLives}`);
       }
-      
+
       // Check if game should end (2 panel correct answers) - but only if All or Nothing not available
       if (updates.panelCorrectAnswers >= 2 && updates.lives > 0) {
         updates.gameOver = true;
         updates.softEliminated = true;
       }
-      
+
       // Mark question as used
       updates.usedQuestions = {
         ...gameState.usedQuestions,
         [gameState.currentQuestion.id]: true
       };
-      
+
       // Keep current question visible until new one is selected
       // Don't clear currentQuestion here - let the operator choose the next question
       // Reset only the panel guess state for next round
@@ -211,11 +211,11 @@ export class GameLogic {
     }
 
     const isPanelCorrect = this.isPanelGuessCorrectWithContext(
-      gameState.panelGuess, 
-      gameState.currentQuestion.guest_answer, 
+      gameState.panelGuess,
+      gameState.currentQuestion.guest_answer,
       gameState.currentQuestion
     );
-    
+
     let updates: Partial<GameState> = {
       currentQuestionAnswerRevealed: true,
       needsManualReveal: false
@@ -231,9 +231,9 @@ export class GameLogic {
         pendingAdvancement: true
         // Note: currentQuestionNumber and prize stay same until next question
       };
-      
+
       console.log(`Guest wins round ${newQuestionsAnswered}! Advancement pending for next question selection.`);
-      
+
       // Check for Guest Victory: Completed all 7 questions
       // This works for ALL scenarios:
       // 1. Guest wins all 7 questions in a row without lock → ₹50K victory
@@ -246,11 +246,11 @@ export class GameLogic {
           lockPlaced: gameState.lock.placed,
           lockedMoney: gameState.lockedMoney,
           lives: gameState.lives,
-          scenario: gameState.lock.placed 
-            ? `Won with lock placed at ₹${gameState.lockedMoney}` 
+          scenario: gameState.lock.placed
+            ? `Won with lock placed at ₹${gameState.lockedMoney}`
             : 'Won all 7 without lock (₹50K)',
-          detailedScenario: gameState.currentQuestionNumber === 7 
-            ? 'Won 7th question (possibly with retries)' 
+          detailedScenario: gameState.currentQuestionNumber === 7
+            ? 'Won 7th question (possibly with retries)'
             : 'Advanced through all 7 levels'
         });
         updates.guestVictoryPending = true;
@@ -261,18 +261,18 @@ export class GameLogic {
       // Panel CORRECT = Panel wins
       // Guest stays at current level - no advancement, loses a life
       const newPanelCorrectCount = gameState.panelCorrectAnswers + 1;
-      
+
       updates.panelCorrectAnswers = newPanelCorrectCount;
-      
+
       // Guest loses a life when panel guesses correctly
       if (gameState.lives > 0) {
         const newLives = gameState.lives - 1;
         updates.lives = newLives;
-        
+
         // Check if ALL lives are lost
         if (newLives === 0) {
           updates.softEliminated = true; // Eligible for All or Nothing, but don't end game yet
-          
+
           console.log('💀 DEBUG: Lives reached 0, checking lock status:', {
             'gameState.lock': gameState.lock,
             'gameState.lock.placed': gameState.lock.placed,
@@ -280,7 +280,7 @@ export class GameLogic {
             'lock.placed === false': gameState.lock.placed === false,
             '!lock.placed': !gameState.lock.placed
           });
-          
+
           // Check for Guest Lost: Lost all lives WITHOUT placing lock
           if (!gameState.lock.placed) {
             console.log('💀 GUEST LOST! All lives lost without placing the lock!');
@@ -290,16 +290,16 @@ export class GameLogic {
             console.log('🔒 Lock was placed, NOT setting guestLostPending');
           }
         }
-        
+
         console.log(`Panel correct! Guest loses a life. Lives remaining: ${newLives}`);
       }
-      
+
       // Check if game should end (2 panel correct answers) - but only if All or Nothing not available
       if (newPanelCorrectCount >= 2 && updates.lives > 0) {
         updates.gameOver = true;
         updates.softEliminated = true;
       }
-      
+
       console.log(`Panel got ${newPanelCorrectCount} correct answers! Game may end if panel reaches 2.`);
     }
 
@@ -475,7 +475,8 @@ export class GameLogic {
       panelGuessSubmitted: false,
       panelGuessChecked: false,
       currentQuestionAnswerRevealed: false,
-      needsManualReveal: false
+      needsManualReveal: false,
+      hiddenOption: null // Reset hidden option for new question
     };
 
     // Check if guest should advance (pendingAdvancement flag is set)
@@ -483,11 +484,11 @@ export class GameLogic {
       // Guest advances to next level
       const nextLevel = gameState.currentQuestionNumber + 1;
       const newPrize = this.getPrizeForLevel(nextLevel);
-      
+
       updates.currentQuestionNumber = nextLevel;
       updates.prize = newPrize;
       updates.pendingAdvancement = false; // Clear the flag
-      
+
       console.log(`Guest advances! Moving from level ${gameState.currentQuestionNumber} to ${nextLevel}, prize: ₹${newPrize}`);
     }
 
@@ -518,13 +519,13 @@ export class GameLogic {
     // - Guest is eliminated (lives = 0, softEliminated = true)
     // - BUT not if guestLostPending (we have a special modal for that)
     // - AND not if guestVictoryPending (we have a special modal for that too)
-    const result = gameState.lives === 0 
-      && gameState.softEliminated 
-      && !gameState.gameOver 
+    const result = gameState.lives === 0
+      && gameState.softEliminated
+      && !gameState.gameOver
       && !gameState.allOrNothingActive
       && !gameState.guestLostPending
       && !gameState.guestVictoryPending;
-    
+
     console.log('🔍 DEBUG canTriggerGameOver:', {
       lives: gameState.lives,
       softEliminated: gameState.softEliminated,
@@ -535,8 +536,26 @@ export class GameLogic {
       lockPlaced: gameState.lock.placed,
       result
     });
-    
+
     return result;
+  }
+
+  /**
+   * Hide a specific option (one-time use)
+   */
+  static hideOption(gameState: GameState, optionToHide: 'A' | 'B' | 'C' | 'D'): Partial<GameState> {
+    if (gameState.hideOptionUsed) {
+      throw new Error('Hide option lifeline already used');
+    }
+
+    if (!gameState.currentQuestion) {
+      throw new Error('No current question');
+    }
+
+    return {
+      hiddenOption: optionToHide,
+      hideOptionUsed: true
+    };
   }
 }
 
@@ -579,7 +598,7 @@ export async function toggleAllOrNothingModal() {
     console.error('🔴 DEBUG: No current state available');
     return;
   }
-  
+
   console.log('🔵 DEBUG: Toggle function called with state:', {
     allOrNothingModalVisible: currentState.allOrNothingModalVisible,
     allOrNothingComplete: currentState.allOrNothingComplete,
@@ -587,7 +606,7 @@ export async function toggleAllOrNothingModal() {
     gameOver: currentState.gameOver,
     prize: currentState.prize
   });
-  
+
   if (currentState.allOrNothingModalVisible) {
     // Currently visible - hide it but preserve all other state
     console.log('🟡 DEBUG: Hiding modal, preserving other state values');
@@ -640,7 +659,7 @@ export async function toggleGuestVictoryModal() {
   }
 
   console.log(' DEBUG: toggleGuestVictoryModal called, current modalVisible:', currentState.guestVictoryModalVisible);
-  
+
   if (currentState.guestVictoryModalVisible) {
     // Currently visible - hide it
     console.log(' DEBUG: Hiding guest victory modal');
@@ -652,14 +671,14 @@ export async function toggleGuestVictoryModal() {
   } else {
     // Currently hidden - show guest victory modal
     console.log('🏆 DEBUG: Showing guest victory modal');
-    
+
     // Determine prize:
     // 1. If guest has lives remaining: Show current prize (they won the game!)
     // 2. If guest lost all lives (lives = 0) and lock placed: Show locked amount
-    const prizeAmount = (currentState.lives === 0 && currentState.lock.placed) 
-      ? currentState.lockedMoney 
+    const prizeAmount = (currentState.lives === 0 && currentState.lock.placed)
+      ? currentState.lockedMoney
       : currentState.prize;
-    
+
     console.log('🏆 DEBUG: Prize calculation:', {
       lives: currentState.lives,
       lockPlaced: currentState.lock.placed,
@@ -670,7 +689,7 @@ export async function toggleGuestVictoryModal() {
         ? 'Guest lost all lives - showing locked amount'
         : 'Guest won with lives remaining - showing current prize'
     });
-    
+
     const updates: Partial<GameState> = {
       guestVictoryModalVisible: true,
       gameOver: true,
@@ -693,7 +712,7 @@ export async function toggleGuestLostModal() {
   }
 
   console.log(' DEBUG: toggleGuestLostModal called, current modalVisible:', currentState.guestLostModalVisible);
-  
+
   if (currentState.guestLostModalVisible) {
     // Currently visible - hide it and show game over
     console.log(' DEBUG: Hiding guest lost modal, showing game over');
