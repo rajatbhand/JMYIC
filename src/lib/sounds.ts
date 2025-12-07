@@ -10,7 +10,7 @@ export const SOUND_EFFECTS: Record<string, SoundEffect> = {
     file: '/sounds/Wrong.mp3'
   },
   panelCorrect: {
-    name: 'Panel Correct', 
+    name: 'Panel Correct',
     file: '/sounds/Correct.mp3'
   },
   revealAnswer: {
@@ -24,6 +24,10 @@ export const SOUND_EFFECTS: Record<string, SoundEffect> = {
   buzzer: {
     name: 'Buzzer',
     file: '/sounds/buzzer.wav'
+  },
+  whoosh: {
+    name: 'Whoosh',
+    file: '/sounds/whoosh.mp3'
   }
 } as const;
 
@@ -79,12 +83,12 @@ export class SoundPlayer {
       // Try to play immediately without await to reduce delay
       const audio = new Audio(sound.file);
       audio.volume = 0.7;
-      
+
       // Fire and forget - don't await to reduce delay
       audio.play().catch(error => {
         console.error(`Failed to play sound ${soundKey}:`, error);
       });
-      
+
       console.log(`Playing sound: ${sound.name}`);
     } catch (error) {
       console.error(`Failed to play sound ${soundKey}:`, error);
