@@ -173,12 +173,20 @@ export default function QuestionDisplay({ gameState }: QuestionDisplayProps) {
 
               const isHidden = gameState.hiddenOption === option.key;
 
-              // If option is hidden, render an empty placeholder or nothing
+              // If option is hidden, render with vanishing animation but show content
               if (isHidden) {
                 return (
-                  <div key={option.key} className="border-2 border-transparent rounded-lg opacity-0 pointer-events-none">
+                  <div
+                    key={option.key}
+                    className={`border-2 rounded-lg pointer-events-none animate-whoosh-out ${optionClasses}`}
+                  >
                     <div className="flex items-center m-1 p-2 rounded-sm overflow-hidden h-[80px] xl:h-[100px]">
-                      {/* Invisible placeholder to maintain grid layout */}
+                      <span className={`text-3xl xl:text-4xl font-bebas font-bold mr-2 flex-shrink-0 ${textColor}`}>
+                        {option.key}.
+                      </span>
+                      <span className={`text-3xl xl:text-4xl font-bebas tracking-wide line-clamp-2 ${textColor}`}>
+                        {option.text}
+                      </span>
                     </div>
                   </div>
                 );
