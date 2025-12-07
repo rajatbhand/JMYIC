@@ -74,6 +74,14 @@ export default function QuestionDisplay({ gameState }: QuestionDisplayProps) {
     }
   }, [gameState.panelGuessSubmitted, gameState.panelGuess]);
 
+  // Play whoosh sound when an option is hidden
+  useEffect(() => {
+    if (gameState.hiddenOption) {
+      console.log('🌬️ Playing whoosh sound for hidden option:', gameState.hiddenOption);
+      soundPlayer.playSound('whoosh');
+    }
+  }, [gameState.hiddenOption]);
+
   if (!gameState.currentQuestion) {
     return (
       <div className="text-center py-12">

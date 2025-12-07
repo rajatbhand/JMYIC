@@ -4,7 +4,6 @@ import { gameStateManager } from '@/lib/gameState';
 import { GameLogic, showAllOrNothingPanelWinModal, showAllOrNothingGuestWinModal, toggleAllOrNothingModal } from '@/utils/gameLogic';
 import { setDoc } from 'firebase/firestore';
 import { db, questionsDocRef, PRIZE_TIERS } from '@/lib/firebase';
-import { soundPlayer } from '@/lib/sounds';
 
 interface GameControlsProps {
   gameState: GameState;
@@ -328,9 +327,6 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
 
     try {
       setProcessing(true);
-
-      // Play whoosh sound effect
-      soundPlayer.playSound('whoosh');
 
       const updates = GameLogic.hideOption(gameState, option);
 
