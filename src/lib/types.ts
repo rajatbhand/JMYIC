@@ -77,6 +77,9 @@ export interface GameState {
   // Buzzer trigger (operator triggers, plays on audience)
   buzzerTrigger: number; // Timestamp of buzzer trigger, changes trigger new sound
 
+  // 75:25 Banner (operator controlled)
+  show75_25Banner: boolean; // Whether to show the 75:25 banner on audience display
+
   // Metadata
   lastActivity: string;
   documentVersion: string;

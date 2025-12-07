@@ -122,6 +122,7 @@ export default function OperatorPanel() {
           lockedMoney: 0,
           usedQuestions: {},
           buzzerTrigger: 0,
+          show75_25Banner: false,
           lastActivity: new Date().toISOString(),
           documentVersion: '3.0',
           hiddenOption: null,
@@ -233,6 +234,7 @@ export default function OperatorPanel() {
           <CSVUpload
             onSuccess={() => loadQuestions(false)}
             onError={handleError}
+            gameState={gameState}
           />
         </div>
 

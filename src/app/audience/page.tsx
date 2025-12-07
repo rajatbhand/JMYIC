@@ -11,6 +11,7 @@ import GameOverDisplay from '@/components/audience/GameOverDisplay';
 import AllOrNothingDisplay from '@/components/audience/AllOrNothingDisplay';
 import GuestVictoryDisplay from '@/components/audience/GuestVictoryDisplay';
 import GuestLostDisplay from '@/components/audience/GuestLostDisplay';
+import SeventyFiveTwentyFiveBanner from '@/components/audience/SeventyFiveTwentyFiveBanner';
 import { GameLogic } from '@/utils/gameLogic';
 
 
@@ -26,23 +27,23 @@ export default function AudienceDisplay() {
       try {
         // Initialize game state
         await gameStateManager.initializeGame();
-        
+
         // Initialize sound system
         await soundPlayer.preloadSounds();
         console.log('Sound system initialized on audience page');
-        
+
         // Make soundPlayer available globally for testing
         if (typeof window !== 'undefined') {
           (window as any).soundPlayer = soundPlayer;
         }
-        
+
         // Subscribe to real-time updates
         unsubscribe = gameStateManager.subscribeToGameState((state) => {
           setGameState(state);
           setLastUpdate(new Date().toLocaleTimeString());
           setLoading(false);
         });
-        
+
       } catch (err) {
         console.error('Error initializing audience display:', err);
         setLoading(false);
@@ -67,8 +68,8 @@ export default function AudienceDisplay() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-cover" 
-           style={{ backgroundImage: "url('/images/backgrounds/BG-1.jpg')", backgroundColor: "#1a3a2e" }}>
+      <div className="min-h-screen bg-cover"
+        style={{ backgroundImage: "url('/images/backgrounds/BG-1.jpg')", backgroundColor: "#1a3a2e" }}>
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
           <div className="text-white text-xl font-bebas">Loading Show...</div>
@@ -79,8 +80,8 @@ export default function AudienceDisplay() {
 
   if (!gameState) {
     return (
-      <div className="min-h-screen bg-cover flex items-center justify-center" 
-           style={{ backgroundImage: "url('/images/backgrounds/BG-1.jpg')", backgroundColor: "#1a3a2e" }}>
+      <div className="min-h-screen bg-cover flex items-center justify-center"
+        style={{ backgroundImage: "url('/images/backgrounds/BG-1.jpg')", backgroundColor: "#1a3a2e" }}>
         <div className="text-center">
           <div className="text-white text-2xl mb-4 font-bebas">Judge Me If You Can</div>
           <div className="text-gray-300 font-bebas">Waiting for game to start...</div>
@@ -110,9 +111,9 @@ export default function AudienceDisplay() {
   }
 
   return (
-    <div className="bg-cover flex flex-col h-screen overflow-hidden" 
-         style={{ backgroundImage: "url('/images/backgrounds/BG-1.jpg')", backgroundColor: "#1a3a2e" }}>
-      
+    <div className="bg-cover flex flex-col h-screen overflow-hidden"
+      style={{ backgroundImage: "url('/images/backgrounds/BG-1.jpg')", backgroundColor: "#1a3a2e" }}>
+
       <div className="px-4 py-2 flex flex-col h-full max-h-screen">
         {/* Header - Fixed Height with viewport units */}
         <div className="flex items-center justify-between mb-3 flex-shrink-0" style={{ height: '12vh' }}>
@@ -159,6 +160,9 @@ export default function AudienceDisplay() {
           <QuestionDisplay gameState={gameState} />
         </div>
       </div>
+
+      {/* 75:25 Banner - Slides up from bottom when activated */}
+      <SeventyFiveTwentyFiveBanner gameState={gameState} />
     </div>
   );
 }

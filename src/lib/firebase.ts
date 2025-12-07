@@ -77,6 +77,7 @@ export const defaultGameState: GameState = {
   lockedMoney: 0,
   usedQuestions: {},
   buzzerTrigger: 0,
+  show75_25Banner: false,
   lastActivity: new Date().toISOString(),
   documentVersion: '3.0'
 };
