@@ -126,7 +126,8 @@ export default function OperatorPanel() {
           lastActivity: new Date().toISOString(),
           documentVersion: '3.0',
           hiddenOption: null,
-          hideOptionUsed: false
+          hideOptionUsed: false,
+          revealedOptions: [] // Option reveal feature
         });
       }
     };
