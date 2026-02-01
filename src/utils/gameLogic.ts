@@ -476,7 +476,8 @@ export class GameLogic {
       panelGuessChecked: false,
       currentQuestionAnswerRevealed: false,
       needsManualReveal: false,
-      hiddenOption: null // Reset hidden option for new question
+      hiddenOption: null, // Reset hidden option for new question
+      revealedOptions: [] // Reset revealed options for new question
     };
 
     // Check if guest should advance (pendingAdvancement flag is set)
@@ -555,6 +556,39 @@ export class GameLogic {
     return {
       hiddenOption: optionToHide,
       hideOptionUsed: true
+    };
+  }
+
+  /**
+   * Reveal a specific option (operator controlled)
+   */
+  static revealOption(gameState: GameState, option: 'A' | 'B' | 'C' | 'D'): Partial<GameState> {
+    // Initialize revealedOptions if it doesn't exist (for backward compatibility)
+    const currentRevealed = gameState.revealedOptions || [];
+
+    // Check if option is already revealed
+    if (currentRevealed.includes(option)) {
+      console.log(`Option ${option} is already revealed`);
+      return {}; // No change needed
+    }
+
+    // Add option to revealed list
+    const updatedRevealedOptions = [...currentRevealed, option];
+
+    console.log(`Revealing option ${option}. Revealed options:`, updatedRevealedOptions);
+
+    return {
+      revealedOptions: updatedRevealedOptions
+    };
+  }
+
+  /**
+   * Reset all revealed options (hide all options again)
+   */
+  static resetRevealedOptions(gameState: GameState): Partial<GameState> {
+    console.log('Resetting all revealed options');
+    return {
+      revealedOptions: []
     };
   }
 }

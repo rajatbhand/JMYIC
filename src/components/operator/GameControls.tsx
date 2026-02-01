@@ -341,6 +341,44 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
     }
   };
 
+  const handleRevealOption = async (option: 'A' | 'B' | 'C' | 'D') => {
+    if (processing || !gameState.currentQuestion) return;
+
+    try {
+      setProcessing(true);
+
+      const updates = GameLogic.revealOption(gameState, option);
+
+      await gameStateManager.updateGameState(updates);
+
+      console.log(`Option ${option} revealed successfully`);
+
+    } catch (error) {
+      onError('Failed to reveal option');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleResetRevealedOptions = async () => {
+    if (processing || !gameState.currentQuestion) return;
+
+    try {
+      setProcessing(true);
+
+      const updates = GameLogic.resetRevealedOptions(gameState);
+
+      await gameStateManager.updateGameState(updates);
+
+      console.log('All revealed options reset successfully');
+
+    } catch (error) {
+      onError('Failed to reset revealed options');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   return (
     <div className="bg-gray-800 rounded-lg p-6">
       <h2 className="text-2xl font-bold text-white mb-6">Game Controls</h2>
@@ -366,6 +404,52 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
         <div className="bg-gray-700 rounded-lg p-4 mb-6">
           <h3 className="text-lg font-semibold text-white mb-2">No Question Selected</h3>
           <p className="text-gray-300">Please select a question from the pool below to start the game.</p>
+        </div>
+      )}
+
+      {/* Option Reveal Control - Show at top for easy access */}
+      {!gameState.allOrNothingActive && gameState.currentQuestion && (
+        <div className="mb-6">
+          <h3 className="text-lg font-semibold text-white mb-3">Reveal Options (Operator Controlled)</h3>
+          <div className="bg-gray-700 p-4 rounded-lg border border-gray-600">
+            <p className="text-sm text-gray-300 mb-3">
+              Reveal options one by one in any order. Audience will see them as you reveal them.
+            </p>
+            <div className="grid grid-cols-1 gap-2 mb-3">
+              {(['A', 'B', 'C', 'D'] as const).map((option) => {
+                const isRevealed = (gameState.revealedOptions || []).includes(option);
+                const optionText = option === 'A' ? gameState.currentQuestion!.option_a :
+                  option === 'B' ? gameState.currentQuestion!.option_b :
+                    option === 'C' ? gameState.currentQuestion!.option_c :
+                      gameState.currentQuestion!.option_d;
+                return (
+                  <button
+                    key={option}
+                    onClick={() => handleRevealOption(option)}
+                    disabled={processing || isRevealed}
+                    className={`px-4 py-3 rounded font-semibold transition-colors text-left ${isRevealed
+                        ? 'bg-green-600 text-white cursor-not-allowed'
+                        : 'bg-blue-600 text-white hover:bg-blue-500'
+                      } disabled:opacity-50`}
+                  >
+                    <span className="font-bold">{option}:</span> {isRevealed ? '✓ ' : ''}{optionText}
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              onClick={handleResetRevealedOptions}
+              disabled={processing || (gameState.revealedOptions || []).length === 0}
+              className="w-full px-4 py-2 bg-orange-600 text-white rounded font-semibold hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              🔄 Reset Reveals (Hide All Options)
+            </button>
+            {(gameState.revealedOptions || []).length > 0 && (
+              <p className="text-green-400 mt-2 text-sm">
+                Revealed in order: {(gameState.revealedOptions || []).join(', ')}
+              </p>
+            )}
+          </div>
         </div>
       )}
 

@@ -37,6 +37,9 @@ export interface GameState {
   hiddenOption: 'A' | 'B' | 'C' | 'D' | null; // The option that is currently hidden
   hideOptionUsed: boolean; // Whether the one-time use lifeline has been used
 
+  // Option Reveal Feature (operator controlled)
+  revealedOptions: ('A' | 'B' | 'C' | 'D')[]; // Options revealed by operator in reveal order
+
   // All or Nothing phase
   allOrNothingActive: boolean;
   allOrNothingAttempt: number; // 0 = not started, 1 = first attempt, 2 = second attempt

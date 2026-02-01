@@ -53,6 +53,9 @@ export const defaultGameState: GameState = {
   hiddenOption: null,
   hideOptionUsed: false,
 
+  // Option Reveal Feature
+  revealedOptions: [],
+
   allOrNothingActive: false,
   allOrNothingAttempt: 0,
   allOrNothingComplete: false,

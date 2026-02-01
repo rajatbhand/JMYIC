@@ -82,6 +82,15 @@ export default function QuestionDisplay({ gameState }: QuestionDisplayProps) {
     }
   }, [gameState.hiddenOption]);
 
+  // Play question selection sound when an option is revealed
+  useEffect(() => {
+    const revealedCount = (gameState.revealedOptions || []).length;
+    if (revealedCount > 0) {
+      console.log('🎵 Playing option reveal sound for option:', gameState.revealedOptions?.[revealedCount - 1]);
+      soundPlayer.playSound('questionSelection');
+    }
+  }, [(gameState.revealedOptions || []).length]);
+
   if (!gameState.currentQuestion) {
     return (
       <div className="text-center py-12">
@@ -114,75 +123,101 @@ export default function QuestionDisplay({ gameState }: QuestionDisplayProps) {
 
           {/* Options Grid - Fixed height */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {[
-              { key: 'A', text: question.option_a },
-              { key: 'B', text: question.option_b },
-              { key: 'C', text: question.option_c },
-              { key: 'D', text: question.option_d }
-            ].map((option) => {
-              const isPanelGuess = gameState.panelGuess === option.key;
+            {/* Only show revealed options in the order they were revealed */}
+            {(gameState.revealedOptions || []).length === 0 ? (
+              // No options revealed yet - show placeholder
+              <div className="col-span-2 text-center py-8 text-gray-400 text-2xl font-bebas">
+                Waiting for options to be revealed...
+              </div>
+            ) : (
+              // Show only revealed options in reveal order
+              (gameState.revealedOptions || []).map((optionKey) => {
+                const option = {
+                  key: optionKey,
+                  text: optionKey === 'A' ? question.option_a :
+                    optionKey === 'B' ? question.option_b :
+                      optionKey === 'C' ? question.option_c :
+                        question.option_d
+                };
 
-              // Handle guest answer comparison
-              const guestAnswerText = question.guest_answer?.toString().toUpperCase().trim();
-              const optionText = option.text?.toUpperCase().trim();
+                const isPanelGuess = gameState.panelGuess === option.key;
 
-              const isGuestAnswer =
-                guestAnswerText === option.key || // Letter format (A, B, C, D)
-                guestAnswerText === optionText;   // Text format (actual answer text)
+                // Handle guest answer comparison
+                const guestAnswerText = question.guest_answer?.toString().toUpperCase().trim();
+                const optionText = option.text?.toUpperCase().trim();
 
-              const guestAnswerRevealed = gameState.currentQuestionAnswerRevealed;
-              const panelGuessChecked = gameState.panelGuessChecked;
+                const isGuestAnswer =
+                  guestAnswerText === option.key || // Letter format (A, B, C, D)
+                  guestAnswerText === optionText;   // Text format (actual answer text)
 
-              // Determine styling based on game state
-              let optionClasses = '';
-              let textColor = 'text-white';
+                const guestAnswerRevealed = gameState.currentQuestionAnswerRevealed;
+                const panelGuessChecked = gameState.panelGuessChecked;
 
-              if (guestAnswerRevealed) {
-                if (isGuestAnswer) {
-                  // Guest answer - always show as correct (green with glow)
-                  optionClasses = `bg-green-500 border-green-600 shadow-lg shadow-green-500/50`;
-                  textColor = 'text-white';
-                } else if (isPanelGuess && !isGuestAnswer) {
-                  // Panel guess that was wrong - red with glow
-                  optionClasses = `bg-red-500 border-red-600 shadow-lg shadow-red-500/50`;
-                  textColor = 'text-white';
+                // Determine styling based on game state
+                let optionClasses = '';
+                let textColor = 'text-white';
+
+                if (guestAnswerRevealed) {
+                  if (isGuestAnswer) {
+                    // Guest answer - always show as correct (green with glow)
+                    optionClasses = `bg-green-500 border-green-600 shadow-lg shadow-green-500/50`;
+                    textColor = 'text-white';
+                  } else if (isPanelGuess && !isGuestAnswer) {
+                    // Panel guess that was wrong - red with glow
+                    optionClasses = `bg-red-500 border-red-600 shadow-lg shadow-red-500/50`;
+                    textColor = 'text-white';
+                  } else {
+                    // Other options - dark green dimmed
+                    optionClasses = `bg-green-900 border-green-800 opacity-75`;
+                    textColor = 'text-gray-300';
+                  }
+                } else if (panelGuessChecked && isPanelGuess) {
+                  if (isGuestAnswer) {
+                    // Panel guessed correctly - green with glow
+                    optionClasses = `bg-green-500 border-green-600 shadow-lg shadow-green-500/50`;
+                    textColor = 'text-white';
+                  } else {
+                    // Panel guessed wrong - red glow
+                    optionClasses = `bg-red-500 border-red-600 shadow-lg shadow-red-500/50`;
+                    textColor = 'text-white';
+                  }
+                } else if (isPanelGuess && gameState.panelGuessSubmitted) {
+                  // Panel selected this option - yellow with glow
+                  optionClasses = `bg-blue-400 border-blue-500 shadow-lg shadow-blue-500/50`;
+                  textColor = 'text-blue-900';
                 } else {
-                  // Other options - dark green dimmed
-                  optionClasses = `bg-green-900 border-green-800 opacity-75`;
-                  textColor = 'text-gray-300';
+                  // Default state - dark green
+                  optionClasses = 'border-yellow-600 bg-yellow-400';
+                  textColor = 'text-green-900';
                 }
-              } else if (panelGuessChecked && isPanelGuess) {
-                if (isGuestAnswer) {
-                  // Panel guessed correctly - green with glow
-                  optionClasses = `bg-green-500 border-green-600 shadow-lg shadow-green-500/50`;
-                  textColor = 'text-white';
-                } else {
-                  // Panel guessed wrong - red glow
-                  optionClasses = `bg-red-500 border-red-600 shadow-lg shadow-red-500/50`;
-                  textColor = 'text-white';
+
+                const isHidden = gameState.hiddenOption === option.key;
+
+                // If option is hidden, render with vanishing animation but show content
+                if (isHidden) {
+                  return (
+                    <div
+                      key={option.key}
+                      className={`border-2 rounded-lg pointer-events-none animate-whoosh-out ${optionClasses}`}
+                    >
+                      <div className="flex items-center m-1 p-2 rounded-sm overflow-hidden h-[80px] xl:h-[100px]">
+                        <span className={`text-3xl xl:text-4xl font-bebas font-bold mr-2 flex-shrink-0 ${textColor}`}>
+                        </span>
+                        <span className={`text-3xl xl:text-4xl font-bebas tracking-wide line-clamp-2 ${textColor}`}>
+                          {option.text}
+                        </span>
+                      </div>
+                    </div>
+                  );
                 }
-              } else if (isPanelGuess && gameState.panelGuessSubmitted) {
-                // Panel selected this option - yellow with glow
-                optionClasses = `bg-blue-400 border-blue-500 shadow-lg shadow-blue-500/50`;
-                textColor = 'text-blue-900';
-              } else {
-                // Default state - dark green
-                optionClasses = 'border-yellow-600 bg-yellow-400';
-                textColor = 'text-green-900';
-              }
 
-              const isHidden = gameState.hiddenOption === option.key;
-
-              // If option is hidden, render with vanishing animation but show content
-              if (isHidden) {
                 return (
                   <div
                     key={option.key}
-                    className={`border-2 rounded-lg pointer-events-none animate-whoosh-out ${optionClasses}`}
+                    className={`border-2 rounded-lg transition-all duration-500 animate-fade-in ${optionClasses}`}
                   >
                     <div className="flex items-center m-1 p-2 rounded-sm overflow-hidden h-[80px] xl:h-[100px]">
                       <span className={`text-3xl xl:text-4xl font-bebas font-bold mr-2 flex-shrink-0 ${textColor}`}>
-                        {option.key}.
                       </span>
                       <span className={`text-3xl xl:text-4xl font-bebas tracking-wide line-clamp-2 ${textColor}`}>
                         {option.text}
@@ -190,24 +225,8 @@ export default function QuestionDisplay({ gameState }: QuestionDisplayProps) {
                     </div>
                   </div>
                 );
-              }
-
-              return (
-                <div
-                  key={option.key}
-                  className={`border-2 rounded-lg transition-all duration-500 ${optionClasses}`}
-                >
-                  <div className="flex items-center m-1 p-2 rounded-sm overflow-hidden h-[80px] xl:h-[100px]">
-                    <span className={`text-3xl xl:text-4xl font-bebas font-bold mr-2 flex-shrink-0 ${textColor}`}>
-                      {option.key}.
-                    </span>
-                    <span className={`text-3xl xl:text-4xl font-bebas tracking-wide line-clamp-2 ${textColor}`}>
-                      {option.text}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
+              })
+            )}
           </div>
         </div>
 
