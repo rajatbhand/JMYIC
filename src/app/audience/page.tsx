@@ -90,6 +90,20 @@ export default function AudienceDisplay() {
     );
   }
 
+  // Show full-screen logo overlay (operator controlled, takes priority)
+  if (gameState.showLogo) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-cover"
+        style={{ backgroundImage: "url('/images/backgrounds/BG-1.jpg')", backgroundColor: "#1a3a2e" }}>
+        <img
+          src="/Logo.png"
+          alt="Judge Me If You Can"
+          className="max-w-[80vw] max-h-[80vh] object-contain"
+        />
+      </div>
+    );
+  }
+
   // Show All or Nothing display
   if (gameState.allOrNothingActive) {
     return <AllOrNothingDisplay gameState={gameState} />;
@@ -125,7 +139,6 @@ export default function AudienceDisplay() {
           {/* Center: Title */}
           <div className="w-2/4 text-center">
             <h1 className="text-6xl xl:text-7xl font-bold text-white font-bebas leading-tight">Judge Me If You Can</h1>
-            <p className="text-xl xl:text-2xl text-gray-300 font-bebas">Live Comedy Game Show</p>
           </div>
 
           {/* Right: Lock Status */}
@@ -151,7 +164,7 @@ export default function AudienceDisplay() {
         </div>
 
         {/* Prize Tier - Fixed viewport height */}
-        <div className="mb-3 flex-shrink-0" style={{ height: '20vh' }}>
+        <div className="mb-1 flex-shrink-0" style={{ height: '20vh' }}>
           <PrizeLadder gameState={gameState} />
         </div>
 

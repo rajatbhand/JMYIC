@@ -38,7 +38,8 @@ export interface GameState {
   hideOptionUsed: boolean; // Whether the one-time use lifeline has been used
 
   // Option Reveal Feature (operator controlled)
-  revealedOptions: ('A' | 'B' | 'C' | 'D')[]; // Options revealed by operator in reveal order
+  revealedOptions: ('A' | 'B' | 'C' | 'D')[]; // Options revealed by operator in reveal order (normal game)
+  aonRevealedOptions: ('A' | 'B' | 'C' | 'D')[]; // Options revealed during All or Nothing (separate from normal game)
 
   // All or Nothing phase
   allOrNothingActive: boolean;
@@ -82,6 +83,9 @@ export interface GameState {
 
   // 75:25 Banner (operator controlled)
   show75_25Banner: boolean; // Whether to show the 75:25 banner on audience display
+
+  // Logo overlay (operator controlled)
+  showLogo: boolean; // Whether to show the full-screen show logo on audience display
 
   // Metadata
   lastActivity: string;

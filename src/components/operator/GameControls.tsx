@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import type { GameState } from '@/lib/types';
+import type { GameState, Question } from '@/lib/types';
 import { gameStateManager } from '@/lib/gameState';
 import { GameLogic, showAllOrNothingPanelWinModal, showAllOrNothingGuestWinModal, toggleAllOrNothingModal } from '@/utils/gameLogic';
-import { setDoc } from 'firebase/firestore';
+import { setDoc, getDoc } from 'firebase/firestore';
 import { db, questionsDocRef, PRIZE_TIERS } from '@/lib/firebase';
 
 interface GameControlsProps {
@@ -14,6 +14,15 @@ interface GameControlsProps {
 export default function GameControls({ gameState, onError, onQuestionUsed }: GameControlsProps) {
   const [processing, setProcessing] = useState(false);
   const [selectedLockLevel, setSelectedLockLevel] = useState<number>(gameState.currentQuestionNumber || 1);
+  const [isEditingQuestion, setIsEditingQuestion] = useState(false);
+  const [editForm, setEditForm] = useState({
+    question: '',
+    option_a: '',
+    option_b: '',
+    option_c: '',
+    option_d: '',
+    guest_answer: 'A' as 'A' | 'B' | 'C' | 'D',
+  });
 
   // Update selected lock level when current question changes
   useEffect(() => {
@@ -301,18 +310,16 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
     }
   };
 
-  const handleAllOrNothingGuess = async (guess: 'A' | 'B' | 'C' | 'D') => {
-    if (processing || !gameState.allOrNothingActive || !gameState.currentQuestion) return;
+  const handleRevealAllOrNothingResult = async () => {
+    if (processing || !gameState.allOrNothingActive || !gameState.currentQuestion ||
+      !gameState.panelGuess || !gameState.panelGuessSubmitted || gameState.panelGuessChecked) return;
 
     try {
       setProcessing(true);
-
-      const updates = GameLogic.handleAllOrNothingGuess(gameState, guess);
-
+      const updates = GameLogic.handleAllOrNothingGuess(gameState, gameState.panelGuess as 'A' | 'B' | 'C' | 'D');
       await gameStateManager.updateGameState(updates);
-
     } catch (error) {
-      onError('Failed to process All or Nothing guess');
+      onError('Failed to reveal All or Nothing result');
     } finally {
       setProcessing(false);
     }
@@ -346,15 +353,39 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
 
     try {
       setProcessing(true);
-
-      const updates = GameLogic.revealOption(gameState, option);
-
-      await gameStateManager.updateGameState(updates);
-
-      console.log(`Option ${option} revealed successfully`);
-
+      if (gameState.allOrNothingActive) {
+        const current = gameState.aonRevealedOptions || [];
+        if (!current.includes(option)) {
+          await gameStateManager.updateGameState({ aonRevealedOptions: [...current, option] });
+        }
+      } else {
+        const updates = GameLogic.revealOption(gameState, option);
+        await gameStateManager.updateGameState(updates);
+      }
     } catch (error) {
       onError('Failed to reveal option');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleRevealAllOptions = async () => {
+    if (processing || !gameState.currentQuestion) return;
+
+    try {
+      setProcessing(true);
+      if (gameState.allOrNothingActive) {
+        const current = gameState.aonRevealedOptions || [];
+        const remaining = (['A', 'B', 'C', 'D'] as const).filter(o => !current.includes(o));
+        if (remaining.length > 0) {
+          await gameStateManager.updateGameState({ aonRevealedOptions: [...current, ...remaining] });
+        }
+      } else {
+        const updates = GameLogic.revealAllOptions(gameState);
+        await gameStateManager.updateGameState(updates);
+      }
+    } catch (error) {
+      onError('Failed to reveal all options');
     } finally {
       setProcessing(false);
     }
@@ -365,13 +396,12 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
 
     try {
       setProcessing(true);
-
-      const updates = GameLogic.resetRevealedOptions(gameState);
-
-      await gameStateManager.updateGameState(updates);
-
-      console.log('All revealed options reset successfully');
-
+      if (gameState.allOrNothingActive) {
+        await gameStateManager.updateGameState({ aonRevealedOptions: [] });
+      } else {
+        const updates = GameLogic.resetRevealedOptions(gameState);
+        await gameStateManager.updateGameState(updates);
+      }
     } catch (error) {
       onError('Failed to reset revealed options');
     } finally {
@@ -379,26 +409,179 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
     }
   };
 
+  const handleStartEditQuestion = () => {
+    if (!gameState.currentQuestion) return;
+    setEditForm({
+      question: gameState.currentQuestion.question,
+      option_a: gameState.currentQuestion.option_a,
+      option_b: gameState.currentQuestion.option_b,
+      option_c: gameState.currentQuestion.option_c,
+      option_d: gameState.currentQuestion.option_d,
+      guest_answer: gameState.currentQuestion.guest_answer,
+    });
+    setIsEditingQuestion(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (processing || !gameState.currentQuestion) return;
+
+    if (!editForm.question.trim() || !editForm.option_a.trim() || !editForm.option_b.trim() ||
+      !editForm.option_c.trim() || !editForm.option_d.trim()) {
+      onError('All fields are required');
+      return;
+    }
+
+    try {
+      setProcessing(true);
+
+      const updatedQuestion: Question = {
+        ...gameState.currentQuestion,
+        question: editForm.question.trim(),
+        option_a: editForm.option_a.trim(),
+        option_b: editForm.option_b.trim(),
+        option_c: editForm.option_c.trim(),
+        option_d: editForm.option_d.trim(),
+        guest_answer: editForm.guest_answer,
+      };
+
+      // Update live game state
+      await gameStateManager.updateGameState({ currentQuestion: updatedQuestion });
+
+      // Update persisted question pool
+      const poolDoc = await getDoc(questionsDocRef);
+      const poolData = poolDoc.data() || {};
+      const questions: Question[] = poolData.questions || [];
+      const updatedQuestions = questions.map((q: Question) =>
+        q.id === updatedQuestion.id ? updatedQuestion : q
+      );
+      await setDoc(questionsDocRef, {
+        questions: updatedQuestions,
+        lastUpdated: new Date().toISOString(),
+        totalQuestions: updatedQuestions.length,
+      });
+
+      onQuestionUsed(); // Refresh question pool display
+      setIsEditingQuestion(false);
+    } catch (error) {
+      onError('Failed to save question edits');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleToggleLogo = async () => {
+    if (processing) return;
+    try {
+      setProcessing(true);
+      await gameStateManager.updateGameState({ showLogo: !gameState.showLogo });
+    } catch (error) {
+      onError('Failed to toggle logo');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   return (
     <div className="bg-gray-800 rounded-lg p-6">
-      <h2 className="text-2xl font-bold text-white mb-6">Game Controls</h2>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold text-white">Game Controls</h2>
+        {/* Logo Toggle */}
+        <button
+          onClick={handleToggleLogo}
+          disabled={processing}
+          className={`px-4 py-2 rounded font-semibold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+            gameState.showLogo
+              ? 'bg-yellow-500 text-black hover:bg-yellow-400'
+              : 'bg-gray-600 text-white hover:bg-gray-500'
+          }`}
+        >
+          {gameState.showLogo ? '🎬 Hide Logo' : '🎬 Show Logo'}
+        </button>
+      </div>
 
       {/* Current Question Display */}
       {gameState.currentQuestion ? (
         <div className="bg-blue-900 rounded-lg p-4 mb-6">
-          <h3 className="text-lg font-semibold text-white mb-2">Current Question</h3>
-          <p className="text-gray-200 mb-4">{gameState.currentQuestion.question}</p>
-
-          <div className="grid grid-cols-2 gap-2 mb-4">
-            <div className="text-gray-300">A) {gameState.currentQuestion.option_a}</div>
-            <div className="text-gray-300">B) {gameState.currentQuestion.option_b}</div>
-            <div className="text-gray-300">C) {gameState.currentQuestion.option_c}</div>
-            <div className="text-gray-300">D) {gameState.currentQuestion.option_d}</div>
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-lg font-semibold text-white">Current Question</h3>
+            {!isEditingQuestion && (
+              <button
+                onClick={handleStartEditQuestion}
+                className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-500 transition-colors"
+              >
+                ✏️ Edit
+              </button>
+            )}
           </div>
 
-          <div className="text-sm text-yellow-300">
-            Guest Answer: {gameState.currentQuestion.guest_answer}
-          </div>
+          {isEditingQuestion ? (
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Question</label>
+                <textarea
+                  value={editForm.question}
+                  onChange={(e) => setEditForm(f => ({ ...f, question: e.target.value }))}
+                  rows={2}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                />
+              </div>
+              {(['a', 'b', 'c', 'd'] as const).map((letter) => {
+                const key = `option_${letter}` as 'option_a' | 'option_b' | 'option_c' | 'option_d';
+                return (
+                  <div key={letter}>
+                    <label className="block text-xs text-gray-400 mb-1">Option {letter.toUpperCase()}</label>
+                    <input
+                      type="text"
+                      value={editForm[key]}
+                      onChange={(e) => setEditForm(f => ({ ...f, [key]: e.target.value }))}
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                );
+              })}
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Guest Answer</label>
+                <select
+                  value={editForm.guest_answer}
+                  onChange={(e) => setEditForm(f => ({ ...f, guest_answer: e.target.value as 'A' | 'B' | 'C' | 'D' }))}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-500 rounded text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {(['A', 'B', 'C', 'D'] as const).map(opt => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={handleSaveEdit}
+                  disabled={processing}
+                  className="px-4 py-2 bg-green-600 text-white rounded font-semibold text-sm hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {processing ? 'Saving...' : '✅ Save'}
+                </button>
+                <button
+                  onClick={() => setIsEditingQuestion(false)}
+                  disabled={processing}
+                  className="px-4 py-2 bg-gray-600 text-white rounded font-semibold text-sm hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <p className="text-gray-200 mb-4">{gameState.currentQuestion.question}</p>
+              <div className="grid grid-cols-2 gap-2 mb-4">
+                <div className="text-gray-300">A) {gameState.currentQuestion.option_a}</div>
+                <div className="text-gray-300">B) {gameState.currentQuestion.option_b}</div>
+                <div className="text-gray-300">C) {gameState.currentQuestion.option_c}</div>
+                <div className="text-gray-300">D) {gameState.currentQuestion.option_d}</div>
+              </div>
+              <div className="text-sm text-yellow-300">
+                Guest Answer: {gameState.currentQuestion.guest_answer}
+              </div>
+            </>
+          )}
         </div>
       ) : (
         <div className="bg-gray-700 rounded-lg p-4 mb-6">
@@ -408,7 +591,7 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
       )}
 
       {/* Option Reveal Control - Show at top for easy access */}
-      {!gameState.allOrNothingActive && gameState.currentQuestion && (
+      {(gameState.currentQuestion || gameState.allOrNothingActive) && (
         <div className="mb-6">
           <h3 className="text-lg font-semibold text-white mb-3">Reveal Options (Operator Controlled)</h3>
           <div className="bg-gray-700 p-4 rounded-lg border border-gray-600">
@@ -417,7 +600,10 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
             </p>
             <div className="grid grid-cols-1 gap-2 mb-3">
               {(['A', 'B', 'C', 'D'] as const).map((option) => {
-                const isRevealed = (gameState.revealedOptions || []).includes(option);
+                const activeRevealed = gameState.allOrNothingActive
+                  ? (gameState.aonRevealedOptions || [])
+                  : (gameState.revealedOptions || []);
+                const isRevealed = activeRevealed.includes(option);
                 const optionText = option === 'A' ? gameState.currentQuestion!.option_a :
                   option === 'B' ? gameState.currentQuestion!.option_b :
                     option === 'C' ? gameState.currentQuestion!.option_c :
@@ -437,18 +623,34 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
                 );
               })}
             </div>
-            <button
-              onClick={handleResetRevealedOptions}
-              disabled={processing || (gameState.revealedOptions || []).length === 0}
-              className="w-full px-4 py-2 bg-orange-600 text-white rounded font-semibold hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              🔄 Reset Reveals (Hide All Options)
-            </button>
-            {(gameState.revealedOptions || []).length > 0 && (
-              <p className="text-green-400 mt-2 text-sm">
-                Revealed in order: {(gameState.revealedOptions || []).join(', ')}
-              </p>
-            )}
+            {(() => {
+              const activeRevealed = gameState.allOrNothingActive
+                ? (gameState.aonRevealedOptions || [])
+                : (gameState.revealedOptions || []);
+              return (
+                <>
+                  <button
+                    onClick={handleResetRevealedOptions}
+                    disabled={processing || activeRevealed.length === 0}
+                    className="w-full px-4 py-2 bg-orange-600 text-white rounded font-semibold hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    🔄 Reset Reveals (Hide All Options)
+                  </button>
+                  <button
+                    onClick={handleRevealAllOptions}
+                    disabled={processing || activeRevealed.length === 4}
+                    className="w-full px-4 py-2 bg-green-600 text-white rounded font-semibold hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors mt-2"
+                  >
+                    ⚡ Reveal All Options
+                  </button>
+                  {activeRevealed.length > 0 && (
+                    <p className="text-green-400 mt-2 text-sm">
+                      Revealed in order: {activeRevealed.join(', ')}
+                    </p>
+                  )}
+                </>
+              );
+            })()}
           </div>
         </div>
       )}
@@ -645,24 +847,38 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
             <>
               {/* Panel Guess Buttons */}
               <div className="mb-4">
-                <h4 className="text-md font-semibold text-white mb-3">Panel Answer:</h4>
+                <h4 className="text-md font-semibold text-white mb-3">
+                  Step 1: Panel Answer {gameState.panelGuessSubmitted && !gameState.panelGuessChecked && <span className="text-blue-400 text-sm font-normal ml-2">— selected, not yet revealed</span>}
+                </h4>
                 <div className="flex gap-2">
                   {(['A', 'B', 'C', 'D'] as const).map((option) => (
                     <button
                       key={option}
-                      onClick={() => handleAllOrNothingGuess(option)}
-                      disabled={processing || !gameState.currentQuestion || gameState.panelGuessSubmitted || gameState.allOrNothingComplete}
-                      className={`px-4 py-2 rounded font-semibold transition-colors ${gameState.panelGuess === option
-                        ? gameState.panelGuessChecked
-                          ? 'bg-orange-600 text-white'  // Locked answer
-                          : 'bg-blue-600 text-white'     // Selected but not locked
-                        : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
-                        } disabled:opacity-50 disabled:cursor-not-allowed`}
+                      onClick={() => handleSubmitPanelGuess(option)}
+                      disabled={processing || !gameState.currentQuestion || gameState.panelGuessSubmitted || gameState.allOrNothingComplete || (gameState.allOrNothingAttempt === 2 && option === gameState.allOrNothingAttempt1Guess)}
+                      className={`px-4 py-2 rounded font-semibold transition-colors ${
+                        gameState.panelGuess === option
+                          ? gameState.panelGuessChecked
+                            ? 'bg-orange-600 text-white'
+                            : 'bg-blue-600 text-white'
+                          : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                      } disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
                       {option}
                     </button>
                   ))}
                 </div>
+
+                {/* Step 2: Reveal result button — appears once a guess is selected */}
+                {gameState.panelGuessSubmitted && !gameState.panelGuessChecked && !gameState.allOrNothingComplete && (
+                  <button
+                    onClick={handleRevealAllOrNothingResult}
+                    disabled={processing}
+                    className="mt-3 w-full px-6 py-2 bg-yellow-600 text-white rounded font-semibold hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {processing ? 'Revealing...' : '🎯 Step 2: Reveal AoN Result'}
+                  </button>
+                )}
 
                 {gameState.panelGuessChecked && gameState.currentQuestionAnswerRevealed && (
                   <div className="mt-3 p-3 rounded border">

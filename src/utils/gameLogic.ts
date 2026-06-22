@@ -382,12 +382,15 @@ export class GameLogic {
       allOrNothingAttempt1Correct: false,
       allOrNothingAttempt2Guess: '',
       allOrNothingAttempt2Correct: false,
-      currentQuestion: null, // Clear question - operator will select one for both attempts
+      currentQuestion: null,
       panelGuess: '',
       panelGuessSubmitted: false,
       panelGuessChecked: false,
       currentQuestionAnswerRevealed: false,
-      needsManualReveal: false
+      needsManualReveal: false,
+      revealedOptions: [],
+      aonRevealedOptions: [],
+      hiddenOption: null,
     };
   }
 
@@ -464,7 +467,9 @@ export class GameLogic {
         panelGuessSubmitted: false,
         panelGuessChecked: false,
         currentQuestionAnswerRevealed: false,
-        needsManualReveal: false
+        needsManualReveal: false,
+        revealedOptions: [],
+        aonRevealedOptions: []
       };
     }
 
@@ -589,6 +594,22 @@ export class GameLogic {
     console.log('Resetting all revealed options');
     return {
       revealedOptions: []
+    };
+  }
+
+  /**
+   * Reveal all remaining hidden options at once, preserving order of already-revealed ones
+   */
+  static revealAllOptions(gameState: GameState): Partial<GameState> {
+    const currentRevealed = gameState.revealedOptions || [];
+    const allOptions: ('A' | 'B' | 'C' | 'D')[] = ['A', 'B', 'C', 'D'];
+    const remaining = allOptions.filter(o => !currentRevealed.includes(o));
+
+    if (remaining.length === 0) return {};
+
+    console.log('Revealing all remaining options:', remaining);
+    return {
+      revealedOptions: [...currentRevealed, ...remaining]
     };
   }
 }

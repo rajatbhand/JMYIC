@@ -55,6 +55,7 @@ export const defaultGameState: GameState = {
 
   // Option Reveal Feature
   revealedOptions: [],
+  aonRevealedOptions: [],
 
   allOrNothingActive: false,
   allOrNothingAttempt: 0,
@@ -81,6 +82,7 @@ export const defaultGameState: GameState = {
   usedQuestions: {},
   buzzerTrigger: 0,
   show75_25Banner: false,
+  showLogo: false,
   lastActivity: new Date().toISOString(),
   documentVersion: '3.0'
 };

@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import type { GameState } from "@/lib/types";
 import { soundPlayer } from "@/lib/sounds";
-import { GameLogic } from "@/utils/gameLogic";
 import confetti from "canvas-confetti";
 
 interface AllOrNothingDisplayProps {
@@ -295,86 +294,69 @@ export default function AllOrNothingDisplay({
                   </h2>
                 </div>
 
-                {/* Options */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 h-[328px]">
-                  {[
-                    { letter: "A", text: gameState.currentQuestion.option_a },
-                    { letter: "B", text: gameState.currentQuestion.option_b },
-                    { letter: "C", text: gameState.currentQuestion.option_c },
-                    { letter: "D", text: gameState.currentQuestion.option_d },
-                  ].map((option) => (
-                    <div
-                      key={option.letter}
-                      className={`border-2 rounded-lg transition-all duration-700 flex items-center ${(() => {
-                        const correctAnswer =
-                          gameState.currentQuestion.guest_answer;
-                        const isCorrectAnswer = option.letter === correctAnswer;
+                {/* Options - fixed A/B/C/D positions, slots appear as operator reveals them */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 min-h-[328px]">
+                  {(['A', 'B', 'C', 'D'] as const).map((optionKey) => {
+                    const isRevealed = (gameState.aonRevealedOptions || []).includes(optionKey);
 
-                        // Check if this option was guessed in attempt 1
-                        const isAttempt1Guess =
-                          gameState.allOrNothingAttempt1Guess === option.letter;
-                        const attempt1Correct =
-                          gameState.allOrNothingAttempt1Correct;
+                    const optionText =
+                      optionKey === 'A' ? gameState.currentQuestion!.option_a :
+                      optionKey === 'B' ? gameState.currentQuestion!.option_b :
+                      optionKey === 'C' ? gameState.currentQuestion!.option_c :
+                      gameState.currentQuestion!.option_d;
 
-                        // Check if this option was guessed in attempt 2
-                        const isAttempt2Guess =
-                          gameState.allOrNothingAttempt2Guess === option.letter;
-                        const attempt2Correct =
-                          gameState.allOrNothingAttempt2Correct;
+                    const correctAnswer = gameState.currentQuestion!.guest_answer;
+                    const isCorrectAnswer = optionKey === correctAnswer;
+                    const isAttempt1Guess = gameState.allOrNothingAttempt1Guess === optionKey;
+                    const isAttempt2Guess = gameState.allOrNothingAttempt2Guess === optionKey;
+                    const isCurrentGuess = gameState.panelGuess === optionKey;
 
-                        // Check current attempt guess
-                        const isCurrentGuess =
-                          gameState.panelGuess === option.letter;
+                    // Force only the specific options that need highlighting — never reveal all at once
+                    const isVisible = isRevealed ||
+                      (gameState.panelGuessSubmitted && isCurrentGuess) ||
+                      (gameState.panelGuessChecked && isCurrentGuess) ||
+                      isAttempt1Guess ||
+                      isAttempt2Guess ||
+                      (gameState.currentQuestionAnswerRevealed && isCorrectAnswer);
 
-                        // Priority order for highlighting:
-                        // 1. Current attempt (if in progress) - orange
-                        // 2. Correct guesses - green
-                        // 3. Wrong guesses - red
-                        // 4. Correct answer (if revealed and no other highlighting) - green
-                        // 5. Default - gray
+                    // Unrevealed slot — invisible placeholder holds the grid position
+                    if (!isVisible) {
+                      return (
+                        <div key={optionKey} className="invisible border-2 rounded-lg border-yellow-400 bg-yellow-400">
+                          <div className="flex items-center justify-center m-1 p-3 rounded-sm w-full">
+                            <span className="text-5xl font-bebas tracking-wide">placeholder</span>
+                          </div>
+                        </div>
+                      );
+                    }
 
-                        if (
-                          isCurrentGuess &&
-                          gameState.panelGuessSubmitted &&
-                          !gameState.panelGuessChecked
-                        ) {
-                          return "bg-orange-600 border-orange-400 text-white"; // Current locked guess
-                        }
+                    let colorClass = 'bg-yellow-400 border-yellow-600 text-green-900';
 
-                        if (isAttempt1Guess && attempt1Correct) {
-                          return "bg-green-700 border-green-500 text-white"; // Attempt 1 correct
-                        }
+                    if (isCurrentGuess && gameState.panelGuessSubmitted && !gameState.panelGuessChecked) {
+                      colorClass = 'bg-blue-600 border-blue-400 text-white';
+                    } else if (isAttempt1Guess && gameState.allOrNothingAttempt1Correct) {
+                      colorClass = 'bg-green-700 border-green-500 text-white';
+                    } else if (isAttempt2Guess && gameState.allOrNothingAttempt2Correct) {
+                      colorClass = 'bg-green-700 border-green-500 text-white';
+                    } else if (isAttempt1Guess && !gameState.allOrNothingAttempt1Correct) {
+                      colorClass = 'bg-red-700 border-red-500 text-white';
+                    } else if (isAttempt2Guess && !gameState.allOrNothingAttempt2Correct) {
+                      colorClass = 'bg-red-700 border-red-500 text-white';
+                    } else if (gameState.currentQuestionAnswerRevealed && isCorrectAnswer) {
+                      colorClass = 'bg-green-700 border-green-500 text-white';
+                    }
 
-                        if (isAttempt2Guess && attempt2Correct) {
-                          return "bg-green-700 border-green-500 text-white"; // Attempt 2 correct
-                        }
-
-                        if (isAttempt1Guess && !attempt1Correct) {
-                          return "bg-red-700 border-red-500 text-white"; // Attempt 1 wrong
-                        }
-
-                        if (isAttempt2Guess && !attempt2Correct) {
-                          return "bg-red-700 border-red-500 text-white"; // Attempt 2 wrong
-                        }
-
-                        if (
-                          gameState.currentQuestionAnswerRevealed &&
-                          isCorrectAnswer
-                        ) {
-                          return "bg-green-700 border-green-500 text-white"; // Correct answer revealed
-                        }
-
-                        return "bg-yellow-400 border-yellow-600 text-green-900"; // Default
-                      })()}`}
-                    >
-                      <div className="flex items-center m-1 p-3 rounded-sm w-full">
-                        <span className="text-5xl font-bebas font-bold mr-3 flex-shrink-0">
-                          {option.letter}.
-                        </span>
-                        <span className="text-5xl font-bebas tracking-wide">{option.text}</span>
+                    return (
+                      <div
+                        key={optionKey}
+                        className={`border-2 rounded-lg transition-all duration-700 flex items-center animate-fade-in ${colorClass}`}
+                      >
+                        <div className="flex items-center justify-center m-1 p-3 rounded-sm w-full">
+                          <span className="text-5xl font-bebas tracking-wide">{optionText}</span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </>
             )}

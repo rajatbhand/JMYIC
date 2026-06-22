@@ -123,11 +123,13 @@ export default function OperatorPanel() {
           usedQuestions: {},
           buzzerTrigger: 0,
           show75_25Banner: false,
+          showLogo: false,
           lastActivity: new Date().toISOString(),
           documentVersion: '3.0',
           hiddenOption: null,
           hideOptionUsed: false,
-          revealedOptions: [] // Option reveal feature
+          revealedOptions: [],
+          aonRevealedOptions: []
         });
       }
     };
