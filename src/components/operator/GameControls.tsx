@@ -23,6 +23,7 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
     option_d: '',
     guest_answer: 'A' as 'A' | 'B' | 'C' | 'D',
   });
+  const [showAnswerChangeWarning, setShowAnswerChangeWarning] = useState(false);
 
   // Update selected lock level when current question changes
   useEffect(() => {
@@ -42,22 +43,9 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
     });
   }, [gameState.gameOver, gameState.allOrNothingWon, gameState.allOrNothingComplete, gameState.allOrNothingModalVisible]);
 
-  const handleSubmitPanelGuess = async (guess: 'A' | 'B' | 'C' | 'D') => {
-    if (processing) return;
-
-    try {
-      setProcessing(true);
-
-      await gameStateManager.updateGameState({
-        panelGuess: guess,
-        panelGuessSubmitted: true,
-        playAlongAnswerWindowOpen: false
-      });
-    } catch (error) {
-      onError('Failed to submit panel guess');
-    } finally {
-      setProcessing(false);
-    }
+  const handleSubmitPanelGuess = (guess: 'A' | 'B' | 'C' | 'D') => {
+    if (!gameState.currentQuestion || gameState.panelGuessChecked) return;
+    gameStateManager.updateGameStateBackground({ panelGuess: guess, panelGuessSubmitted: true });
   };
 
   const handleCheckPanelGuess = async () => {
@@ -75,12 +63,12 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
       // Calculate result using game logic
       const updates = GameLogic.calculatePanelGuessResult(gameState, gameState.panelGuess);
 
-      console.log('Panel guess updates:', updates);
-
-      console.log('Panel guess updates:', updates);
-
-      // Update game state
-      await gameStateManager.updateGameState(updates);
+      // Lock in the submission and close play-along window
+      await gameStateManager.updateGameState({
+        ...updates,
+        panelGuessSubmitted: true,
+        playAlongAnswerWindowOpen: false,
+      });
 
       console.log('Panel guess check completed successfully');
 
@@ -386,27 +374,32 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
     }
   };
 
+  const resolveGuestAnswerLetter = (q: Question): 'A' | 'B' | 'C' | 'D' => {
+    const raw = q.guest_answer?.toString().toUpperCase().trim();
+    if (raw === 'A' || raw === 'B' || raw === 'C' || raw === 'D') return raw;
+    if (raw === q.option_a?.toUpperCase().trim()) return 'A';
+    if (raw === q.option_b?.toUpperCase().trim()) return 'B';
+    if (raw === q.option_c?.toUpperCase().trim()) return 'C';
+    if (raw === q.option_d?.toUpperCase().trim()) return 'D';
+    return 'A';
+  };
+
   const handleStartEditQuestion = () => {
     if (!gameState.currentQuestion) return;
+    setShowAnswerChangeWarning(false);
     setEditForm({
       question: gameState.currentQuestion.question,
       option_a: gameState.currentQuestion.option_a,
       option_b: gameState.currentQuestion.option_b,
       option_c: gameState.currentQuestion.option_c,
       option_d: gameState.currentQuestion.option_d,
-      guest_answer: gameState.currentQuestion.guest_answer,
+      guest_answer: resolveGuestAnswerLetter(gameState.currentQuestion),
     });
     setIsEditingQuestion(true);
   };
 
-  const handleSaveEdit = async () => {
-    if (processing || !gameState.currentQuestion) return;
-
-    if (!editForm.question.trim() || !editForm.option_a.trim() || !editForm.option_b.trim() ||
-      !editForm.option_c.trim() || !editForm.option_d.trim()) {
-      onError('All fields are required');
-      return;
-    }
+  const persistSaveEdit = async () => {
+    setShowAnswerChangeWarning(false);
 
     try {
       setProcessing(true);
@@ -444,6 +437,37 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
     } finally {
       setProcessing(false);
     }
+  };
+
+  const handleSaveEdit = async () => {
+    if (processing || !gameState.currentQuestion) return;
+    if (!editForm.question.trim() || !editForm.option_a.trim() || !editForm.option_b.trim() ||
+      !editForm.option_c.trim() || !editForm.option_d.trim()) {
+      onError('All fields are required');
+      return;
+    }
+    const originalText = (
+      editForm.guest_answer === 'A' ? gameState.currentQuestion.option_a :
+      editForm.guest_answer === 'B' ? gameState.currentQuestion.option_b :
+      editForm.guest_answer === 'C' ? gameState.currentQuestion.option_c :
+      gameState.currentQuestion.option_d
+    ).trim();
+    const newText = (
+      editForm.guest_answer === 'A' ? editForm.option_a :
+      editForm.guest_answer === 'B' ? editForm.option_b :
+      editForm.guest_answer === 'C' ? editForm.option_c :
+      editForm.option_d
+    ).trim();
+    if (originalText !== newText) {
+      setShowAnswerChangeWarning(true);
+      return;
+    }
+    await persistSaveEdit();
+  };
+
+  const handleConfirmSaveEdit = async () => {
+    if (processing || !gameState.currentQuestion) return;
+    await persistSaveEdit();
   };
 
   const handleToggleLogo = () => {
@@ -519,16 +543,36 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
                   ))}
                 </select>
               </div>
+              {showAnswerChangeWarning && (
+                <div className="bg-yellow-800 border border-yellow-500 rounded p-3 text-sm text-yellow-200">
+                  <p className="font-semibold mb-2">⚠️ You changed the text of Option {editForm.guest_answer}, which is the current guest answer. Save anyway?</p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleConfirmSaveEdit}
+                      disabled={processing}
+                      className="px-3 py-1 bg-yellow-600 text-white rounded font-semibold hover:bg-yellow-500 disabled:opacity-50 transition-colors"
+                    >
+                      Yes, save anyway
+                    </button>
+                    <button
+                      onClick={() => setShowAnswerChangeWarning(false)}
+                      className="px-3 py-1 bg-gray-600 text-white rounded font-semibold hover:bg-gray-500 transition-colors"
+                    >
+                      Go back
+                    </button>
+                  </div>
+                </div>
+              )}
               <div className="flex gap-2 pt-1">
                 <button
-                  onClick={handleSaveEdit}
+                  onClick={() => handleSaveEdit()}
                   disabled={processing}
                   className="px-4 py-2 bg-green-600 text-white rounded font-semibold text-sm hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {processing ? 'Saving...' : '✅ Save'}
                 </button>
                 <button
-                  onClick={() => setIsEditingQuestion(false)}
+                  onClick={() => { setIsEditingQuestion(false); setShowAnswerChangeWarning(false); }}
                   disabled={processing}
                   className="px-4 py-2 bg-gray-600 text-white rounded font-semibold text-sm hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
@@ -634,7 +678,7 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
               <button
                 key={option}
                 onClick={() => handleSubmitPanelGuess(option)}
-                disabled={processing || gameState.panelGuessSubmitted || !gameState.currentQuestion}
+                disabled={processing || gameState.panelGuessChecked || !gameState.currentQuestion}
                 className={`px-4 py-2 rounded font-semibold transition-colors ${gameState.panelGuess === option
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
@@ -659,7 +703,7 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
           <h3 className="text-lg font-semibold text-white mb-3">Step 2: Check Panel Guess</h3>
           <button
             onClick={handleCheckPanelGuess}
-            disabled={processing || !gameState.panelGuessSubmitted || gameState.panelGuessChecked || !gameState.currentQuestion}
+            disabled={processing || !gameState.panelGuess || gameState.panelGuessChecked || !gameState.currentQuestion}
             className="px-6 py-2 bg-yellow-600 text-white rounded font-semibold hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {processing ? 'Checking...' : 'Check Panel Guess'}
@@ -825,7 +869,7 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
                     <button
                       key={option}
                       onClick={() => handleSubmitPanelGuess(option)}
-                      disabled={processing || !gameState.currentQuestion || gameState.panelGuessSubmitted || gameState.allOrNothingComplete || (gameState.allOrNothingAttempt === 2 && option === gameState.allOrNothingAttempt1Guess)}
+                      disabled={processing || !gameState.currentQuestion || gameState.panelGuessChecked || gameState.allOrNothingComplete || (gameState.allOrNothingAttempt === 2 && option === gameState.allOrNothingAttempt1Guess)}
                       className={`px-4 py-2 rounded font-semibold transition-colors ${
                         gameState.panelGuess === option
                           ? gameState.panelGuessChecked

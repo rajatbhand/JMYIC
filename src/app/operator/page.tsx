@@ -199,13 +199,14 @@ export default function OperatorPanel() {
       {/* 3-Column Layout: CSV Upload (30%) | Question Pool (30%) | Game Controls (30%) */}
       <div className="flex gap-6 h-full justify-center">
 
-        {/* Left Column: CSV Upload (20%) */}
-        <div className="w-[30%] flex-shrink-0">
+        {/* Left Column: CSV Upload + Play Along */}
+        <div className="w-[30%] flex-shrink-0 flex flex-col gap-6">
           <CSVUpload
             onSuccess={() => loadQuestions(false)}
             onError={handleError}
             gameState={gameState}
           />
+          <PlayAlongPanel gameState={gameState} onError={handleError} />
         </div>
 
         {/* Center Column: Question Pool (50%) */}
@@ -229,8 +230,6 @@ export default function OperatorPanel() {
         </div>
       </div>
 
-      {/* Play Along Panel — below 3-column layout */}
-      <PlayAlongPanel gameState={gameState} onError={handleError} />
     </div>
   );
 }

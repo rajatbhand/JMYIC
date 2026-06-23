@@ -34,18 +34,6 @@ export default function LivesDisplay({ gameState }: LivesDisplayProps) {
           </div>*/}
         </div>
 
-      {/* Warning Messages */}
-      {gameState.softEliminated && (
-        <div className="mt-6 p-4 bg-red-900 bg-opacity-50 rounded-lg border border-red-500">
-          <div className="text-center">
-            <div className="text-red-300 text-lg font-bold">⚠️ Soft Elimination</div>
-            <div className="text-red-200 text-sm">
-              Guest is eliminated but can still win their locked money
-            </div>
-          </div>
-        </div>
-      )}
-
       {gameState.lifeUsed && !gameState.lock.placed && GameLogic.canPlaceLock(gameState) && (
         <div className="mt-6 p-4 bg-yellow-900 bg-opacity-50 rounded-lg border border-yellow-500">
           <div className="text-center">

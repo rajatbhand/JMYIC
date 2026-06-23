@@ -12,8 +12,9 @@ import AllOrNothingDisplay from '@/components/audience/AllOrNothingDisplay';
 import GuestVictoryDisplay from '@/components/audience/GuestVictoryDisplay';
 import GuestLostDisplay from '@/components/audience/GuestLostDisplay';
 import SeventyFiveTwentyFiveBanner from '@/components/audience/SeventyFiveTwentyFiveBanner';
-import PlayAlongDisplay from '@/components/audience/PlayAlongDisplay';
+import SoftEliminationBanner from '@/components/audience/SoftEliminationBanner';
 import { GameLogic } from '@/utils/gameLogic';
+import { LockClosedIcon, LockOpenIcon } from '@heroicons/react/24/solid';
 
 
 export default function AudienceDisplay() {
@@ -140,43 +141,50 @@ export default function AudienceDisplay() {
           </div>
 
           {/* Right: Lock Status */}
-          <div className="w-1/4 text-right flex flex-row justify-center items-center">
-            <div className="text-gray-400 text-3xl xl:text-4xl uppercase tracking-wide mr-2 font-bebas">Lock</div>
+          <div className="w-1/4 flex flex-col items-center justify-center">
             {gameState.lock.placed ? (
-              <div className="flex items-center gap-1">
-                <div className="text-3xl xl:text-4xl font-bold text-purple-400 font-bebas">Placed</div>
-                <div className="text-3xl xl:text-4xl font-bold text-yellow-400 font-bebas">🔓</div>
-              </div>
+              <>
+                <div className="flex items-center gap-2">
+                  <div className="text-gray-300 text-3xl xl:text-4xl uppercase tracking-wide font-bebas">Lock</div>
+                  <div className="text-3xl xl:text-4xl font-bold text-purple-400 font-bebas">Placed</div>
+                  <LockClosedIcon className="w-9 h-9 text-purple-400" />
+                </div>
+                <div className="text-white text-2xl xl:text-4xl font-bold font-bebas leading-tight">
+                  ₹{gameState.lockedMoney.toLocaleString()} Guaranteed
+                </div>
+              </>
             ) : GameLogic.canPlaceLock(gameState) ? (
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-2">
+                <div className="text-gray-400 text-3xl xl:text-4xl uppercase tracking-wide font-bebas">Lock</div>
                 <div className="text-3xl xl:text-4xl font-bold text-yellow-400 font-bebas">Available</div>
-                <div className="text-3xl xl:text-4xl font-bold text-yellow-400 font-bebas">🔓</div>
+                <LockOpenIcon className="w-9 h-9 text-yellow-400" />
               </div>
             ) : (
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-2">
+                <div className="text-gray-400 text-3xl xl:text-4xl uppercase tracking-wide font-bebas">Lock</div>
                 <div className="text-3xl xl:text-4xl font-bold text-gray-500 font-bebas">Not Available</div>
-                <div className="text-3xl xl:text-4xl font-bold text-yellow-400 font-bebas">🚫</div>
+                <LockOpenIcon className="w-9 h-9 text-gray-500" />
               </div>
             )}
           </div>
         </div>
 
-        {/* Prize Tier - Fixed viewport height */}
-        <div className="mb-1 flex-shrink-0" style={{ height: '20vh' }}>
+        {/* Prize Tier - natural height + controlled gap below */}
+        <div className="mb-4 flex-shrink-0">
           <PrizeLadder gameState={gameState} />
         </div>
 
-        {/* Question Box - Remaining viewport height */}
-        <div className="flex-1 min-h-0" style={{ maxHeight: '65vh' }}>
+        {/* Question Box - fills remaining space */}
+        <div className="flex-1 min-h-0">
           <QuestionDisplay gameState={gameState} />
         </div>
       </div>
 
-      {/* Play Along overlay - z-40, below 75:25 Banner (z-50) */}
-      <PlayAlongDisplay gameState={gameState} />
-
       {/* 75:25 Banner - Slides up from bottom when activated */}
       <SeventyFiveTwentyFiveBanner gameState={gameState} />
+
+      {/* Soft Elimination Banner - Slides up from bottom when softEliminated */}
+      <SoftEliminationBanner gameState={gameState} />
     </div>
   );
 }

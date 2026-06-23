@@ -1,6 +1,7 @@
 import React from 'react';
 import type { GameState } from '@/lib/types';
 import { PRIZE_TIERS } from '@/lib/firebase';
+import { LockClosedIcon } from '@heroicons/react/24/solid';
 
 interface PrizeLadderProps {
   gameState: GameState;
@@ -8,22 +9,10 @@ interface PrizeLadderProps {
 
 export default function PrizeLadder({ gameState }: PrizeLadderProps) {
   return (
-    <div className="game-card-gradient rounded-lg p-3 h-full flex flex-col">
+    <div className="game-card-gradient rounded-lg px-6 py-8 h-full flex flex-col">
 
-      {/* Lock Status Row - only shown when lock is placed */}
-      {gameState.lock.placed && (
-        <div className="flex justify-end mb-2 flex-shrink-0">
-          <div className="text-center">
-            <div className="text-purple-300 text-lg xl:text-xl uppercase tracking-wide font-bebas">Lock Placed</div>
-            <div className="text-white text-3xl xl:text-4xl font-bold font-bebas">
-              ₹{gameState.lockedMoney.toLocaleString()} Guaranteed
-            </div>
-          </div>
-        </div>
-      )}
-      
       {/* Horizontal Prize Tier */}
-      <div className="flex flex-wrap justify-center gap-3 flex-1 items-center">
+      <div className="flex justify-between flex-1 items-center gap-6">
         {PRIZE_TIERS.map((tier) => {
           const isCurrent = tier.level === gameState.currentQuestionNumber;
           const isCompleted = tier.level < gameState.currentQuestionNumber;
@@ -35,39 +24,36 @@ export default function PrizeLadder({ gameState }: PrizeLadderProps) {
             gameState.pendingAdvancement;
           
           return (
-            <div
-              key={tier.level}
-              className={`relative px-3 py-2 rounded-lg transition-all duration-500 w-[180px] h-[80px] text-center flex flex-col items-center justify-center ${
-                guestWonCurrentRound
-                  ? 'bg-gradient-to-r from-green-600 to-green-500 text-white shadow-xl shadow-green-500/50 scale-105'
-                  : isCurrent
-                  ? 'bg-gradient-to-r from-yellow-600 to-yellow-500 text-black shadow-xl shadow-yellow-500/50 scale-105'
-                  : isCompleted
-                  ? 'bg-gradient-to-r from-green-600 to-green-500 text-white'
-                  : 'game-card-gradient text-gray-300'
-              } ${
-                isLocked ? 'ring-4 ring-purple-400 ring-opacity-75' : ''
-              }`}
-            >
-              {/* Lock indicator */}
-              {isLocked && (
-                <div className="absolute -top-2 -right-2 bg-purple-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold">
-                  🔒
-                </div>
-              )}
+            <div key={tier.level} className="flex flex-col items-center w-full">
+              {/* Reserve label height on all cards so inactive ones stay vertically centered */}
+              <div className={`text-xs xl:text-4xl uppercase tracking-widest font-bebas leading-none mb-1 ${isCurrent ? 'text-white' : 'invisible'}`}>
+                Playing For
+              </div>
 
-              {/* "Playing For" label — only on the active tier */}
-              {isCurrent && (
-                <div className="text-xs xl:text-sm uppercase tracking-widest font-bebas leading-none mb-0.5 opacity-80">
-                  Playing For
-                </div>
-              )}
+              <div
+                className={`relative px-3 py-6 rounded-lg transition-all duration-500 w-full flex items-center justify-center ${
+                  isLocked ? 'ring-6 ring-purple-400' : ''
+                } ${
+                  guestWonCurrentRound
+                    ? 'bg-gradient-to-r from-green-600 to-green-500 text-white shadow-xl shadow-green-500/50'
+                    : isCurrent
+                    ? 'bg-gradient-to-r from-yellow-600 to-yellow-500 text-black shadow-xl shadow-yellow-500/50 scale-105'
+                    : isCompleted
+                    ? 'bg-gradient-to-r from-green-600 to-green-500 text-white'
+                    : 'game-card-gradient text-gray-300'
+                }`}
+              >
+                {/* Lock icon pinned to left edge */}
+                {isLocked && (
+                  <LockClosedIcon className="absolute left-3 w-8 h-8 text-white" />
+                )}
 
-              {/* Prize amount */}
-              <div className={`text-3xl xl:text-4xl font-bold font-bebas leading-none ${
-                isCurrent ? 'text-white' : isCompleted ? 'text-white' : 'text-gray-300'
-              }`}>
-                {tier.displayText}
+                {/* Prize amount — always centered */}
+                <div className={`text-3xl xl:text-6xl font-bold font-bebas leading-none ${
+                  isCurrent ? 'text-white' : isCompleted ? 'text-white' : 'text-gray-300'
+                }`}>
+                  {tier.displayText}
+                </div>
               </div>
             </div>
           );

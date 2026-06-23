@@ -115,7 +115,7 @@ export default function QuestionDisplay({ gameState }: QuestionDisplayProps) {
         <div className="game-card-gradient border-2 border-yellow-400 rounded-lg px-4 py-3">
 
           {/* Question Text - Responsive sizing */}
-          <div className="text-yellow-400 font-bebas leading-tight mb-3 text-center text-4xl xl:text-5xl">
+          <div className="text-yellow-400 font-bebas leading-tight mb-3 text-center text-4xl xl:text-6xl">
             <div className="line-clamp-3">
               {question.question}
             </div>
@@ -191,8 +191,8 @@ export default function QuestionDisplay({ gameState }: QuestionDisplayProps) {
 
               return (
                 <div key={optionKey} className={`border-2 rounded-lg transition-all duration-500 animate-fade-in ${optionClasses}`}>
-                  <div className="flex items-center m-1 p-2 rounded-sm overflow-hidden h-[80px] xl:h-[100px]">
-                    <span className={`text-3xl xl:text-4xl font-bebas tracking-wide line-clamp-2 ${textColor}`}>{optionText}</span>
+                  <div className="flex items-center m-1 p-2 rounded-sm overflow-hidden h-[80px] xl:h-[120px]">
+                    <span className={`text-3xl xl:text-5xl font-bebas tracking-wide line-clamp-2 ${textColor}`}>{optionText}</span>
                   </div>
                 </div>
               );
