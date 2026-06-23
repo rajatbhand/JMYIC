@@ -30,10 +30,8 @@ export default function PlayPage() {
   useEffect(() => {
     const unsub = onAuthStateChanged(getFirebaseAuth(), (user) => {
       setFirebaseUser(user);
-      if (!user) {
-        setPhase('auth');
-      }
-      // Profile check happens in ProfileSetup; once profile is set, phase → 'playing'
+      // Always exit 'loading' — authenticated users skip to 'playing' (profile check below handles missing profile)
+      setPhase(user ? 'playing' : 'auth');
     });
     return () => unsub();
   }, []);
@@ -105,28 +103,18 @@ export default function PlayPage() {
     }
   };
 
-  // Auth phase
-  if (phase === 'auth') {
-    return <AuthScreen onAuthSuccess={handleAuthSuccess} />;
-  }
-
-  // Profile setup phase
-  if (phase === 'profile' && firebaseUser) {
-    return (
-      <ProfileSetup
-        user={firebaseUser}
-        onProfileComplete={handleProfileComplete}
-      />
-    );
-  }
-
-  // Initial loading (auth check not yet complete, or game state loading)
-  if (phase === 'loading' || !gameState) {
+  // Waiting for onAuthStateChanged to fire (brief flicker on first load)
+  if (phase === 'loading') {
     return <WaitingScreen message="Connecting..." />;
   }
 
-  // If auth loaded but still need profile (returning user path)
-  if (!profile && firebaseUser) {
+  // No user — needs to sign in
+  if (phase === 'auth' || !firebaseUser) {
+    return <AuthScreen onAuthSuccess={handleAuthSuccess} />;
+  }
+
+  // Profile setup — new user just signed in, or returning user (ProfileSetup auto-loads existing)
+  if (!profile) {
     return (
       <ProfileSetup
         user={firebaseUser}
@@ -135,9 +123,14 @@ export default function PlayPage() {
     );
   }
 
-  // No profile and no user — redirect to auth
-  if (!profile) {
-    return <AuthScreen onAuthSuccess={handleAuthSuccess} />;
+  // Profile ready, but RTDB has no game state yet (operator hasn't opened the panel)
+  if (!gameState) {
+    return (
+      <WaitingScreen
+        message="Waiting for the show to start..."
+        subMessage={`Ready to play as ${profile.name}`}
+      />
+    );
   }
 
   // Game over
