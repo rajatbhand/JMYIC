@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { getDocs, setDoc, doc } from 'firebase/firestore';
+import { getDocs, setDoc, doc, collection } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { playAlongResponsesRef } from '@/lib/firebase';
 import { gameStateManager } from '@/lib/gameState';
+import { GameLogic } from '@/utils/gameLogic';
 import type { GameState, PlayAlongResponse, PlayAlongDisplayEntry } from '@/lib/types';
 
 interface PlayAlongPanelProps {
@@ -22,6 +23,7 @@ interface EnrichedResponse extends PlayAlongResponse {
 
 export default function PlayAlongPanel({ gameState, onError }: PlayAlongPanelProps) {
   const [responses, setResponses] = useState<EnrichedResponse[]>([]);
+  const [participantCount, setParticipantCount] = useState(0);
   const [filter, setFilter] = useState<Filter>('all');
   const [loading, setLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -35,20 +37,29 @@ export default function PlayAlongPanel({ gameState, onError }: PlayAlongPanelPro
     const questionId = gameState.currentQuestion.id;
     setLoading(true);
     try {
+      const normalizedCorrectAnswer = GameLogic.normalizeGuestAnswer(
+        gameState.currentQuestion.guest_answer,
+        gameState.currentQuestion
+      );
+
       // Write metadata doc to enable leaderboard correctAnswer lookup
       await setDoc(
         doc(db, 'playAlongAnswers', questionId),
         {
-          correctAnswer: gameState.currentQuestion.guest_answer,
+          correctAnswer: normalizedCorrectAnswer,
           questionText: gameState.currentQuestion.question,
           questionNumber: gameState.currentQuestionNumber
         },
         { merge: true }
       );
 
+      // Fetch total registered participant count
+      const usersSnap = await getDocs(collection(db, 'playAlongUsers'));
+      setParticipantCount(usersSnap.size);
+
       const snap = await getDocs(playAlongResponsesRef(questionId));
       const startTime = gameState.currentQuestionStartTime ?? 0;
-      const correctAnswer = gameState.currentQuestion.guest_answer;
+      const correctAnswer = normalizedCorrectAnswer;
 
       const enriched: EnrichedResponse[] = snap.docs.map((d) => {
         const data = d.data() as PlayAlongResponse;
@@ -138,7 +149,7 @@ export default function PlayAlongPanel({ gameState, onError }: PlayAlongPanelPro
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-white font-bold text-lg">Play Along</h2>
         <div className="flex items-center gap-2">
-          <span className="text-gray-400 text-sm">{responses.length} responses</span>
+          <span className="text-gray-400 text-sm">{participantCount} participants · {responses.length} responses</span>
           <button
             onClick={loadResponses}
             disabled={loading}

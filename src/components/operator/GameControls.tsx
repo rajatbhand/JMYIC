@@ -144,6 +144,23 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
     }
   };
 
+  const handleResetPlayAlong = async () => {
+    if (processing) return;
+
+    if (!confirm('Are you sure? This will delete ALL play-along participant registrations and answers. Players will need to re-register on /play.')) {
+      return;
+    }
+
+    try {
+      setProcessing(true);
+      await gameStateManager.resetPlayAlongData();
+    } catch (error) {
+      onError('Failed to reset play along data');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   const handleResetEverything = async () => {
     if (processing) return;
 
@@ -166,7 +183,10 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
 
       console.log('All questions cleared from Firebase');
 
-      // Step 3: Refresh the question pool to show empty state
+      // Step 3: Clear all play-along Firestore data
+      await gameStateManager.resetPlayAlongData();
+
+      // Step 4: Refresh the question pool to show empty state
       onQuestionUsed();
 
       console.log('Everything reset successfully - back to state zero');
@@ -1073,13 +1093,21 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
       {/* Reset Controls - Always Show */}
       <div className="mb-6">
         <h3 className="text-lg font-semibold text-white mb-3">Reset Controls</h3>
-        <div className="flex gap-4">
+        <div className="flex flex-wrap gap-3">
           <button
             onClick={handleResetGame}
             disabled={processing}
             className="px-6 py-2 bg-orange-600 text-white rounded font-semibold hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             🔄 Reset Game Only
+          </button>
+
+          <button
+            onClick={handleResetPlayAlong}
+            disabled={processing}
+            className="px-6 py-2 bg-blue-700 text-white rounded font-semibold hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            👥 Reset Play Along Data
           </button>
 
           <button
@@ -1092,12 +1120,11 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
         </div>
       </div>
 
-
-
       {/* Reset Information */}
       <div className="p-3 bg-gray-700 rounded text-sm text-gray-300">
         <p>🔄 <strong>Reset Game Only:</strong> Keeps questions, resets game state</p>
-        <p>⚠️ <strong>Reset EVERYTHING:</strong> Deletes ALL questions + resets to state zero</p>
+        <p>👥 <strong>Reset Play Along Data:</strong> Clears all participant registrations &amp; answers</p>
+        <p>⚠️ <strong>Reset EVERYTHING:</strong> Deletes ALL questions, play-along data + resets to state zero</p>
       </div>
     </div>
   );

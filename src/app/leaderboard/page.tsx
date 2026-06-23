@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { gameStateManager } from '@/lib/gameState';
 import type { PlayAlongResponse } from '@/lib/types';
+import type { GameState } from '@/lib/types';
 
 type FilterMode = 'all' | 'correct' | 'incorrect' | 'slowest';
 
@@ -30,9 +32,30 @@ interface UserRow {
 export default function LeaderboardPage() {
   const [questions, setQuestions] = useState<QuestionMeta[]>([]);
   const [userRows, setUserRows] = useState<UserRow[]>([]);
+  const [participantCount, setParticipantCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [selectedQuestion, setSelectedQuestion] = useState<string>('all');
   const [filter, setFilter] = useState<FilterMode>('all');
+  const [gameState, setGameState] = useState<GameState | null>(null);
+  const [followingLive, setFollowingLive] = useState(true);
+
+  // Subscribe to live game state for auto-focus
+  useEffect(() => {
+    const unsub = gameStateManager.subscribeToGameState(setGameState);
+    return () => unsub();
+  }, []);
+
+  // Auto-focus to current question when followingLive is true (catches tab changes mid-session)
+  useEffect(() => {
+    if (!followingLive || !gameState?.currentQuestionNumber) return;
+    const num = String(gameState.currentQuestionNumber);
+    const exists = questions.some(q => String(q.questionNumber) === num);
+    if (exists) {
+      setSelectedQuestion(num);
+    }
+  }, [gameState?.currentQuestionNumber, followingLive, questions]);
+
+  const prevQuestionNumberRef = React.useRef<number | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -80,10 +103,13 @@ export default function LeaderboardPage() {
             }
 
             const user = userMap.get(uid)!;
-            // Keep the later answer if the question was answered in multiple sessions
+            // Keep the later answer if the question was answered in multiple sessions;
+            // also update name/phone from the most recent response so renames are reflected
             const existing = user.answers[key];
             if (!existing || data.timestamp > existing.timestamp) {
               user.answers[key] = { answer: data.answer, timestamp: data.timestamp };
+              if (data.name) user.name = data.name;
+              if (data.phone) user.phone = data.phone;
             }
           }
         }
@@ -100,6 +126,10 @@ export default function LeaderboardPage() {
       });
 
       setUserRows(rows);
+
+      // Fetch total registered participants
+      const usersSnap = await getDocs(collection(db, 'playAlongUsers'));
+      setParticipantCount(usersSnap.size);
     } catch (err) {
       console.error('Leaderboard load error:', err);
     } finally {
@@ -108,6 +138,20 @@ export default function LeaderboardPage() {
   }, []);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  // Auto-refresh + auto-focus when operator moves to a new question
+  useEffect(() => {
+    const num = gameState?.currentQuestionNumber ?? null;
+    if (num === null) return;
+    if (num !== prevQuestionNumberRef.current) {
+      prevQuestionNumberRef.current = num;
+      loadData();
+      if (followingLive) {
+        setSelectedQuestion(String(num));
+        setFilter('all');
+      }
+    }
+  }, [gameState?.currentQuestionNumber, followingLive, loadData]);
 
   const getCorrectCount = (user: UserRow) =>
     questions.filter(q =>
@@ -146,13 +190,33 @@ export default function LeaderboardPage() {
     { id: 'slowest', label: 'Slowest' },
   ];
 
+  const handleTabClick = (value: string) => {
+    setSelectedQuestion(value);
+    setFollowingLive(false);
+    if (value !== 'all') setFilter('all');
+  };
+
+  const handleFollowLive = () => {
+    setFollowingLive(true);
+    if (gameState?.currentQuestionNumber) {
+      const num = String(gameState.currentQuestionNumber);
+      const exists = questions.some(q => String(q.questionNumber) === num);
+      setSelectedQuestion(exists ? num : 'all');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-950 to-indigo-950 px-6 py-8">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-8 flex items-center justify-center gap-4">
           <div>
             <h1 className="text-5xl font-bold text-white font-bebas tracking-wide">Play Along Leaderboard</h1>
-            <p className="text-purple-300 mt-2">Judge Me If You Can</p>
+            <p className="text-purple-300 mt-2">
+              Judge Me If You Can
+              {participantCount > 0 && (
+                <span className="ml-3 text-purple-400">· {participantCount} registered participants</span>
+              )}
+            </p>
           </div>
           <button
             onClick={loadData}
@@ -166,7 +230,7 @@ export default function LeaderboardPage() {
         {/* Question tabs */}
         <div className="flex flex-wrap gap-2 mb-4 justify-center">
           <button
-            onClick={() => setSelectedQuestion('all')}
+            onClick={() => handleTabClick('all')}
             className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
               selectedQuestion === 'all' ? 'bg-purple-600 text-white' : 'bg-white/10 text-white/70 hover:bg-white/20'
             }`}
@@ -176,7 +240,7 @@ export default function LeaderboardPage() {
           {questions.map(q => (
             <button
               key={q.questionNumber}
-              onClick={() => { setSelectedQuestion(String(q.questionNumber)); setFilter('all'); }}
+              onClick={() => handleTabClick(String(q.questionNumber))}
               className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
                 selectedQuestion === String(q.questionNumber) ? 'bg-purple-600 text-white' : 'bg-white/10 text-white/70 hover:bg-white/20'
               }`}
@@ -184,6 +248,19 @@ export default function LeaderboardPage() {
               Q{q.questionNumber}
             </button>
           ))}
+
+          {/* Live auto-follow pill */}
+          <button
+            onClick={followingLive ? undefined : handleFollowLive}
+            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1.5 ${
+              followingLive
+                ? 'bg-green-600 text-white cursor-default'
+                : 'bg-white/10 text-white/50 hover:bg-white/20'
+            }`}
+          >
+            <span className={`w-2 h-2 rounded-full ${followingLive ? 'bg-green-300 animate-pulse' : 'bg-white/30'}`} />
+            Live
+          </button>
         </div>
 
         {/* Filter row — only shown in single-question view */}

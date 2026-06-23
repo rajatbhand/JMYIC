@@ -1,5 +1,6 @@
 import { get, set, update, onValue } from 'firebase/database';
-import { gameRtdbRef, defaultGameState } from './firebase';
+import { collection, getDocs, deleteDoc } from 'firebase/firestore';
+import { gameRtdbRef, defaultGameState, db } from './firebase';
 import type { GameState } from './types';
 
 function mergeWithDefaults(raw: any): GameState {
@@ -133,6 +134,22 @@ export class GameStateManager {
     } catch (error) {
       console.error('Error resetting game state:', error);
       throw new Error('Failed to reset game state');
+    }
+  }
+
+  async resetPlayAlongData(): Promise<void> {
+    try {
+      const answersSnap = await getDocs(collection(db, 'playAlongAnswers'));
+      for (const qDoc of answersSnap.docs) {
+        const responsesSnap = await getDocs(collection(db, 'playAlongAnswers', qDoc.id, 'responses'));
+        for (const rDoc of responsesSnap.docs) await deleteDoc(rDoc.ref);
+        await deleteDoc(qDoc.ref);
+      }
+      const usersSnap = await getDocs(collection(db, 'playAlongUsers'));
+      for (const uDoc of usersSnap.docs) await deleteDoc(uDoc.ref);
+    } catch (error) {
+      console.error('Error resetting play along data:', error);
+      throw new Error('Failed to reset play along data');
     }
   }
 

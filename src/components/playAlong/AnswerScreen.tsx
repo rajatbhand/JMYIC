@@ -1,4 +1,5 @@
 import type { GameState } from '@/lib/types';
+import { GameLogic } from '@/utils/gameLogic';
 
 type OptionKey = 'A' | 'B' | 'C' | 'D';
 
@@ -15,7 +16,7 @@ export default function AnswerScreen({ gameState, existingAnswer, onAnswerSubmit
   const windowOpen = gameState.playAlongAnswerWindowOpen ??
     (!gameState.panelGuessSubmitted && gameState.currentQuestion !== null);
   const answerRevealed = gameState.currentQuestionAnswerRevealed;
-  const correctAnswer = question.guest_answer as OptionKey;
+  const correctAnswer = GameLogic.normalizeGuestAnswer(question.guest_answer, question) as OptionKey;
   const userWasCorrect = answerRevealed && existingAnswer !== null && existingAnswer === correctAnswer;
   const userWasWrong = answerRevealed && existingAnswer !== null && existingAnswer !== correctAnswer;
 
