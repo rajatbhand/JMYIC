@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, doc, collection, enableNetwork } from 'firebase/firestore';
+import { getFirestore, doc, collection } from 'firebase/firestore';
+import { getDatabase, ref } from 'firebase/database';
 import type { GameState } from './types';
 
 const firebaseConfig = {
@@ -8,26 +9,26 @@ const firebaseConfig = {
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID!,
   storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET!,
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID!,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
+  databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL!,
 };
 
 // Initialize Firebase — exported so firebaseAuth.ts can reuse it
 export const app = initializeApp(firebaseConfig);
 
-// Initialize Firestore with optimized settings for real-time performance
+// Firestore — used for questions pool and play-along only
 export const db = getFirestore(app);
 
-// Add connection verification and optimize for real-time sync
+// Realtime Database — game state sync (~50-80ms vs Firestore's ~200-500ms)
+export const rtdb = getDatabase(app);
+export const gameRtdbRef = ref(rtdb, 'games/game1');
+
 if (typeof window !== 'undefined') {
   const environment = process.env.NEXT_PUBLIC_ENVIRONMENT || 'unknown';
   console.log(`🔥 Firebase initialized for ${environment}:`, firebaseConfig.projectId);
-
-  // Enable network for faster sync
-  enableNetwork(db).catch(console.error);
 }
 
-// Document references
-export const gameDocRef = doc(collection(db, "games"), "game1");
+// Firestore refs — questions + play-along only (not game state)
 export const questionsDocRef = doc(collection(db, "questions"), "pool");
 
 // Play Along collection references

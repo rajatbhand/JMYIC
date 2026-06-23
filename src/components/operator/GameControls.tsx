@@ -558,8 +558,10 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
         </div>
       )}
 
-      {/* Option Reveal Control - Show at top for easy access */}
-      {(gameState.currentQuestion || gameState.allOrNothingActive) && (
+      {/* Option Reveal Control - Show at top for easy access.
+          currentQuestion can be null mid-All-or-Nothing (startAllOrNothing clears it),
+          so we require it here — the option text below dereferences it. */}
+      {gameState.currentQuestion && (
         <div className="mb-6">
           <h3 className="text-lg font-semibold text-white mb-3">Reveal Options (Operator Controlled)</h3>
           <div className="bg-gray-700 p-4 rounded-lg border border-gray-600">
