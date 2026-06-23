@@ -3,9 +3,9 @@
 import { useState, useEffect, useRef } from 'react';
 import type { User } from 'firebase/auth';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { set, get } from 'firebase/database';
 import { getFirebaseAuth } from '@/lib/firebaseAuth';
-import { playAlongResponsesRef } from '@/lib/firebase';
+import { playAlongUserAnswerRtdbRef } from '@/lib/firebase';
 import { gameStateManager } from '@/lib/gameState';
 import type { GameState, PlayAlongUser } from '@/lib/types';
 import AuthScreen from '@/components/playAlong/AuthScreen';
@@ -52,40 +52,40 @@ export default function PlayPage() {
     return () => unsub();
   }, []);
 
-  // Fetch existing answer when question changes
+  // Fetch existing answer when question changes — only restore if questionId matches
   useEffect(() => {
-    if (!profile || !gameState?.currentQuestion) return;
+    if (!profile || !gameState?.currentQuestion) {
+      lastQuestionIdRef.current = null;
+      setExistingAnswer(null);
+      return;
+    }
     const questionId = gameState.currentQuestion.id;
     if (questionId === lastQuestionIdRef.current) return;
     lastQuestionIdRef.current = questionId;
     setExistingAnswer(null);
-    getDoc(doc(playAlongResponsesRef(questionId), profile.uid))
+    get(playAlongUserAnswerRtdbRef(gameState.currentQuestionNumber, profile.uid))
       .then(snap => {
-        if (snap.exists()) {
-          setExistingAnswer(snap.data().answer as 'A' | 'B' | 'C' | 'D');
+        if (snap.exists() && snap.val().questionId === questionId) {
+          setExistingAnswer(snap.val().answer as 'A' | 'B' | 'C' | 'D');
         }
       })
       .catch(() => {});
-  }, [gameState?.currentQuestion?.id, profile]);
+  }, [gameState?.currentQuestion?.id, profile, gameState?.currentQuestionNumber]);
 
   const handleAnswerSubmit = async (answer: 'A' | 'B' | 'C' | 'D') => {
     if (!profile || !gameState?.currentQuestion || submitting) return;
     setExistingAnswer(answer);
     setSubmitting(true);
     try {
-      const questionId = gameState.currentQuestion.id;
-      await setDoc(
-        doc(playAlongResponsesRef(questionId), profile.uid),
-        {
-          answer,
-          timestamp: Date.now(),
-          name: profile.name,
-          phone: profile.phone,
-          questionId,
-          questionNumber: gameState.currentQuestionNumber,
-        },
-        { merge: true }
-      );
+      const qNum = gameState.currentQuestionNumber;
+      await set(playAlongUserAnswerRtdbRef(qNum, profile.uid), {
+        answer,
+        timestamp: Date.now(),
+        name: profile.name,
+        phone: profile.phone,
+        questionNumber: qNum,
+        questionId: gameState.currentQuestion.id,
+      });
     } catch {
       setExistingAnswer(null);
     } finally {

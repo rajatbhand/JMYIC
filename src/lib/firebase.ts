@@ -23,6 +23,20 @@ export const db = getFirestore(app);
 export const rtdb = getDatabase(app);
 export const gameRtdbRef = ref(rtdb, 'games/game1');
 
+// Play-along RTDB refs — answers keyed by questionNumber then uid
+export const playAlongRtdbRoot = ref(rtdb, 'playAlong');
+export const playAlongAnswersRtdbRef = ref(rtdb, 'playAlong/answers');
+export const playAlongQuestionsMetaRtdbRef = ref(rtdb, 'playAlong/questions');
+export function playAlongAnswersByQNumRef(questionNumber: number) {
+  return ref(rtdb, `playAlong/answers/${questionNumber}`);
+}
+export function playAlongUserAnswerRtdbRef(questionNumber: number, uid: string) {
+  return ref(rtdb, `playAlong/answers/${questionNumber}/${uid}`);
+}
+export function playAlongQuestionMetaRtdbRef(questionNumber: number) {
+  return ref(rtdb, `playAlong/questions/${questionNumber}`);
+}
+
 if (typeof window !== 'undefined') {
   const environment = process.env.NEXT_PUBLIC_ENVIRONMENT || 'unknown';
   console.log(`🔥 Firebase initialized for ${environment}:`, firebaseConfig.projectId);

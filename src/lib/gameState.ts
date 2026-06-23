@@ -1,6 +1,6 @@
-import { get, set, update, onValue } from 'firebase/database';
+import { get, set, update, onValue, remove } from 'firebase/database';
 import { collection, getDocs, deleteDoc } from 'firebase/firestore';
-import { gameRtdbRef, defaultGameState, db } from './firebase';
+import { gameRtdbRef, defaultGameState, db, playAlongRtdbRoot, playAlongAnswersRtdbRef } from './firebase';
 import type { GameState } from './types';
 
 function mergeWithDefaults(raw: any): GameState {
@@ -110,6 +110,10 @@ export class GameStateManager {
     return this.currentState;
   }
 
+  async resetPlayAlongAnswers(): Promise<void> {
+    await remove(playAlongRtdbRoot);
+  }
+
   async resetGame(): Promise<void> {
     try {
       const currentState = await this.getCurrentGameState();
@@ -118,6 +122,8 @@ export class GameStateManager {
         usedQuestions: {},
         documentVersion: currentState?.documentVersion || '3.0'
       });
+      // Clear play-along answers but keep participant registrations
+      await this.resetPlayAlongAnswers();
     } catch (error) {
       console.error('Error resetting game:', error);
       throw new Error('Failed to reset game');
@@ -139,6 +145,10 @@ export class GameStateManager {
 
   async resetPlayAlongData(): Promise<void> {
     try {
+      // Wipe RTDB play-along node (answers + question metadata)
+      await remove(playAlongRtdbRoot);
+
+      // Also clean up old Firestore play-along data (legacy, one-time migration)
       const answersSnap = await getDocs(collection(db, 'playAlongAnswers'));
       for (const qDoc of answersSnap.docs) {
         const responsesSnap = await getDocs(collection(db, 'playAlongAnswers', qDoc.id, 'responses'));

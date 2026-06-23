@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { getDocs, setDoc, doc, collection } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { playAlongResponsesRef } from '@/lib/firebase';
+import { useState, useEffect } from 'react';
+import { onValue, set } from 'firebase/database';
+import { collection, getDocs } from 'firebase/firestore';
+import { db, playAlongAnswersByQNumRef, playAlongQuestionMetaRtdbRef } from '@/lib/firebase';
 import { gameStateManager } from '@/lib/gameState';
 import { GameLogic } from '@/utils/gameLogic';
-import type { GameState, PlayAlongResponse, PlayAlongDisplayEntry } from '@/lib/types';
+import type { GameState, PlayAlongDisplayEntry } from '@/lib/types';
 
 interface PlayAlongPanelProps {
   gameState: GameState;
@@ -15,104 +15,97 @@ interface PlayAlongPanelProps {
 
 type Filter = 'all' | 'correct' | 'incorrect' | 'quickest' | 'slowest';
 
-interface EnrichedResponse extends PlayAlongResponse {
+interface ResponseRow {
   uid: string;
-  isCorrect: boolean | null;
+  name: string;
+  answer: string;
+  timestamp: number;
   responseTimeMs: number;
+  isCorrect: boolean | null;
 }
 
 export default function PlayAlongPanel({ gameState, onError }: PlayAlongPanelProps) {
-  const [responses, setResponses] = useState<EnrichedResponse[]>([]);
+  const [responses, setResponses] = useState<ResponseRow[]>([]);
   const [participantCount, setParticipantCount] = useState(0);
   const [filter, setFilter] = useState<Filter>('all');
-  const [loading, setLoading] = useState(false);
   const [processing, setProcessing] = useState(false);
 
-  const loadResponses = useCallback(async () => {
-    if (!gameState.currentQuestion) {
-      setResponses([]);
-      return;
-    }
+  const questionNumber = gameState.currentQuestionNumber;
+  const question = gameState.currentQuestion;
 
-    const questionId = gameState.currentQuestion.id;
-    setLoading(true);
-    try {
-      const normalizedCorrectAnswer = GameLogic.normalizeGuestAnswer(
-        gameState.currentQuestion.guest_answer,
-        gameState.currentQuestion
-      );
+  // Fetch participant count from Firestore (not real-time, just a count)
+  useEffect(() => {
+    getDocs(collection(db, 'playAlongUsers'))
+      .then(snap => setParticipantCount(snap.size))
+      .catch(() => {});
+  }, []);
 
-      // Write metadata doc to enable leaderboard correctAnswer lookup
-      await setDoc(
-        doc(db, 'playAlongAnswers', questionId),
-        {
-          correctAnswer: normalizedCorrectAnswer,
-          questionText: gameState.currentQuestion.question,
-          questionNumber: gameState.currentQuestionNumber
-        },
-        { merge: true }
-      );
+  // Write question metadata to RTDB so leaderboard can display it for past questions
+  useEffect(() => {
+    if (!question || !questionNumber) return;
+    const correctAnswer = GameLogic.normalizeGuestAnswer(question.guest_answer, question);
+    set(playAlongQuestionMetaRtdbRef(questionNumber), {
+      questionText: question.question,
+      correctAnswer,
+      questionNumber,
+    }).catch(() => {});
+  }, [question?.id, questionNumber]);
 
-      // Fetch total registered participant count
-      const usersSnap = await getDocs(collection(db, 'playAlongUsers'));
-      setParticipantCount(usersSnap.size);
+  // Subscribe to RTDB answers for current question — live updates
+  useEffect(() => {
+    if (!questionNumber) return;
 
-      const snap = await getDocs(playAlongResponsesRef(questionId));
+    const unsub = onValue(playAlongAnswersByQNumRef(questionNumber), (snapshot) => {
+      const data = snapshot.val() as Record<string, any> | null;
+      if (!data) { setResponses([]); return; }
+
       const startTime = gameState.currentQuestionStartTime ?? 0;
-      const correctAnswer = normalizedCorrectAnswer;
+      const correctAnswer = question
+        ? GameLogic.normalizeGuestAnswer(question.guest_answer, question)
+        : null;
 
-      const enriched: EnrichedResponse[] = snap.docs.map((d) => {
-        const data = d.data() as PlayAlongResponse;
-        const responseTimeMs = startTime > 0 ? data.timestamp - startTime : 0;
-        const isCorrect = gameState.currentQuestionAnswerRevealed
-          ? data.answer === correctAnswer
+      const rows: ResponseRow[] = Object.entries(data).map(([uid, r]) => {
+        const responseTimeMs = startTime > 0 ? r.timestamp - startTime : 0;
+        const isCorrect = gameState.currentQuestionAnswerRevealed && correctAnswer
+          ? r.answer === correctAnswer
           : null;
-        return { ...data, uid: d.id, responseTimeMs, isCorrect };
+        return { uid, name: r.name, answer: r.answer, timestamp: r.timestamp, responseTimeMs, isCorrect };
       });
 
-      // Default sort by response time ascending
-      enriched.sort((a, b) => a.responseTimeMs - b.responseTimeMs);
-      setResponses(enriched);
-    } catch {
-      onError('Failed to load Play Along responses.');
-    } finally {
-      setLoading(false);
-    }
-  }, [gameState.currentQuestion, gameState.currentQuestionAnswerRevealed, gameState.currentQuestionStartTime, gameState.currentQuestionNumber, onError]);
+      rows.sort((a, b) => a.responseTimeMs - b.responseTimeMs);
+      setResponses(rows);
+    });
 
-  useEffect(() => {
-    loadResponses();
-  }, [loadResponses]);
+    return () => unsub();
+  }, [questionNumber, gameState.currentQuestionAnswerRevealed, gameState.currentQuestionStartTime, question?.id]);
 
-  const getFiltered = (): EnrichedResponse[] => {
+  const getFiltered = (): ResponseRow[] => {
     switch (filter) {
       case 'correct': return responses.filter(r => r.isCorrect === true);
       case 'incorrect': return responses.filter(r => r.isCorrect === false);
       case 'slowest': return [...responses].sort((a, b) => b.responseTimeMs - a.responseTimeMs);
-      case 'quickest':
-      case 'all':
       default: return responses;
     }
   };
 
-  const toDisplayEntry = (r: EnrichedResponse): PlayAlongDisplayEntry => ({
+  const toDisplayEntry = (r: ResponseRow): PlayAlongDisplayEntry => ({
     uid: r.uid,
     name: r.name,
-    answer: r.answer,
+    answer: r.answer as 'A' | 'B' | 'C' | 'D',
     timestamp: r.timestamp,
-    responseTimeMs: r.responseTimeMs
+    responseTimeMs: r.responseTimeMs,
   });
 
   const pushDisplay = async (
     mode: GameState['playAlongDisplayMode'],
-    entries: EnrichedResponse[]
+    entries: ResponseRow[]
   ) => {
     if (processing) return;
     setProcessing(true);
     try {
       await gameStateManager.updateGameState({
         playAlongDisplayMode: mode,
-        playAlongDisplayEntries: entries.slice(0, 5).map(toDisplayEntry)
+        playAlongDisplayEntries: entries.slice(0, 5).map(toDisplayEntry),
       });
     } catch {
       onError('Failed to update audience display.');
@@ -127,7 +120,7 @@ export default function PlayAlongPanel({ gameState, onError }: PlayAlongPanelPro
     try {
       await gameStateManager.updateGameState({
         playAlongDisplayMode: 'none',
-        playAlongDisplayEntries: []
+        playAlongDisplayEntries: [],
       });
     } catch {
       onError('Failed to clear audience display.');
@@ -141,26 +134,18 @@ export default function PlayAlongPanel({ gameState, onError }: PlayAlongPanelPro
   const slowest = [...responses].sort((a, b) => b.responseTimeMs - a.responseTimeMs).slice(0, 5);
   const correct = responses.filter(r => r.isCorrect === true);
   const incorrect = responses.filter(r => r.isCorrect === false);
-
   const currentMode = gameState.playAlongDisplayMode;
 
   return (
     <div className="bg-gray-800 rounded-lg p-6 mt-6">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-white font-bold text-lg">Play Along</h2>
-        <div className="flex items-center gap-2">
-          <span className="text-gray-400 text-sm">{participantCount} participants · {responses.length} responses</span>
-          <button
-            onClick={loadResponses}
-            disabled={loading}
-            className="px-3 py-1 bg-gray-700 text-gray-300 rounded text-xs hover:bg-gray-600 disabled:opacity-50"
-          >
-            {loading ? '...' : 'Refresh'}
-          </button>
-        </div>
+        <span className="text-gray-400 text-sm">
+          {participantCount > 0 ? `${participantCount} participants · ` : ''}{responses.length} responses
+        </span>
       </div>
 
-      {!gameState.currentQuestion ? (
+      {!question ? (
         <p className="text-gray-500 text-sm">No active question.</p>
       ) : (
         <>
@@ -234,9 +219,7 @@ export default function PlayAlongPanel({ gameState, onError }: PlayAlongPanelPro
           </div>
 
           {/* Response table */}
-          {loading ? (
-            <p className="text-gray-500 text-sm">Loading...</p>
-          ) : filtered.length === 0 ? (
+          {filtered.length === 0 ? (
             <p className="text-gray-500 text-sm">
               {responses.length === 0 ? 'No responses yet.' : 'No responses match this filter.'}
             </p>
