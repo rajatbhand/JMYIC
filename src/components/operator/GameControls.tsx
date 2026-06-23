@@ -50,7 +50,8 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
 
       await gameStateManager.updateGameState({
         panelGuess: guess,
-        panelGuessSubmitted: true
+        panelGuessSubmitted: true,
+        playAlongAnswerWindowOpen: false
       });
     } catch (error) {
       onError('Failed to submit panel guess');
@@ -348,64 +349,40 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
     }
   };
 
-  const handleRevealOption = async (option: 'A' | 'B' | 'C' | 'D') => {
-    if (processing || !gameState.currentQuestion) return;
-
-    try {
-      setProcessing(true);
-      if (gameState.allOrNothingActive) {
-        const current = gameState.aonRevealedOptions || [];
-        if (!current.includes(option)) {
-          await gameStateManager.updateGameState({ aonRevealedOptions: [...current, option] });
-        }
-      } else {
-        const updates = GameLogic.revealOption(gameState, option);
-        await gameStateManager.updateGameState(updates);
+  const handleRevealOption = (option: 'A' | 'B' | 'C' | 'D') => {
+    if (!gameState.currentQuestion) return;
+    if (gameState.allOrNothingActive) {
+      const current = gameState.aonRevealedOptions || [];
+      if (!current.includes(option)) {
+        gameStateManager.updateGameStateBackground({ aonRevealedOptions: [...current, option] });
       }
-    } catch (error) {
-      onError('Failed to reveal option');
-    } finally {
-      setProcessing(false);
+    } else {
+      const updates = GameLogic.revealOption(gameState, option);
+      gameStateManager.updateGameStateBackground(updates);
     }
   };
 
-  const handleRevealAllOptions = async () => {
-    if (processing || !gameState.currentQuestion) return;
-
-    try {
-      setProcessing(true);
-      if (gameState.allOrNothingActive) {
-        const current = gameState.aonRevealedOptions || [];
-        const remaining = (['A', 'B', 'C', 'D'] as const).filter(o => !current.includes(o));
-        if (remaining.length > 0) {
-          await gameStateManager.updateGameState({ aonRevealedOptions: [...current, ...remaining] });
-        }
-      } else {
-        const updates = GameLogic.revealAllOptions(gameState);
-        await gameStateManager.updateGameState(updates);
+  const handleRevealAllOptions = () => {
+    if (!gameState.currentQuestion) return;
+    if (gameState.allOrNothingActive) {
+      const current = gameState.aonRevealedOptions || [];
+      const remaining = (['A', 'B', 'C', 'D'] as const).filter(o => !current.includes(o));
+      if (remaining.length > 0) {
+        gameStateManager.updateGameStateBackground({ aonRevealedOptions: [...current, ...remaining] });
       }
-    } catch (error) {
-      onError('Failed to reveal all options');
-    } finally {
-      setProcessing(false);
+    } else {
+      const updates = GameLogic.revealAllOptions(gameState);
+      gameStateManager.updateGameStateBackground(updates);
     }
   };
 
-  const handleResetRevealedOptions = async () => {
-    if (processing || !gameState.currentQuestion) return;
-
-    try {
-      setProcessing(true);
-      if (gameState.allOrNothingActive) {
-        await gameStateManager.updateGameState({ aonRevealedOptions: [] });
-      } else {
-        const updates = GameLogic.resetRevealedOptions(gameState);
-        await gameStateManager.updateGameState(updates);
-      }
-    } catch (error) {
-      onError('Failed to reset revealed options');
-    } finally {
-      setProcessing(false);
+  const handleResetRevealedOptions = () => {
+    if (!gameState.currentQuestion) return;
+    if (gameState.allOrNothingActive) {
+      gameStateManager.updateGameStateBackground({ aonRevealedOptions: [] });
+    } else {
+      const updates = GameLogic.resetRevealedOptions(gameState);
+      gameStateManager.updateGameStateBackground(updates);
     }
   };
 
@@ -469,16 +446,8 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
     }
   };
 
-  const handleToggleLogo = async () => {
-    if (processing) return;
-    try {
-      setProcessing(true);
-      await gameStateManager.updateGameState({ showLogo: !gameState.showLogo });
-    } catch (error) {
-      onError('Failed to toggle logo');
-    } finally {
-      setProcessing(false);
-    }
+  const handleToggleLogo = () => {
+    gameStateManager.updateGameStateBackground({ showLogo: !gameState.showLogo });
   };
 
   return (
@@ -488,8 +457,7 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
         {/* Logo Toggle */}
         <button
           onClick={handleToggleLogo}
-          disabled={processing}
-          className={`px-4 py-2 rounded font-semibold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+          className={`px-4 py-2 rounded font-semibold text-sm transition-colors ${
             gameState.showLogo
               ? 'bg-yellow-500 text-black hover:bg-yellow-400'
               : 'bg-gray-600 text-white hover:bg-gray-500'
@@ -612,7 +580,7 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
                   <button
                     key={option}
                     onClick={() => handleRevealOption(option)}
-                    disabled={processing || isRevealed}
+                    disabled={isRevealed}
                     className={`px-4 py-3 rounded font-semibold transition-colors text-left ${isRevealed
                         ? 'bg-green-600 text-white cursor-not-allowed'
                         : 'bg-blue-600 text-white hover:bg-blue-500'
@@ -631,14 +599,14 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
                 <>
                   <button
                     onClick={handleResetRevealedOptions}
-                    disabled={processing || activeRevealed.length === 0}
+                    disabled={activeRevealed.length === 0}
                     className="w-full px-4 py-2 bg-orange-600 text-white rounded font-semibold hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
                     🔄 Reset Reveals (Hide All Options)
                   </button>
                   <button
                     onClick={handleRevealAllOptions}
-                    disabled={processing || activeRevealed.length === 4}
+                    disabled={activeRevealed.length === 4}
                     className="w-full px-4 py-2 bg-green-600 text-white rounded font-semibold hover:bg-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors mt-2"
                   >
                     ⚡ Reveal All Options

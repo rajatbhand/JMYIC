@@ -136,44 +136,12 @@ export default function CSVUpload({ onSuccess, onError, gameState }: CSVUploadPr
   };
 
 
-  const handleTriggerBuzzer = async () => {
-    if (processing) return;
-
-    try {
-      setProcessing(true);
-
-      // Update buzzerTrigger with current timestamp to trigger sound on audience side
-      await gameStateManager.updateGameState({
-        buzzerTrigger: Date.now()
-      });
-
-      console.log('🔔 Buzzer triggered for audience');
-
-    } catch (error) {
-      onError('Failed to trigger buzzer');
-    } finally {
-      setProcessing(false);
-    }
+  const handleTriggerBuzzer = () => {
+    gameStateManager.updateGameStateBackground({ buzzerTrigger: Date.now() });
   };
 
-  const handleToggle75_25Banner = async () => {
-    if (processing) return;
-
-    try {
-      setProcessing(true);
-
-      // Toggle the 75:25 banner visibility
-      await gameStateManager.updateGameState({
-        show75_25Banner: !gameState?.show75_25Banner
-      });
-
-      console.log('🎯 75:25 Banner toggled:', !gameState?.show75_25Banner);
-
-    } catch (error) {
-      onError('Failed to toggle 75:25 banner');
-    } finally {
-      setProcessing(false);
-    }
+  const handleToggle75_25Banner = () => {
+    gameStateManager.updateGameStateBackground({ show75_25Banner: !gameState?.show75_25Banner });
   };
 
   return (
@@ -269,13 +237,12 @@ export default function CSVUpload({ onSuccess, onError, gameState }: CSVUploadPr
           </div>
           <button
             onClick={handleToggle75_25Banner}
-            disabled={processing}
             className={`px-6 py-3 rounded font-semibold transition-colors text-lg ${gameState?.show75_25Banner
               ? 'bg-red-600 hover:bg-red-500 text-white'
               : 'bg-purple-600 hover:bg-purple-500 text-white'
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
+              }`}
           >
-            {processing ? 'Processing...' : gameState?.show75_25Banner ? '❌ Hide 75:25' : '✨ Show 75:25'}
+            {gameState?.show75_25Banner ? '❌ Hide 75:25' : '✨ Show 75:25'}
           </button>
         </div>
       </div>
@@ -290,10 +257,9 @@ export default function CSVUpload({ onSuccess, onError, gameState }: CSVUploadPr
           </div>
           <button
             onClick={handleTriggerBuzzer}
-            disabled={processing}
-            className="px-6 py-3 bg-yellow-600 text-white rounded font-semibold hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-lg"
+            className="px-6 py-3 bg-yellow-600 text-white rounded font-semibold hover:bg-yellow-500 transition-colors text-lg"
           >
-            {processing ? 'Triggering...' : '🔔 TRIGGER BUZZER'}
+            🔔 TRIGGER BUZZER
           </button>
         </div>
       </div>

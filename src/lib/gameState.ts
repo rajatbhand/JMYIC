@@ -68,11 +68,22 @@ export class GameStateManager {
 
       // Use more aggressive write settings for faster sync
       await updateDoc(gameDocRef, updatesWithTimestamp);
-      console.log('Game state updated:', Object.keys(updates));
     } catch (error) {
       console.error('Error updating game state:', error);
       throw new Error('Failed to update game state');
     }
+  }
+
+  /**
+   * Fire-and-forget update for rapid-fire display state (option reveals, banner, buzzer).
+   * Optimistic local update is instant; Firestore write happens in background.
+   */
+  updateGameStateBackground(updates: Partial<GameState>): void {
+    if (this.currentState) {
+      this.currentState = { ...this.currentState, ...updates };
+    }
+    updateDoc(gameDocRef, { ...updates, lastActivity: new Date().toISOString() })
+      .catch(err => console.error('Background update failed:', err));
   }
 
   /**
@@ -100,7 +111,8 @@ export class GameStateManager {
     const unsubscribe = onSnapshot(gameDocRef, options,
       (doc) => {
         if (doc.exists()) {
-          const newState = doc.data() as GameState;
+          // Merge with defaults so any fields added after doc creation still exist
+          const newState = { ...defaultGameState, ...doc.data() } as GameState;
           this.currentState = newState;
           callback(newState);
         } else {

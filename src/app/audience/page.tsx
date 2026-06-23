@@ -12,6 +12,7 @@ import AllOrNothingDisplay from '@/components/audience/AllOrNothingDisplay';
 import GuestVictoryDisplay from '@/components/audience/GuestVictoryDisplay';
 import GuestLostDisplay from '@/components/audience/GuestLostDisplay';
 import SeventyFiveTwentyFiveBanner from '@/components/audience/SeventyFiveTwentyFiveBanner';
+import PlayAlongDisplay from '@/components/audience/PlayAlongDisplay';
 import { GameLogic } from '@/utils/gameLogic';
 
 
@@ -173,6 +174,9 @@ export default function AudienceDisplay() {
           <QuestionDisplay gameState={gameState} />
         </div>
       </div>
+
+      {/* Play Along overlay - z-40, below 75:25 Banner (z-50) */}
+      <PlayAlongDisplay gameState={gameState} />
 
       {/* 75:25 Banner - Slides up from bottom when activated */}
       <SeventyFiveTwentyFiveBanner gameState={gameState} />

@@ -469,7 +469,9 @@ export class GameLogic {
         currentQuestionAnswerRevealed: false,
         needsManualReveal: false,
         revealedOptions: [],
-        aonRevealedOptions: []
+        aonRevealedOptions: [],
+        currentQuestionStartTime: Date.now(),
+        playAlongAnswerWindowOpen: true
       };
     }
 
@@ -481,8 +483,10 @@ export class GameLogic {
       panelGuessChecked: false,
       currentQuestionAnswerRevealed: false,
       needsManualReveal: false,
-      hiddenOption: null, // Reset hidden option for new question
-      revealedOptions: [] // Reset revealed options for new question
+      hiddenOption: null,
+      revealedOptions: [],
+      currentQuestionStartTime: Date.now(),
+      playAlongAnswerWindowOpen: true
     };
 
     // Check if guest should advance (pendingAdvancement flag is set)
@@ -611,6 +615,10 @@ export class GameLogic {
     return {
       revealedOptions: [...currentRevealed, ...remaining]
     };
+  }
+
+  static closePlayAlongAnswerWindow(): Partial<GameState> {
+    return { playAlongAnswerWindowOpen: false };
   }
 }
 

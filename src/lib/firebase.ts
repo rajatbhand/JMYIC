@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, doc, collection, connectFirestoreEmulator, enableNetwork, disableNetwork } from 'firebase/firestore';
+import { getFirestore, doc, collection, enableNetwork } from 'firebase/firestore';
 import type { GameState } from './types';
 
 const firebaseConfig = {
@@ -11,8 +11,8 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+// Initialize Firebase — exported so firebaseAuth.ts can reuse it
+export const app = initializeApp(firebaseConfig);
 
 // Initialize Firestore with optimized settings for real-time performance
 export const db = getFirestore(app);
@@ -29,6 +29,12 @@ if (typeof window !== 'undefined') {
 // Document references
 export const gameDocRef = doc(collection(db, "games"), "game1");
 export const questionsDocRef = doc(collection(db, "questions"), "pool");
+
+// Play Along collection references
+export const playAlongUsersRef = collection(db, 'playAlongUsers');
+export function playAlongResponsesRef(questionId: string) {
+  return collection(db, 'playAlongAnswers', questionId, 'responses');
+}
 
 // Default game state  
 export const defaultGameState: GameState = {
@@ -83,6 +89,10 @@ export const defaultGameState: GameState = {
   buzzerTrigger: 0,
   show75_25Banner: false,
   showLogo: false,
+  currentQuestionStartTime: null,
+  playAlongAnswerWindowOpen: false,
+  playAlongDisplayMode: 'none',
+  playAlongDisplayEntries: [],
   lastActivity: new Date().toISOString(),
   documentVersion: '3.0'
 };

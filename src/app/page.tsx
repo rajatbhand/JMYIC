@@ -25,6 +25,24 @@ export default function HomePage() {
               👥 Audience Display
             </Link>
           </div>
+
+          <div>
+            <Link
+              href="/play"
+              className="inline-block px-8 py-4 bg-purple-600 text-white text-xl font-semibold rounded-lg hover:bg-purple-500 transition-colors"
+            >
+              📱 Play Along
+            </Link>
+          </div>
+
+          <div>
+            <Link
+              href="/leaderboard"
+              className="inline-block px-8 py-4 bg-yellow-600 text-white text-xl font-semibold rounded-lg hover:bg-yellow-500 transition-colors"
+            >
+              🏆 Leaderboard
+            </Link>
+          </div>
         </div>
         
         <div className="mt-12 text-gray-400">

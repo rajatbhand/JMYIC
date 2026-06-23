@@ -87,9 +87,39 @@ export interface GameState {
   // Logo overlay (operator controlled)
   showLogo: boolean; // Whether to show the full-screen show logo on audience display
 
+  // Play Along
+  currentQuestionStartTime: number | null;
+  playAlongAnswerWindowOpen: boolean;
+  playAlongDisplayMode: 'none' | 'quickest' | 'slowest' | 'correct' | 'incorrect';
+  playAlongDisplayEntries: PlayAlongDisplayEntry[];
+
   // Metadata
   lastActivity: string;
   documentVersion: string;
+}
+
+export interface PlayAlongUser {
+  uid: string;
+  name: string;
+  phone: string;
+  createdAt: number;
+}
+
+export interface PlayAlongResponse {
+  answer: 'A' | 'B' | 'C' | 'D';
+  timestamp: number;
+  name: string;
+  phone: string;
+  questionId: string;
+  questionNumber: number;
+}
+
+export interface PlayAlongDisplayEntry {
+  uid: string;
+  name: string;
+  answer: 'A' | 'B' | 'C' | 'D';
+  timestamp: number;
+  responseTimeMs: number;
 }
 
 export interface PrizeTier {

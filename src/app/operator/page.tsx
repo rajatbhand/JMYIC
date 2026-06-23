@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { db, questionsDocRef } from '@/lib/firebase';
+import { db, questionsDocRef, defaultGameState } from '@/lib/firebase';
 import { getDoc } from 'firebase/firestore';
 import { gameStateManager } from '@/lib/gameState';
 import { soundPlayer } from '@/lib/sounds';
@@ -9,13 +9,22 @@ import type { GameState, Question } from '@/lib/types';
 import GameControls from '@/components/operator/GameControls';
 import QuestionPool from '@/components/operator/QuestionPool';
 import CSVUpload from '@/components/operator/CSVUpload';
+import PlayAlongPanel from '@/components/operator/PlayAlongPanel';
+import PasswordGate from '@/components/operator/PasswordGate';
 
 export default function OperatorPanel() {
+  const [authenticated, setAuthenticated] = useState(false);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
   const [questionsLoading, setQuestionsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (sessionStorage.getItem('operator_auth') === 'authenticated') {
+      setAuthenticated(true);
+    }
+  }, []);
 
   useEffect(() => {
     let unsubscribe: (() => void) | null = null;
@@ -84,53 +93,7 @@ export default function OperatorPanel() {
         setLoading(false);
 
         // Set a default game state to prevent crashes
-        setGameState({
-          currentQuestion: null,
-          currentQuestionNumber: 1,
-          panelGuess: '',
-          panelGuessSubmitted: false,
-          panelGuessChecked: false,
-          lives: 2, // Start with 2 lives
-          lifeUsed: false,
-          questionsAnswered: 0,
-          panelCorrectAnswers: 0,
-          prize: 0,
-          pendingAdvancement: false,
-          gameOver: false,
-          pendingGameOver: false,
-          softEliminated: false,
-          currentQuestionAnswerRevealed: false,
-          needsManualReveal: false,
-          allOrNothingActive: false,
-          allOrNothingAttempt: 0,
-          allOrNothingComplete: false,
-          allOrNothingWon: false,
-          allOrNothingPendingPanelWin: false,
-          allOrNothingPendingGuestWin: false,
-          allOrNothingModalVisible: false,
-          allOrNothingLastGuess: '',
-          allOrNothingLastGuessCorrect: false,
-          allOrNothingAttempt1Guess: '',
-          allOrNothingAttempt1Correct: false,
-          allOrNothingAttempt2Guess: '',
-          allOrNothingAttempt2Correct: false,
-          guestVictoryPending: false,
-          guestVictoryModalVisible: false,
-          guestLostPending: false,
-          guestLostModalVisible: false,
-          lock: { placed: false, level: null },
-          lockedMoney: 0,
-          usedQuestions: {},
-          buzzerTrigger: 0,
-          show75_25Banner: false,
-          showLogo: false,
-          lastActivity: new Date().toISOString(),
-          documentVersion: '3.0',
-          hiddenOption: null,
-          hideOptionUsed: false,
-          revealedOptions: [],
-          aonRevealedOptions: []
-        });
+        setGameState({ ...defaultGameState, lastActivity: new Date().toISOString() });
       }
     };
 
@@ -198,6 +161,10 @@ export default function OperatorPanel() {
     setTimeout(() => setError(null), 5000); // Auto-clear after 5 seconds
   };
 
+  if (!authenticated) {
+    return <PasswordGate onAuthenticated={() => setAuthenticated(true)} />;
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
@@ -261,6 +228,9 @@ export default function OperatorPanel() {
           />
         </div>
       </div>
+
+      {/* Play Along Panel — below 3-column layout */}
+      <PlayAlongPanel gameState={gameState} onError={handleError} />
     </div>
   );
 }
