@@ -19,7 +19,6 @@ import { GameLogic } from '@/utils/gameLogic';
 export default function AudienceDisplay() {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [loading, setLoading] = useState(true);
-  const [lastUpdate, setLastUpdate] = useState<string>('');
 
   useEffect(() => {
     let unsubscribe: (() => void) | null = null;
@@ -41,7 +40,6 @@ export default function AudienceDisplay() {
         // Subscribe to real-time updates
         unsubscribe = gameStateManager.subscribeToGameState((state) => {
           setGameState(state);
-          setLastUpdate(new Date().toLocaleTimeString());
           setLoading(false);
         });
 
@@ -55,7 +53,6 @@ export default function AudienceDisplay() {
 
     return () => {
       if (unsubscribe) unsubscribe();
-      gameStateManager.cleanup();
     };
   }, []);
 

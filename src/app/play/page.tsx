@@ -13,74 +13,65 @@ import ProfileSetup from '@/components/playAlong/ProfileSetup';
 import AnswerScreen from '@/components/playAlong/AnswerScreen';
 import WaitingScreen from '@/components/playAlong/WaitingScreen';
 
-type Phase = 'loading' | 'auth' | 'profile' | 'playing';
-
 export default function PlayPage() {
-  const [phase, setPhase] = useState<Phase>('loading');
+  // authChecked: true once onAuthStateChanged fires (or 5s timeout elapses)
+  const [authChecked, setAuthChecked] = useState(false);
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<PlayAlongUser | null>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [existingAnswer, setExistingAnswer] = useState<'A' | 'B' | 'C' | 'D' | null>(null);
   const [submitting, setSubmitting] = useState(false);
-
   const lastQuestionIdRef = useRef<string | null>(null);
-  const unsubscribeRef = useRef<(() => void) | null>(null);
 
-  // Firebase Auth listener
+  // Firebase Auth — 5s timeout so a slow/broken auth SDK never blocks the page forever
   useEffect(() => {
-    const unsub = onAuthStateChanged(getFirebaseAuth(), (user) => {
-      setFirebaseUser(user);
-      // Always exit 'loading' — authenticated users skip to 'playing' (profile check below handles missing profile)
-      setPhase(user ? 'playing' : 'auth');
-    });
-    return () => unsub();
-  }, []);
+    const timeout = setTimeout(() => setAuthChecked(true), 5000);
 
-  // Subscribe to game state (read-only; no initializeGame)
-  useEffect(() => {
-    unsubscribeRef.current = gameStateManager.subscribeToGameState((state) => {
-      setGameState(state);
-    });
+    let unsub: (() => void) | undefined;
+    try {
+      unsub = onAuthStateChanged(getFirebaseAuth(), (user) => {
+        clearTimeout(timeout);
+        setFirebaseUser(user);
+        setAuthChecked(true);
+      });
+    } catch (err) {
+      console.error('Auth init error:', err);
+      clearTimeout(timeout);
+      setAuthChecked(true);
+    }
+
     return () => {
-      if (unsubscribeRef.current) unsubscribeRef.current();
+      clearTimeout(timeout);
+      unsub?.();
     };
   }, []);
 
-  // When question changes, fetch existing answer for new question
+  // RTDB game state — subscribe once, no initializeGame needed (read-only page)
+  useEffect(() => {
+    const unsub = gameStateManager.subscribeToGameState(setGameState);
+    return () => unsub();
+  }, []);
+
+  // Fetch existing answer when question changes
   useEffect(() => {
     if (!profile || !gameState?.currentQuestion) return;
-
     const questionId = gameState.currentQuestion.id;
     if (questionId === lastQuestionIdRef.current) return;
-
     lastQuestionIdRef.current = questionId;
     setExistingAnswer(null);
-
-    getDoc(doc(playAlongResponsesRef(questionId), profile.uid)).then((snap) => {
-      if (snap.exists()) {
-        const data = snap.data();
-        setExistingAnswer(data.answer as 'A' | 'B' | 'C' | 'D');
-      }
-    }).catch(() => {/* ignore */});
+    getDoc(doc(playAlongResponsesRef(questionId), profile.uid))
+      .then(snap => {
+        if (snap.exists()) {
+          setExistingAnswer(snap.data().answer as 'A' | 'B' | 'C' | 'D');
+        }
+      })
+      .catch(() => {});
   }, [gameState?.currentQuestion?.id, profile]);
-
-  const handleAuthSuccess = (user: User) => {
-    setFirebaseUser(user);
-    setPhase('profile');
-  };
-
-  const handleProfileComplete = (p: PlayAlongUser) => {
-    setProfile(p);
-    setPhase('playing');
-  };
 
   const handleAnswerSubmit = async (answer: 'A' | 'B' | 'C' | 'D') => {
     if (!profile || !gameState?.currentQuestion || submitting) return;
-
-    // Optimistic update
     setExistingAnswer(answer);
     setSubmitting(true);
-
     try {
       const questionId = gameState.currentQuestion.id;
       await setDoc(
@@ -91,39 +82,35 @@ export default function PlayPage() {
           name: profile.name,
           phone: profile.phone,
           questionId,
-          questionNumber: gameState.currentQuestionNumber
+          questionNumber: gameState.currentQuestionNumber,
         },
         { merge: true }
       );
     } catch {
-      // Revert optimistic update on failure
       setExistingAnswer(null);
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Waiting for onAuthStateChanged to fire (brief flicker on first load)
-  if (phase === 'loading') {
+  // ── Render ──────────────────────────────────────────────────────────────
+
+  // 1. Waiting for onAuthStateChanged (max 5s before timeout kicks in)
+  if (!authChecked) {
     return <WaitingScreen message="Connecting..." />;
   }
 
-  // No user — needs to sign in
-  if (phase === 'auth' || !firebaseUser) {
-    return <AuthScreen onAuthSuccess={handleAuthSuccess} />;
+  // 2. Not signed in
+  if (!firebaseUser) {
+    return <AuthScreen onAuthSuccess={user => setFirebaseUser(user)} />;
   }
 
-  // Profile setup — new user just signed in, or returning user (ProfileSetup auto-loads existing)
+  // 3. Signed in, no game profile yet — ProfileSetup auto-loads existing profiles from Firestore
   if (!profile) {
-    return (
-      <ProfileSetup
-        user={firebaseUser}
-        onProfileComplete={handleProfileComplete}
-      />
-    );
+    return <ProfileSetup user={firebaseUser} onProfileComplete={p => setProfile(p)} />;
   }
 
-  // Profile ready, but RTDB has no game state yet (operator hasn't opened the panel)
+  // 4. Profile ready, RTDB not loaded yet or game not started
   if (!gameState) {
     return (
       <WaitingScreen
@@ -133,7 +120,7 @@ export default function PlayPage() {
     );
   }
 
-  // Game over
+  // 5. Game over
   if (gameState.gameOver) {
     return (
       <WaitingScreen
@@ -143,7 +130,7 @@ export default function PlayPage() {
     );
   }
 
-  // No active question or window closed before question set
+  // 6. Waiting for next question
   if (!gameState.currentQuestion) {
     return (
       <WaitingScreen
@@ -153,7 +140,7 @@ export default function PlayPage() {
     );
   }
 
-  // Answer window open or closed — show answer screen
+  // 7. Answer screen
   return (
     <AnswerScreen
       gameState={gameState}
