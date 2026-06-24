@@ -153,7 +153,7 @@ export class GameLogic {
 
         // Check if ALL lives are lost
         if (newLives === 0) {
-          updates.softEliminated = true; // Eligible for All or Nothing, but don't end game yet
+          // Soft elimination is now operator-controlled via a manual toggle, not auto-set here.
 
           console.log('💀 DEBUG: Lives reached 0 in calculatePanelGuessResult, checking lock status:', {
             'gameState.lock': gameState.lock,
@@ -180,7 +180,6 @@ export class GameLogic {
       // Check if game should end (2 panel correct answers) - but only if All or Nothing not available
       if (updates.panelCorrectAnswers >= 2 && updates.lives > 0) {
         updates.gameOver = true;
-        updates.softEliminated = true;
       }
 
       // Mark question as used
@@ -271,7 +270,7 @@ export class GameLogic {
 
         // Check if ALL lives are lost
         if (newLives === 0) {
-          updates.softEliminated = true; // Eligible for All or Nothing, but don't end game yet
+          // Soft elimination is now operator-controlled via a manual toggle, not auto-set here.
 
           console.log('💀 DEBUG: Lives reached 0, checking lock status:', {
             'gameState.lock': gameState.lock,
@@ -297,7 +296,6 @@ export class GameLogic {
       // Check if game should end (2 panel correct answers) - but only if All or Nothing not available
       if (newPanelCorrectCount >= 2 && updates.lives > 0) {
         updates.gameOver = true;
-        updates.softEliminated = true;
       }
 
       console.log(`Panel got ${newPanelCorrectCount} correct answers! Game may end if panel reaches 2.`);
@@ -364,7 +362,7 @@ export class GameLogic {
    * Check if All or Nothing phase can be started
    */
   static canStartAllOrNothing(gameState: GameState): boolean {
-    return gameState.lives === 0 && gameState.softEliminated && !gameState.allOrNothingActive && !gameState.allOrNothingComplete && !gameState.gameOver;
+    return gameState.softEliminated && !gameState.allOrNothingActive && !gameState.allOrNothingComplete && !gameState.gameOver;
   }
 
   /**
@@ -529,8 +527,7 @@ export class GameLogic {
     // - Guest is eliminated (lives = 0, softEliminated = true)
     // - BUT not if guestLostPending (we have a special modal for that)
     // - AND not if guestVictoryPending (we have a special modal for that too)
-    const result = gameState.lives === 0
-      && gameState.softEliminated
+    const result = gameState.softEliminated
       && !gameState.gameOver
       && !gameState.allOrNothingActive
       && !gameState.guestLostPending

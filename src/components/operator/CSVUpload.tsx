@@ -144,6 +144,10 @@ export default function CSVUpload({ onSuccess, onError, gameState }: CSVUploadPr
     gameStateManager.updateGameStateBackground({ show75_25Banner: !gameState?.show75_25Banner });
   };
 
+  const handleToggleSoftElimination = () => {
+    gameStateManager.updateGameStateBackground({ softEliminated: !gameState?.softEliminated });
+  };
+
   return (
     <div className="bg-gray-800 rounded-lg p-4">
       <h2 className="text-xl font-bold text-white mb-4">CSV Upload</h2>
@@ -243,6 +247,26 @@ export default function CSVUpload({ onSuccess, onError, gameState }: CSVUploadPr
               }`}
           >
             {gameState?.show75_25Banner ? '❌ Hide 75:25' : '✨ Show 75:25'}
+          </button>
+        </div>
+      </div>
+
+      {/* Soft Elimination Control */}
+      <div className="mb-6">
+        <h3 className="text-lg font-semibold text-white mb-3">💀 Soft Elimination</h3>
+        <div className="bg-gray-700 border border-red-500 rounded-lg p-4">
+          <div className="text-red-300 text-sm mb-3">
+            Manually toggle soft elimination. When on, the audience banner shows and the
+            All&nbsp;or&nbsp;Nothing / game-over controls unlock.
+          </div>
+          <button
+            onClick={handleToggleSoftElimination}
+            className={`px-6 py-3 rounded font-semibold transition-colors text-lg ${gameState?.softEliminated
+              ? 'bg-green-600 hover:bg-green-500 text-white'
+              : 'bg-red-600 hover:bg-red-500 text-white'
+              }`}
+          >
+            {gameState?.softEliminated ? '✅ Undo Soft Elimination' : '💀 Soft Eliminate Guest'}
           </button>
         </div>
       </div>
