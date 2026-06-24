@@ -19,9 +19,14 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   const handleGoogle = async () => {
     setError('');
+    if (!termsAccepted) {
+      setError('Please accept the Terms & Conditions and Privacy Policy to continue.');
+      return;
+    }
     setLoading(true);
     try {
       const result = await signInWithPopup(getFirebaseAuth(), googleProvider);
@@ -36,6 +41,10 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    if (!termsAccepted) {
+      setError('Please accept the Terms & Conditions and Privacy Policy to continue.');
+      return;
+    }
     setLoading(true);
     try {
       let result;
@@ -114,7 +123,6 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
               minLength={6}
               className="w-full px-4 py-3 rounded-xl bg-white/10 text-white placeholder-white/40 border border-white/20 focus:outline-none focus:border-purple-400"
             />
-            {error && <p className="text-red-400 text-sm">{error}</p>}
             <button
               type="submit"
               disabled={loading}
@@ -123,6 +131,38 @@ export default function AuthScreen({ onAuthSuccess }: AuthScreenProps) {
               {loading ? 'Please wait...' : tab === 'signup' ? 'Create Account' : 'Sign In'}
             </button>
           </form>
+
+          {/* Terms & Privacy consent */}
+          <label className="mt-4 flex items-start gap-3 text-white/70 text-sm">
+            <input
+              type="checkbox"
+              checked={termsAccepted}
+              onChange={e => setTermsAccepted(e.target.checked)}
+              className="mt-0.5 w-4 h-4 shrink-0 accent-purple-600"
+            />
+            <span>
+              I agree to the{' '}
+              <a
+                href="/terms/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-purple-300 underline hover:text-purple-200"
+              >
+                Terms &amp; Conditions
+              </a>
+              {' '}and{' '}
+              <a
+                href="/privacy/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-purple-300 underline hover:text-purple-200"
+              >
+                Privacy Policy
+              </a>.
+            </span>
+          </label>
+
+          {error && <p className="mt-3 text-red-400 text-sm">{error}</p>}
         </div>
       </div>
     </div>
