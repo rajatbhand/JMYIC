@@ -6,6 +6,7 @@ import {
   browserLocalPersistence,
   browserPopupRedirectResolver,
   GoogleAuthProvider,
+  signOut,
   type Auth,
 } from 'firebase/auth';
 import { app } from './firebase';
@@ -20,6 +21,11 @@ export function getFirebaseAuth(): Auth {
     });
   }
   return _auth;
+}
+
+// Fully sign the current user out (used to force-logout players on game reset)
+export async function signOutUser(): Promise<void> {
+  await signOut(getFirebaseAuth());
 }
 
 export const googleProvider = new GoogleAuthProvider();

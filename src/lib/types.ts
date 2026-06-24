@@ -99,6 +99,9 @@ export interface GameState {
   leaderboardCorrectFilter: 'all' | 'correct' | 'incorrect';   // per-question scope only
   leaderboardOrder: 'fastest' | 'slowest';                     // per-question scope only
 
+  // Players reset signal — bumped on reset so /play clients force a sign-out
+  playersResetAt: number;
+
   // Metadata
   lastActivity: string;
   documentVersion: string;

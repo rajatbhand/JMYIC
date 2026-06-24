@@ -112,6 +112,7 @@ export const defaultGameState: GameState = {
   leaderboardScope: 'all',
   leaderboardCorrectFilter: 'all',
   leaderboardOrder: 'fastest',
+  playersResetAt: 0,
   lastActivity: new Date().toISOString(),
   documentVersion: '3.0'
 };

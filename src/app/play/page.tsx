@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import type { User } from 'firebase/auth';
 import { onAuthStateChanged } from 'firebase/auth';
 import { set, get } from 'firebase/database';
-import { getFirebaseAuth } from '@/lib/firebaseAuth';
+import { getFirebaseAuth, signOutUser } from '@/lib/firebaseAuth';
 import { playAlongUserAnswerRtdbRef } from '@/lib/firebase';
 import { gameStateManager } from '@/lib/gameState';
 import type { GameState, PlayAlongUser } from '@/lib/types';
@@ -22,6 +22,9 @@ export default function PlayPage() {
   const [existingAnswer, setExistingAnswer] = useState<'A' | 'B' | 'C' | 'D' | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const lastQuestionIdRef = useRef<string | null>(null);
+  // Baseline of the reset signal seen at load; if it later increases, the operator
+  // reset the game and this client must sign out.
+  const acceptedResetRef = useRef<number | null>(null);
 
   // Firebase Auth — 5s timeout so a slow/broken auth SDK never blocks the page forever
   useEffect(() => {
@@ -51,6 +54,22 @@ export default function PlayPage() {
     const unsub = gameStateManager.subscribeToGameState(setGameState);
     return () => unsub();
   }, []);
+
+  // Force sign-out when the operator resets the game (deletes registered users).
+  useEffect(() => {
+    const reset = gameState?.playersResetAt;
+    if (reset == null) return;
+    if (acceptedResetRef.current === null) {
+      acceptedResetRef.current = reset; // baseline on first reading
+      return;
+    }
+    if (reset > acceptedResetRef.current) {
+      acceptedResetRef.current = reset;
+      signOutUser().catch(() => {}); // onAuthStateChanged → null → AuthScreen
+      setProfile(null);
+      setFirebaseUser(null);
+    }
+  }, [gameState?.playersResetAt]);
 
   // Fetch existing answer when question changes — only restore if questionId matches
   useEffect(() => {

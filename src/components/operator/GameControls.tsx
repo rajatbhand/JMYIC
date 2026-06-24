@@ -145,7 +145,7 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
   const handleResetGame = async () => {
     if (processing) return;
 
-    if (!confirm('Are you sure you want to reset the game? A backup file will download first, then all questions are kept but the game state and play-along answers are reset.')) {
+    if (!confirm('Are you sure you want to reset the game? A backup file will download first. Questions are kept, but the game state and play-along answers are reset, and all registered players are removed and logged out of their phones.')) {
       return;
     }
 
@@ -166,7 +166,7 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
   const handleResetEverything = async () => {
     if (processing) return;
 
-    if (!confirm('Are you sure you want to reset EVERYTHING? A backup file will download first, then ALL questions, participants and play-along data are deleted and the game resets to state zero. This cannot be undone!')) {
+    if (!confirm('Are you sure you want to reset EVERYTHING? A backup file will download first, then ALL questions, participants and play-along data are deleted, all registered players are logged out of their phones, and the game resets to state zero. This cannot be undone!')) {
       return;
     }
 
@@ -1135,7 +1135,7 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
       {/* Reset Information */}
       <div className="p-3 bg-gray-700 rounded text-sm text-gray-300">
         <p>💾 <strong>Auto-backup:</strong> Both resets download a full data backup before wiping anything</p>
-        <p>🔄 <strong>Reset Game Only:</strong> Keeps questions, clears game state &amp; play-along answers</p>
+        <p>🔄 <strong>Reset Game Only:</strong> Keeps questions; clears game state, play-along answers &amp; registered players (players are logged out)</p>
         <p>⚠️ <strong>Reset EVERYTHING:</strong> Deletes ALL questions, play-along data + resets to state zero</p>
       </div>
     </div>

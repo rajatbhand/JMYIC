@@ -117,13 +117,14 @@ export class GameStateManager {
   async resetGame(): Promise<void> {
     try {
       const currentState = await this.getCurrentGameState();
+      // Delete play-along answers AND registered users (old audience is cleared out)
+      await this.resetPlayAlongData();
       await this.updateGameState({
         ...defaultGameState,
         usedQuestions: {},
+        playersResetAt: Date.now(), // signals /play clients to sign out
         documentVersion: currentState?.documentVersion || '3.0'
       });
-      // Clear play-along answers but keep participant registrations
-      await this.resetPlayAlongAnswers();
     } catch (error) {
       console.error('Error resetting game:', error);
       throw new Error('Failed to reset game');
@@ -134,6 +135,7 @@ export class GameStateManager {
     try {
       await set(gameRtdbRef, {
         ...defaultGameState,
+        playersResetAt: Date.now(), // signals /play clients to sign out
         lastActivity: new Date().toISOString(),
         documentVersion: '3.0'
       });
