@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { onValue, set } from 'firebase/database';
 import { collection, getDocs } from 'firebase/firestore';
 import { db, playAlongAnswersByQNumRef, playAlongQuestionMetaRtdbRef } from '@/lib/firebase';
 import { gameStateManager } from '@/lib/gameState';
 import { GameLogic } from '@/utils/gameLogic';
-import type { GameState, PlayAlongDisplayEntry } from '@/lib/types';
+import type { GameState } from '@/lib/types';
 
 interface PlayAlongPanelProps {
   gameState: GameState;
@@ -29,6 +29,9 @@ export default function PlayAlongPanel({ gameState, onError }: PlayAlongPanelPro
   const [participantCount, setParticipantCount] = useState(0);
   const [filter, setFilter] = useState<Filter>('all');
   const [processing, setProcessing] = useState(false);
+  // Auto-follow the live question for the leaderboard scope (operator can pin/unpin)
+  const [followingLive, setFollowingLive] = useState(true);
+  const prevQNumRef = useRef<number | null>(null);
 
   const questionNumber = gameState.currentQuestionNumber;
   const question = gameState.currentQuestion;
@@ -79,6 +82,23 @@ export default function PlayAlongPanel({ gameState, onError }: PlayAlongPanelPro
     return () => unsub();
   }, [questionNumber, gameState.currentQuestionAnswerRevealed, gameState.currentQuestionStartTime, question?.id]);
 
+  // Auto-switch the leaderboard scope to the current question as the game advances.
+  // Mirrors the old leaderboard page's "follow live" behaviour, now driven into game state
+  // so the audience modal follows along too. Manually picking a scope unpins this.
+  useEffect(() => {
+    if (!question) { prevQNumRef.current = null; return; }
+    if (questionNumber !== prevQNumRef.current) {
+      prevQNumRef.current = questionNumber;
+      if (followingLive && gameState.leaderboardScope !== questionNumber) {
+        gameStateManager.updateGameStateBackground({
+          leaderboardScope: questionNumber,
+          leaderboardCorrectFilter: 'all',
+        });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [question?.id, questionNumber, followingLive]);
+
   const getFiltered = (): ResponseRow[] => {
     switch (filter) {
       case 'correct': return responses.filter(r => r.isCorrect === true);
@@ -88,53 +108,19 @@ export default function PlayAlongPanel({ gameState, onError }: PlayAlongPanelPro
     }
   };
 
-  const toDisplayEntry = (r: ResponseRow): PlayAlongDisplayEntry => ({
-    uid: r.uid,
-    name: r.name,
-    answer: r.answer as 'A' | 'B' | 'C' | 'D',
-    timestamp: r.timestamp,
-    responseTimeMs: r.responseTimeMs,
-  });
-
-  const pushDisplay = async (
-    mode: GameState['playAlongDisplayMode'],
-    entries: ResponseRow[]
-  ) => {
-    if (processing) return;
-    setProcessing(true);
-    try {
-      await gameStateManager.updateGameState({
-        playAlongDisplayMode: mode,
-        playAlongDisplayEntries: entries.slice(0, 5).map(toDisplayEntry),
-      });
-    } catch {
-      onError('Failed to update audience display.');
-    } finally {
-      setProcessing(false);
-    }
+  // ── Leaderboard control (drives the full-screen audience modal via game state) ──
+  const setLeaderboard = (updates: Partial<GameState>) => {
+    gameStateManager.updateGameStateBackground(updates);
   };
 
-  const clearDisplay = async () => {
-    if (processing) return;
-    setProcessing(true);
-    try {
-      await gameStateManager.updateGameState({
-        playAlongDisplayMode: 'none',
-        playAlongDisplayEntries: [],
-      });
-    } catch {
-      onError('Failed to clear audience display.');
-    } finally {
-      setProcessing(false);
-    }
-  };
+  const scope = gameState.leaderboardScope ?? 'all';
+  const correctFilter = gameState.leaderboardCorrectFilter ?? 'all';
+  const order = gameState.leaderboardOrder ?? 'fastest';
+  const answerRevealed = gameState.currentQuestionAnswerRevealed;
+  // Question numbers the operator can spotlight: every question played up to the current one
+  const playedQuestions = Array.from({ length: Math.max(questionNumber, 0) }, (_, i) => i + 1);
 
   const filtered = getFiltered();
-  const quickest = responses.slice(0, 5);
-  const slowest = [...responses].sort((a, b) => b.responseTimeMs - a.responseTimeMs).slice(0, 5);
-  const correct = responses.filter(r => r.isCorrect === true);
-  const incorrect = responses.filter(r => r.isCorrect === false);
-  const currentMode = gameState.playAlongDisplayMode;
 
   return (
     <div className="bg-gray-800 rounded-lg p-6 mt-6">
@@ -145,64 +131,109 @@ export default function PlayAlongPanel({ gameState, onError }: PlayAlongPanelPro
         </span>
       </div>
 
+      {/* Leaderboard Control — drives the full-screen audience leaderboard */}
+      <div className="mb-5 p-3 bg-gray-900/60 rounded-lg border border-gray-700">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-gray-300 text-xs uppercase tracking-wide font-semibold">Audience Leaderboard</p>
+          <button
+            onClick={() => setLeaderboard({ showLeaderboard: !gameState.showLeaderboard })}
+            className={`px-3 py-1.5 rounded text-xs font-bold transition-colors ${
+              gameState.showLeaderboard
+                ? 'bg-green-600 text-white hover:bg-green-500'
+                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+            }`}
+          >
+            {gameState.showLeaderboard ? '🟢 Showing — Hide' : 'Show Leaderboard'}
+          </button>
+        </div>
+
+        {/* Scope: overall ranking or a specific question's spotlight */}
+        <div className="flex items-center justify-between mb-1">
+          <p className="text-gray-500 text-[10px] uppercase tracking-wide">View</p>
+          <button
+            onClick={() => {
+              setFollowingLive(true);
+              if (questionNumber) setLeaderboard({ leaderboardScope: questionNumber, leaderboardCorrectFilter: 'all' });
+            }}
+            className={`px-2 py-0.5 rounded text-[10px] font-semibold flex items-center gap-1 transition-colors ${
+              followingLive ? 'bg-green-600 text-white cursor-default' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+            }`}
+            title={followingLive ? 'Following the live question' : 'Click to follow the live question'}
+          >
+            <span className={`w-1.5 h-1.5 rounded-full ${followingLive ? 'bg-green-300 animate-pulse' : 'bg-white/30'}`} />
+            Live
+          </button>
+        </div>
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          <button
+            onClick={() => { setFollowingLive(false); setLeaderboard({ leaderboardScope: 'all' }); }}
+            className={`px-2.5 py-1 rounded text-xs font-semibold transition-colors ${
+              scope === 'all' ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+            }`}
+          >
+            All Questions
+          </button>
+          {playedQuestions.map((n) => (
+            <button
+              key={n}
+              onClick={() => { setFollowingLive(false); setLeaderboard({ leaderboardScope: n }); }}
+              className={`px-2.5 py-1 rounded text-xs font-semibold transition-colors ${
+                scope === n ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+              }`}
+            >
+              Q{n}
+            </button>
+          ))}
+        </div>
+
+        {/* Combinable filters — only relevant for a single-question spotlight */}
+        {scope !== 'all' && (
+          <div className="flex flex-wrap gap-4">
+            <div>
+              <p className="text-gray-500 text-[10px] uppercase tracking-wide mb-1">Show</p>
+              <div className="flex gap-1.5">
+                {(['all', 'correct', 'incorrect'] as const).map((f) => {
+                  const disabled = f !== 'all' && scope === questionNumber && !answerRevealed;
+                  return (
+                    <button
+                      key={f}
+                      onClick={() => setLeaderboard({ leaderboardCorrectFilter: f })}
+                      disabled={disabled}
+                      title={disabled ? 'Reveal answer first' : ''}
+                      className={`px-2.5 py-1 rounded text-xs font-semibold capitalize transition-colors disabled:opacity-40 ${
+                        correctFilter === f ? 'bg-yellow-500 text-black' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                      }`}
+                    >
+                      {f}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div>
+              <p className="text-gray-500 text-[10px] uppercase tracking-wide mb-1">Order</p>
+              <div className="flex gap-1.5">
+                {(['fastest', 'slowest'] as const).map((o) => (
+                  <button
+                    key={o}
+                    onClick={() => setLeaderboard({ leaderboardOrder: o })}
+                    className={`px-2.5 py-1 rounded text-xs font-semibold capitalize transition-colors ${
+                      order === o ? 'bg-yellow-500 text-black' : 'bg-gray-700 text-gray-400 hover:bg-gray-600'
+                    }`}
+                  >
+                    {o}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
       {!question ? (
         <p className="text-gray-500 text-sm">No active question.</p>
       ) : (
         <>
-          {/* Audience display toggles */}
-          <div className="mb-4">
-            <p className="text-gray-400 text-xs uppercase tracking-wide mb-2">Show on Audience Screen</p>
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => pushDisplay('quickest', quickest)}
-                disabled={processing || quickest.length === 0}
-                className={`px-3 py-1.5 rounded text-xs font-semibold transition-colors disabled:opacity-40 ${
-                  currentMode === 'quickest' ? 'bg-green-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                }`}
-              >
-                Quickest ({quickest.length})
-              </button>
-              <button
-                onClick={() => pushDisplay('slowest', slowest)}
-                disabled={processing || slowest.length === 0}
-                className={`px-3 py-1.5 rounded text-xs font-semibold transition-colors disabled:opacity-40 ${
-                  currentMode === 'slowest' ? 'bg-orange-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                }`}
-              >
-                Slowest ({slowest.length})
-              </button>
-              <button
-                onClick={() => pushDisplay('correct', correct)}
-                disabled={processing || correct.length === 0 || !gameState.currentQuestionAnswerRevealed}
-                className={`px-3 py-1.5 rounded text-xs font-semibold transition-colors disabled:opacity-40 ${
-                  currentMode === 'correct' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                }`}
-                title={!gameState.currentQuestionAnswerRevealed ? 'Reveal answer first' : ''}
-              >
-                Correct ({correct.length})
-              </button>
-              <button
-                onClick={() => pushDisplay('incorrect', incorrect)}
-                disabled={processing || incorrect.length === 0 || !gameState.currentQuestionAnswerRevealed}
-                className={`px-3 py-1.5 rounded text-xs font-semibold transition-colors disabled:opacity-40 ${
-                  currentMode === 'incorrect' ? 'bg-red-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                }`}
-                title={!gameState.currentQuestionAnswerRevealed ? 'Reveal answer first' : ''}
-              >
-                Incorrect ({incorrect.length})
-              </button>
-              {currentMode !== 'none' && (
-                <button
-                  onClick={clearDisplay}
-                  disabled={processing}
-                  className="px-3 py-1.5 rounded text-xs font-semibold bg-gray-600 text-white hover:bg-gray-500 disabled:opacity-40"
-                >
-                  Clear Display
-                </button>
-              )}
-            </div>
-          </div>
-
           {/* Filter buttons */}
           <div className="flex gap-2 mb-3">
             {(['all', 'correct', 'incorrect', 'quickest', 'slowest'] as Filter[]).map((f) => (

@@ -78,9 +78,12 @@ export default function PlayPage() {
     setSubmitting(true);
     try {
       const qNum = gameState.currentQuestionNumber;
+      const now = Date.now();
+      const startTime = gameState.currentQuestionStartTime ?? 0;
       await set(playAlongUserAnswerRtdbRef(qNum, profile.uid), {
         answer,
-        timestamp: Date.now(),
+        timestamp: now,
+        responseTimeMs: startTime > 0 ? now - startTime : 0, // time taken to answer (ms)
         name: profile.name,
         phone: profile.phone,
         questionNumber: qNum,

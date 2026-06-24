@@ -93,6 +93,12 @@ export interface GameState {
   playAlongDisplayMode: 'none' | 'quickest' | 'slowest' | 'correct' | 'incorrect';
   playAlongDisplayEntries: PlayAlongDisplayEntry[];
 
+  // Operator-driven leaderboard (full-screen modal on audience screen)
+  showLeaderboard: boolean;                                     // modal on/off
+  leaderboardScope: 'all' | number;                            // 'all' = overall ranking; number = that question's spotlight
+  leaderboardCorrectFilter: 'all' | 'correct' | 'incorrect';   // per-question scope only
+  leaderboardOrder: 'fastest' | 'slowest';                     // per-question scope only
+
   // Metadata
   lastActivity: string;
   documentVersion: string;

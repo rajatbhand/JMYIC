@@ -13,6 +13,7 @@ import GuestVictoryDisplay from '@/components/audience/GuestVictoryDisplay';
 import GuestLostDisplay from '@/components/audience/GuestLostDisplay';
 import SeventyFiveTwentyFiveBanner from '@/components/audience/SeventyFiveTwentyFiveBanner';
 import SoftEliminationBanner from '@/components/audience/SoftEliminationBanner';
+import LeaderboardModal from '@/components/audience/LeaderboardModal';
 import { GameLogic } from '@/utils/gameLogic';
 import { LockClosedIcon, LockOpenIcon } from '@heroicons/react/24/solid';
 
@@ -101,6 +102,11 @@ export default function AudienceDisplay() {
         />
       </div>
     );
+  }
+
+  // Show full-screen leaderboard (operator controlled, takes over the screen at any phase)
+  if (gameState.showLeaderboard) {
+    return <LeaderboardModal gameState={gameState} />;
   }
 
   // Show All or Nothing display

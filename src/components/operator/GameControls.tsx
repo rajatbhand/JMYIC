@@ -4,6 +4,7 @@ import { gameStateManager } from '@/lib/gameState';
 import { GameLogic, showAllOrNothingPanelWinModal, showAllOrNothingGuestWinModal, toggleAllOrNothingModal } from '@/utils/gameLogic';
 import { setDoc, getDoc } from 'firebase/firestore';
 import { db, questionsDocRef, PRIZE_TIERS } from '@/lib/firebase';
+import { downloadGameData } from '@/utils/dataExport';
 
 interface GameControlsProps {
   gameState: GameState;
@@ -13,6 +14,7 @@ interface GameControlsProps {
 
 export default function GameControls({ gameState, onError, onQuestionUsed }: GameControlsProps) {
   const [processing, setProcessing] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [selectedLockLevel, setSelectedLockLevel] = useState<number>(gameState.currentQuestionNumber || 1);
   const [isEditingQuestion, setIsEditingQuestion] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -126,19 +128,36 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
     }
   };
 
+  // Manual data download (operator can trigger anytime)
+  const handleDownloadData = async () => {
+    if (downloading) return;
+    try {
+      setDownloading(true);
+      await downloadGameData();
+    } catch (error) {
+      console.error('Error downloading game data:', error);
+      onError(`Failed to download game data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   const handleResetGame = async () => {
     if (processing) return;
 
-    if (!confirm('Are you sure you want to reset the game? This will keep all questions but reset the game state.')) {
+    if (!confirm('Are you sure you want to reset the game? A backup file will download first, then all questions are kept but the game state and play-along answers are reset.')) {
       return;
     }
 
     try {
       setProcessing(true);
+      // Auto-backup before wiping any data — abort the reset if it fails
+      await downloadGameData();
       await gameStateManager.resetGame();
       onQuestionUsed(); // Refresh question pool
     } catch (error) {
-      onError('Failed to reset game');
+      console.error('Error resetting game:', error);
+      onError(`Failed to reset game: ${error instanceof Error ? error.message : 'Unknown error'} (no data was wiped)`);
     } finally {
       setProcessing(false);
     }
@@ -147,12 +166,15 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
   const handleResetEverything = async () => {
     if (processing) return;
 
-    if (!confirm('Are you sure you want to reset EVERYTHING? This will delete ALL questions and reset the game to state zero. This cannot be undone!')) {
+    if (!confirm('Are you sure you want to reset EVERYTHING? A backup file will download first, then ALL questions, participants and play-along data are deleted and the game resets to state zero. This cannot be undone!')) {
       return;
     }
 
     try {
       setProcessing(true);
+
+      // Step 0: Auto-backup before wiping any data — abort the reset if it fails
+      await downloadGameData();
 
       // Step 1: Reset game state to default
       await gameStateManager.resetEverything();
@@ -1073,6 +1095,21 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
           </div>
         )}
 
+      {/* Data Export - Always Show */}
+      <div className="mb-6">
+        <h3 className="text-lg font-semibold text-white mb-3">Data Export</h3>
+        <button
+          onClick={handleDownloadData}
+          disabled={downloading}
+          className="px-6 py-2 bg-blue-600 text-white rounded font-semibold hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          {downloading ? '⏳ Preparing…' : '⬇️ Download Data'}
+        </button>
+        <p className="mt-2 text-sm text-gray-400">
+          Downloads one Excel file with participants, leaderboard, every play-along answer, and the full game record.
+        </p>
+      </div>
+
       {/* Reset Controls - Always Show */}
       <div className="mb-6">
         <h3 className="text-lg font-semibold text-white mb-3">Reset Controls</h3>
@@ -1097,6 +1134,7 @@ export default function GameControls({ gameState, onError, onQuestionUsed }: Gam
 
       {/* Reset Information */}
       <div className="p-3 bg-gray-700 rounded text-sm text-gray-300">
+        <p>💾 <strong>Auto-backup:</strong> Both resets download a full data backup before wiping anything</p>
         <p>🔄 <strong>Reset Game Only:</strong> Keeps questions, clears game state &amp; play-along answers</p>
         <p>⚠️ <strong>Reset EVERYTHING:</strong> Deletes ALL questions, play-along data + resets to state zero</p>
       </div>

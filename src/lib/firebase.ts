@@ -108,6 +108,10 @@ export const defaultGameState: GameState = {
   playAlongAnswerWindowOpen: false,
   playAlongDisplayMode: 'none',
   playAlongDisplayEntries: [],
+  showLeaderboard: false,
+  leaderboardScope: 'all',
+  leaderboardCorrectFilter: 'all',
+  leaderboardOrder: 'fastest',
   lastActivity: new Date().toISOString(),
   documentVersion: '3.0'
 };
